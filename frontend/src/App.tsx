@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
   BookOpenCheck,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Database,
   Download,
@@ -10,6 +12,7 @@ import {
   GitCompareArrows,
   PlayCircle,
   Plus,
+  RotateCcw,
   Search,
   ShieldCheck,
   Table2,
@@ -32,6 +35,8 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "relationships", label: "Relacoes" },
   { key: "compare", label: "Comparar" },
 ];
+
+const PAGE_SIZE = 250;
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -67,6 +72,7 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function DataTable({ rows }: { rows: Row[] }) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
   const columns = rows[0] ? Object.keys(rows[0]) : [];
   const visibleRows = useMemo(() => {
@@ -76,9 +82,15 @@ function DataTable({ rows }: { rows: Row[] }) {
       Object.values(row).some((value) => formatValue(value).toLowerCase().includes(normalized)),
     );
   }, [query, rows]);
+  const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + PAGE_SIZE, visibleRows.length);
+  const pageRows = visibleRows.slice(startIndex, endIndex);
   const hasExpandableRows = visibleRows.some(hasExpandableContent);
 
   useEffect(() => {
+    setPage(1);
     setExpandedRows(new Set());
   }, [query, rows]);
 
@@ -100,6 +112,11 @@ function DataTable({ rows }: { rows: Row[] }) {
         <div>
           <strong>{visibleRows.length}</strong>
           <span> registros</span>
+          {visibleRows.length > PAGE_SIZE ? (
+            <small>
+              Exibindo {startIndex + 1}-{endIndex}
+            </small>
+          ) : null}
         </div>
         <label className="search-box">
           <Search size={16} />
@@ -118,12 +135,13 @@ function DataTable({ rows }: { rows: Row[] }) {
             </tr>
           </thead>
           <tbody>
-            {visibleRows.slice(0, 250).map((row, index) => {
+            {pageRows.map((row, index) => {
+              const rowIndex = startIndex + index;
               const isExpandable = hasExpandableContent(row);
-              const isExpanded = expandedRows.has(index);
+              const isExpanded = expandedRows.has(rowIndex);
               return (
-                <Fragment key={`row-group-${index}`}>
-                  <tr key={`row-${index}`}>
+                <Fragment key={`row-group-${rowIndex}`}>
+                  <tr key={`row-${rowIndex}`}>
                     {hasExpandableRows ? (
                       <td className="row-action-cell">
                         {isExpandable ? (
@@ -132,7 +150,7 @@ function DataTable({ rows }: { rows: Row[] }) {
                             type="button"
                             title={isExpanded ? "Recolher linha" : "Expandir linha"}
                             aria-label={isExpanded ? "Recolher linha" : "Expandir linha"}
-                            onClick={() => toggleRow(index)}
+                            onClick={() => toggleRow(rowIndex)}
                           >
                             {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
                           </button>
@@ -144,7 +162,7 @@ function DataTable({ rows }: { rows: Row[] }) {
                     ))}
                   </tr>
                   {isExpanded ? (
-                    <tr className="expanded-row" key={`expanded-${index}`}>
+                    <tr className="expanded-row" key={`expanded-${rowIndex}`}>
                       <td colSpan={columns.length + (hasExpandableRows ? 1 : 0)}>
                         <div className="expanded-content">
                           {columns.map((column) => (
@@ -163,7 +181,33 @@ function DataTable({ rows }: { rows: Row[] }) {
           </tbody>
         </table>
       </div>
-      {visibleRows.length > 250 && <p className="hint">Mostrando os primeiros 250 registros filtrados.</p>}
+      {visibleRows.length > PAGE_SIZE ? (
+        <div className="pagination-bar">
+          <span>
+            Pagina {currentPage} de {totalPages}
+          </span>
+          <div>
+            <button
+              type="button"
+              className="pagination-button"
+              disabled={currentPage === 1}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+            >
+              <ChevronLeft size={16} />
+              Anterior
+            </button>
+            <button
+              type="button"
+              className="pagination-button"
+              disabled={currentPage === totalPages}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+            >
+              Proxima
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -259,28 +303,60 @@ function ChangeList({
   );
 }
 
-function CompareView() {
-  const [baseFile, setBaseFile] = useState<File | null>(null);
-  const [newFile, setNewFile] = useState<File | null>(null);
-  const [result, setResult] = useState<CompareResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+function CompareView({
+  baseFile,
+  newFile,
+  result,
+  loading,
+  error,
+  onBaseFileChange,
+  onNewFileChange,
+  onResultChange,
+  onLoadingChange,
+  onErrorChange,
+  onClear,
+}: {
+  baseFile: File | null;
+  newFile: File | null;
+  result: CompareResult | null;
+  loading: boolean;
+  error: string;
+  onBaseFileChange: (file: File | null) => void;
+  onNewFileChange: (file: File | null) => void;
+  onResultChange: (result: CompareResult | null) => void;
+  onLoadingChange: (loading: boolean) => void;
+  onErrorChange: (error: string) => void;
+  onClear: () => void;
+}) {
+  const hasComparisonState = Boolean(baseFile || newFile || result || error);
+
+  function handleBaseFileChange(file: File) {
+    onBaseFileChange(file);
+    onResultChange(null);
+    onErrorChange("");
+  }
+
+  function handleNewFileChange(file: File) {
+    onNewFileChange(file);
+    onResultChange(null);
+    onErrorChange("");
+  }
 
   async function handleCompare() {
     if (!baseFile || !newFile) {
-      setError("Selecione os dois JSONs para comparar.");
+      onErrorChange("Selecione os dois JSONs para comparar.");
       return;
     }
 
-    setLoading(true);
-    setError("");
+    onLoadingChange(true);
+    onErrorChange("");
     try {
       const comparison = await compareModels(baseFile, newFile);
-      setResult(comparison);
+      onResultChange(comparison);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao comparar.");
+      onErrorChange(err instanceof Error ? err.message : "Erro inesperado ao comparar.");
     } finally {
-      setLoading(false);
+      onLoadingChange(false);
     }
   }
 
@@ -297,14 +373,22 @@ function CompareView() {
       </header>
 
       <section className="compare-picker">
-        <CompareFileInput label="Modelo base" file={baseFile} onChange={setBaseFile} />
+        <CompareFileInput label="Modelo base" file={baseFile} onChange={handleBaseFileChange} />
         <div className="compare-plus">
           <Plus size={20} />
         </div>
-        <CompareFileInput label="Modelo novo" file={newFile} onChange={setNewFile} />
-        <button className="primary-action" disabled={loading || !baseFile || !newFile} onClick={handleCompare}>
-          {loading ? "Comparando..." : "Comparar modelos"}
-        </button>
+        <CompareFileInput label="Modelo novo" file={newFile} onChange={handleNewFileChange} />
+        <div className="compare-actions">
+          <button className="primary-action" disabled={loading || !baseFile || !newFile} onClick={handleCompare}>
+            {loading ? "Comparando..." : "Comparar modelos"}
+          </button>
+          {hasComparisonState ? (
+            <button className="ghost-action" type="button" onClick={onClear} disabled={loading}>
+              <RotateCcw size={18} />
+              Desfazer comparacao
+            </button>
+          ) : null}
+        </div>
       </section>
 
       {error ? <div className="error">{error}</div> : null}
@@ -649,6 +733,11 @@ export function App() {
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState("");
+  const [compareBaseFile, setCompareBaseFile] = useState<File | null>(null);
+  const [compareNewFile, setCompareNewFile] = useState<File | null>(null);
+  const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError] = useState("");
 
   async function handleAnalyze(file: File) {
     setLoading(true);
@@ -702,6 +791,14 @@ export function App() {
     setIsDemo(false);
     setError("");
     setActiveTab("overview");
+  }
+
+  function handleClearComparison() {
+    setCompareBaseFile(null);
+    setCompareNewFile(null);
+    setCompareResult(null);
+    setCompareLoading(false);
+    setCompareError("");
   }
 
   const rowsByTab: Record<DataTabKey, Row[]> = {
@@ -758,7 +855,21 @@ export function App() {
           />
         ) : null}
         {activeTab === "tutorial" ? <TutorialView /> : null}
-        {activeTab === "compare" ? <CompareView /> : null}
+        {activeTab === "compare" ? (
+          <CompareView
+            baseFile={compareBaseFile}
+            newFile={compareNewFile}
+            result={compareResult}
+            loading={compareLoading}
+            error={compareError}
+            onBaseFileChange={setCompareBaseFile}
+            onNewFileChange={setCompareNewFile}
+            onResultChange={setCompareResult}
+            onLoadingChange={setCompareLoading}
+            onErrorChange={setCompareError}
+            onClear={handleClearComparison}
+          />
+        ) : null}
         {report && isDataTab ? (
           <>
             <header className="page-header">
