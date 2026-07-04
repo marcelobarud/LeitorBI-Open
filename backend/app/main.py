@@ -5,6 +5,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
+from app.demo_data import DEMO_MODEL
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
@@ -52,6 +53,21 @@ async def compare_model_exports(base: UploadFile = File(...), novo: UploadFile =
 async def export_excel(file: UploadFile = File(...)) -> StreamingResponse:
     data = await read_json_upload(file)
     report = PowerBIAnalyzer(data).full_report()
+    return excel_response(report)
+
+
+@app.get("/api/demo/analyze")
+def analyze_demo_model() -> dict[str, Any]:
+    return PowerBIAnalyzer(DEMO_MODEL).full_report()
+
+
+@app.get("/api/demo/export-excel")
+def export_demo_excel() -> StreamingResponse:
+    report = PowerBIAnalyzer(DEMO_MODEL).full_report()
+    return excel_response(report)
+
+
+def excel_response(report: dict[str, Any]) -> StreamingResponse:
     output = build_excel(report)
     filename = f"{report['raw'].get('dashboardName') or 'leitorbi'}_analise.xlsx"
     return StreamingResponse(
@@ -59,4 +75,3 @@ async def export_excel(file: UploadFile = File(...)) -> StreamingResponse:
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
-

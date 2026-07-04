@@ -1,6 +1,19 @@
-import { BarChart3, Database, FileJson, GitCompareArrows, Plus, Search, Table2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Database,
+  Download,
+  FileJson,
+  GitCompareArrows,
+  PlayCircle,
+  Plus,
+  Search,
+  ShieldCheck,
+  Table2,
+  WandSparkles,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
-import { analyzeModel, compareModels } from "./api";
+import { analyzeDemoModel, analyzeModel, compareModels, exportDemoExcel, exportModelExcel } from "./api";
 import type { CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
 
 type DataTabKey = Exclude<TabKey, "overview" | "compare">;
@@ -18,6 +31,26 @@ const tabs: Array<{ key: TabKey; label: string }> = [
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
   return String(value);
+}
+
+function numberValue(value: Row[string]) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function pluralize(count: number, singular: string, plural: string) {
+  return count === 1 ? `${count} ${singular}` : `${count} ${plural}`;
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function DataTable({ rows }: { rows: Row[] }) {
@@ -251,13 +284,47 @@ function CompareView() {
   );
 }
 
-function UploadPanel({ onAnalyze }: { onAnalyze: (file: File) => void }) {
+function UploadPanel({
+  onAnalyze,
+  onLoadDemo,
+  loadingDemo,
+}: {
+  onAnalyze: (file: File) => void;
+  onLoadDemo: () => void;
+  loadingDemo: boolean;
+}) {
   return (
     <section className="upload-panel">
       <div className="upload-copy">
         <span className="eyebrow">LeitorBI Web</span>
-        <h1>Explore modelos Power BI com mais calma, clareza e beleza.</h1>
-        <p>Envie o JSON exportado pelo Tabular Editor para abrir tabelas, medidas, fontes e relacoes em uma leitura web.</p>
+        <h1>Transforme exports Power BI em uma leitura clara para auditoria e demo.</h1>
+        <p>
+          Abra tabelas, medidas, fontes, relacoes e mudancas do modelo em uma interface leve para revisar com o time.
+        </p>
+        <div className="hero-actions">
+          <button className="primary-action" type="button" onClick={onLoadDemo} disabled={loadingDemo}>
+            <PlayCircle size={18} />
+            {loadingDemo ? "Carregando..." : "Carregar exemplo"}
+          </button>
+          <span>Ou envie um JSON real exportado pelo LeitorBI.</span>
+        </div>
+        <div className="hero-proof">
+          <div>
+            <WandSparkles size={18} />
+            <strong>Resumo executivo</strong>
+            <span>KPIs do modelo prontos para apresentar.</span>
+          </div>
+          <div>
+            <GitCompareArrows size={18} />
+            <strong>Comparacao visual</strong>
+            <span>Mudancas agrupadas entre dois exports.</span>
+          </div>
+          <div>
+            <Download size={18} />
+            <strong>Entrega em Excel</strong>
+            <span>Inventario completo para compartilhar.</span>
+          </div>
+        </div>
       </div>
 
       <label className="drop-zone">
@@ -277,27 +344,102 @@ function UploadPanel({ onAnalyze }: { onAnalyze: (file: File) => void }) {
   );
 }
 
-function Overview({ report }: { report: Report }) {
+function Overview({
+  report,
+  onAnalyze,
+  onClose,
+  onExport,
+  loading,
+  exporting,
+  isDemo,
+}: {
+  report: Report;
+  onAnalyze: (file: File) => void;
+  onClose: () => void;
+  onExport: () => void;
+  loading: boolean;
+  exporting: boolean;
+  isDemo: boolean;
+}) {
   const summary = report.summary;
+  const tables = numberValue(summary["Tabelas utilizadas no modelo"]);
+  const totalColumns = numberValue(summary["Colunas totais"]);
+  const usedColumns = numberValue(summary["Colunas utilizadas"]);
+  const measures = numberValue(summary["Medidas"]);
+  const sources = numberValue(summary["Fontes de dados"]);
+  const relationships = numberValue(summary["Relacionamentos"]);
+  const inactiveRelationships = report.relationships.filter((row) => formatValue(row["Ativo"]) === "Nao").length;
+  const hiddenColumns = report.columns.filter((row) => formatValue(row["Oculto"]) === "Sim").length;
+  const calculatedTables = report.tables.filter((row) => formatValue(row["Tipo"]).toLowerCase().includes("calculada")).length;
   const cards: Array<[string, Row[string], Row[string]]> = [
-    ["Tabelas", summary["Tabelas utilizadas no modelo"], "Modelo visivel"],
-    ["Colunas", summary["Colunas totais"], "Inventario completo"],
-    ["Medidas", summary["Medidas"], "Calculos DAX"],
-    ["Fontes", summary["Fontes de dados"], summary["Tipos de fontes"]],
-    ["Relacoes", summary["Relacionamentos"], "Mapa sem tabelas tecnicas"],
+    ["Tabelas", tables, "Modelo visivel"],
+    ["Colunas", totalColumns, `${usedColumns} visiveis`],
+    ["Medidas", measures, "Calculos DAX"],
+    ["Fontes", sources, summary["Tipos de fontes"]],
+    ["Relacoes", relationships, "Mapa sem tabelas tecnicas"],
+  ];
+  const insightCards = [
+    {
+      icon: ShieldCheck,
+      title: "Pronto para leitura",
+      value: `${tables} tabelas e ${measures} medidas`,
+      detail: "Inventario centralizado para revisar estrutura, fonte e DAX.",
+      tone: "good",
+    },
+    {
+      icon: AlertTriangle,
+      title: "Pontos de atencao",
+      value: pluralize(inactiveRelationships, "relacao inativa", "relacoes inativas"),
+      detail: `${pluralize(hiddenColumns, "coluna oculta", "colunas ocultas")} e ${pluralize(
+        calculatedTables,
+        "tabela calculada detectada",
+        "tabelas calculadas detectadas",
+      )}.`,
+      tone: inactiveRelationships ? "warn" : "good",
+    },
+    {
+      icon: Database,
+      title: "Origem dos dados",
+      value: formatValue(summary["Tipos de fontes"]),
+      detail: "Tipos de conexao detectados pelas expressoes M das particoes.",
+      tone: "info",
+    },
   ];
 
   return (
     <div className="overview">
       <section className="model-hero">
         <div>
-          <span className="eyebrow">Modelo carregado</span>
+          <span className="eyebrow">{isDemo ? "Modelo de exemplo" : "Modelo carregado"}</span>
           <h1>{formatValue(summary["Dashboard"])}</h1>
           <p>
             {formatValue(summary["Modelo"])} | {formatValue(summary["Modo padrao"])} | {formatValue(summary["Data de exportacao"])}
           </p>
         </div>
-        <BarChart3 size={48} />
+        <div className="model-actions">
+          <label className="secondary-action file-action">
+            <FileJson size={18} />
+            {loading ? "Analisando..." : "Trocar JSON"}
+            <input
+              type="file"
+              accept=".json,application/json"
+              disabled={loading}
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (file) onAnalyze(file);
+              }}
+            />
+          </label>
+          <button className="secondary-action" type="button" onClick={onExport} disabled={exporting}>
+            <Download size={18} />
+            {exporting ? "Exportando..." : "Exportar Excel"}
+          </button>
+          <button className="ghost-action" type="button" onClick={onClose}>
+            <X size={18} />
+            Fechar analise
+          </button>
+        </div>
       </section>
 
       <section className="metric-grid">
@@ -308,6 +450,22 @@ function Overview({ report }: { report: Report }) {
             <small>{formatValue(detail)}</small>
           </article>
         ))}
+      </section>
+
+      <section className="insight-grid">
+        {insightCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <article className={`insight-card ${card.tone}`} key={card.title}>
+              <Icon size={22} />
+              <div>
+                <span>{card.title}</span>
+                <strong>{card.value}</strong>
+                <p>{card.detail}</p>
+              </div>
+            </article>
+          );
+        })}
       </section>
 
       <section className="summary-list">
@@ -326,6 +484,10 @@ export function App() {
   const [report, setReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [loading, setLoading] = useState(false);
+  const [loadingDemo, setLoadingDemo] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState("");
 
   async function handleAnalyze(file: File) {
@@ -334,12 +496,52 @@ export function App() {
     try {
       const result = await analyzeModel(file);
       setReport(result);
+      setCurrentFile(file);
+      setIsDemo(false);
       setActiveTab("overview");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleLoadDemo() {
+    setLoadingDemo(true);
+    setError("");
+    try {
+      const result = await analyzeDemoModel();
+      setReport(result);
+      setCurrentFile(null);
+      setIsDemo(true);
+      setActiveTab("overview");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar exemplo.");
+    } finally {
+      setLoadingDemo(false);
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    setError("");
+    try {
+      const blob = isDemo || !currentFile ? await exportDemoExcel() : await exportModelExcel(currentFile);
+      const dashboardName = report?.raw.dashboardName || "leitorbi";
+      downloadBlob(blob, `${dashboardName}_analise.xlsx`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao exportar.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  function handleCloseAnalysis() {
+    setReport(null);
+    setCurrentFile(null);
+    setIsDemo(false);
+    setError("");
+    setActiveTab("overview");
   }
 
   const rowsByTab: Record<DataTabKey, Row[]> = {
@@ -378,10 +580,22 @@ export function App() {
       </aside>
 
       <section className="content">
-        {!report && activeTab === "overview" ? <UploadPanel onAnalyze={handleAnalyze} /> : null}
+        {!report && activeTab === "overview" ? (
+          <UploadPanel onAnalyze={handleAnalyze} onLoadDemo={handleLoadDemo} loadingDemo={loadingDemo} />
+        ) : null}
         {loading ? <div className="status">Analisando modelo...</div> : null}
         {error ? <div className="error">{error}</div> : null}
-        {report && activeTab === "overview" ? <Overview report={report} /> : null}
+        {report && activeTab === "overview" ? (
+          <Overview
+            report={report}
+            onAnalyze={handleAnalyze}
+            onClose={handleCloseAnalysis}
+            onExport={handleExport}
+            loading={loading}
+            exporting={exporting}
+            isDemo={isDemo}
+          />
+        ) : null}
         {activeTab === "compare" ? <CompareView /> : null}
         {report && activeTab !== "overview" && activeTab !== "compare" ? (
           <>
