@@ -59,6 +59,18 @@ def detect_database_server(expression: Any) -> tuple[str, str]:
     return "", ""
 
 
+def detect_by_patterns(text: str, patterns: list[str]) -> bool:
+    return any(pattern in text for pattern in patterns)
+
+
+def display_source_type(value: Any) -> str:
+    text = safe_text(value)
+    normalized = normalize_text(text)
+    if normalized in {"calculated", "calculatedtable", "calculated table", "calculated_table", "calculado"}:
+        return "Calculada"
+    return text
+
+
 class PowerBIAnalyzer:
     def __init__(self, data: dict[str, Any]):
         self.data = data
@@ -112,6 +124,61 @@ class PowerBIAnalyzer:
         text = normalize_text(expression)
         source_type_norm = normalize_text(source_type)
 
+        if "analysisservices.database" in text and "powerbi://" in text:
+            return "Power BI Dataset"
+        if "sql.database" in text and (
+            "database.windows.net" in text
+            or ".sql.azuresynapse.net" in text
+            or ".sqlanalytics.net" in text
+            or "synapse" in text
+        ):
+            return "Azure SQL / Synapse"
+        if detect_by_patterns(text, ["databricks.catalogs", "databricks.contents"]):
+            return "Databricks"
+        if "snowflake.databases" in text:
+            return "Snowflake"
+        if "googlebigquery.database" in text:
+            return "BigQuery"
+        if "postgresql.database" in text:
+            return "PostgreSQL"
+        if "mysql.database" in text:
+            return "MySQL"
+        if "oracle.database" in text:
+            return "Oracle"
+        if "teradata.database" in text:
+            return "Teradata"
+        if detect_by_patterns(text, ["azurestorage.datalake", "azuredatalakestorage.contents"]):
+            return "Azure Data Lake"
+        if "azurestorage.blobs" in text:
+            return "Azure Blob Storage"
+        if "sapbusinesswarehouse.cubes" in text:
+            return "SAP BW"
+        if "saphana.database" in text:
+            return "SAP HANA"
+        if detect_by_patterns(text, ["onelake", "fabric", "lakehouse"]):
+            return "Fabric / OneLake"
+        if detect_by_patterns(text, ["salesforce.data", "salesforce.reports"]):
+            return "Salesforce"
+        if detect_by_patterns(text, ["commondataservice.database", "cds.entities", "dataverse"]):
+            return "Dataverse"
+        if "parquet.document" in text or ".parquet" in text:
+            return "Parquet"
+        if "xml.tables" in text or ".xml" in text:
+            return "XML"
+        if "pdf.tables" in text or ".pdf" in text:
+            return "PDF"
+        if "access.database" in text or ".accdb" in text or ".mdb" in text:
+            return "Access"
+        if detect_by_patterns(text, ["odbc.datasource", "odbc.query"]):
+            return "ODBC"
+        if "oledb.datasource" in text:
+            return "OLE DB"
+        if "exchange.contents" in text:
+            return "Exchange"
+        if "docs.google.com/spreadsheets" in text or "google.com/spreadsheets" in text:
+            return "Google Sheets"
+        if detect_by_patterns(text, ["onedrive.live.com", "my.sharepoint.com/personal"]):
+            return "OneDrive"
         if "sql.database" in text or (source_type_norm == "m" and "select " in text):
             return "SQL"
         if "excel.workbook" in text or ".xlsx" in text or ".xls" in text:
@@ -146,10 +213,10 @@ class PowerBIAnalyzer:
             if only_physical_tables and not self.is_visible_physical_table(table):
                 continue
             for partition in safe_list(table, "partitions"):
-                source_type = self.detect_source_type(
+                source_type = display_source_type(self.detect_source_type(
                     safe_value(partition, "expression", ""),
                     safe_value(partition, "sourceType", ""),
-                )
+                ))
                 source_types[source_type] = source_types.get(source_type, 0) + 1
 
         self._cache[cache_key] = source_types
@@ -273,10 +340,15 @@ class PowerBIAnalyzer:
             for partition in safe_list(table, "partitions"):
                 expression = safe_value(partition, "expression", "")
                 server, database = detect_database_server(expression)
+                detected_source_type = display_source_type(self.detect_source_type(
+                    expression,
+                    safe_value(partition, "sourceType", ""),
+                ))
                 rows.append({
                     "Tabela": table_name,
                     "Particao": safe_value(partition, "name", ""),
-                    "Tipo fonte": translate_model_type(safe_value(partition, "sourceType", "")),
+                    "Fonte detectada": detected_source_type,
+                    "Tipo fonte": display_source_type(translate_model_type(safe_value(partition, "sourceType", ""))),
                     "Modo": translate_model_type(safe_value(partition, "mode", "")),
                     "Servidor": server,
                     "Banco": database,
@@ -323,4 +395,3 @@ class PowerBIAnalyzer:
                 "exportDate": safe_value(self.data, "exportDate", ""),
             },
         }
-
