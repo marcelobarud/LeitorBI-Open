@@ -362,7 +362,7 @@ function Overview({
   isDemo: boolean;
 }) {
   const summary = report.summary;
-  const tables = numberValue(summary["Tabelas utilizadas no modelo"]);
+  const tables = numberValue(summary["Tabelas totais"]);
   const totalColumns = numberValue(summary["Colunas totais"]);
   const usedColumns = numberValue(summary["Colunas utilizadas"]);
   const measures = numberValue(summary["Medidas"]);

@@ -268,15 +268,13 @@ class PowerBIAnalyzer:
             "Data de exportacao": safe_value(self.data, "exportDate", "Nao informado"),
             "Cultura": safe_value(self.metadata, "culture", "Nao informado"),
             "Modo padrao": safe_value(self.metadata, "defaultMode", "Nao informado"),
-            "Tabelas utilizadas no modelo": len(visible_tables),
             "Colunas utilizadas": self.count_visible_fields(visible_tables),
             "Colunas utilizadas em medidas": len(self.columns_used_in_measures()),
             "Colunas totais": self.count_total_columns(),
             "Medidas": len(measures),
             "Fontes de dados": len(source_types),
             "Tipos de fontes": ", ".join(source_types.keys()) if source_types else "Nao detectado",
-            "Tabelas totais consideradas": len(self.tables_without_technical_dates()),
-            "Tabelas tecnicas de data ignoradas": len(self.tables) - len(self.tables_without_technical_dates()),
+            "Tabelas totais": len(self.tables_without_technical_dates()),
             "Relacionamentos": len(self.relationship_rows()),
         }
 
