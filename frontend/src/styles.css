@@ -435,6 +435,67 @@ td {
   font-size: 13px;
 }
 
+.row-action-header,
+.row-action-cell {
+  min-width: 78px;
+  text-align: center;
+  width: 78px;
+}
+
+.icon-action {
+  align-items: center;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #1d4ed8;
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.icon-action:hover {
+  background: #dbeafe;
+}
+
+.expanded-row td {
+  background: #f8fafc;
+  max-width: none;
+  white-space: normal;
+}
+
+.expanded-content {
+  display: grid;
+  gap: 12px;
+  padding: 6px;
+}
+
+.expanded-content section {
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.expanded-content span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.expanded-content pre {
+  color: #172033;
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .hint {
   color: #64748b;
   padding: 12px 14px;

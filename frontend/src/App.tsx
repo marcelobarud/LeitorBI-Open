@@ -4,6 +4,8 @@ import {
   ClipboardList,
   Database,
   Download,
+  Maximize2,
+  Minimize2,
   FileJson,
   GitCompareArrows,
   PlayCircle,
@@ -14,7 +16,7 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { analyzeDemoModel, analyzeModel, compareModels, exportDemoExcel, exportModelExcel } from "./api";
 import type { CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
 
@@ -34,6 +36,13 @@ const tabs: Array<{ key: TabKey; label: string }> = [
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
   return String(value);
+}
+
+function hasExpandableContent(row: Row) {
+  return Object.values(row).some((value) => {
+    const text = formatValue(value);
+    return text.length > 120 || text.includes("\n") || text.includes("#(lf)");
+  });
 }
 
 function numberValue(value: Row[string]) {
@@ -58,6 +67,7 @@ function downloadBlob(blob: Blob, filename: string) {
 
 function DataTable({ rows }: { rows: Row[] }) {
   const [query, setQuery] = useState("");
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
   const columns = rows[0] ? Object.keys(rows[0]) : [];
   const visibleRows = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -66,6 +76,23 @@ function DataTable({ rows }: { rows: Row[] }) {
       Object.values(row).some((value) => formatValue(value).toLowerCase().includes(normalized)),
     );
   }, [query, rows]);
+  const hasExpandableRows = visibleRows.some(hasExpandableContent);
+
+  useEffect(() => {
+    setExpandedRows(new Set());
+  }, [query, rows]);
+
+  function toggleRow(index: number) {
+    setExpandedRows((current) => {
+      const next = new Set(current);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
+  }
 
   return (
     <section className="data-shell">
@@ -84,19 +111,55 @@ function DataTable({ rows }: { rows: Row[] }) {
         <table>
           <thead>
             <tr>
+              {hasExpandableRows ? <th className="row-action-header">Detalhes</th> : null}
               {columns.map((column) => (
                 <th key={column}>{column}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {visibleRows.slice(0, 250).map((row, index) => (
-              <tr key={index}>
-                {columns.map((column) => (
-                  <td key={column}>{formatValue(row[column])}</td>
-                ))}
-              </tr>
-            ))}
+            {visibleRows.slice(0, 250).map((row, index) => {
+              const isExpandable = hasExpandableContent(row);
+              const isExpanded = expandedRows.has(index);
+              return (
+                <Fragment key={`row-group-${index}`}>
+                  <tr key={`row-${index}`}>
+                    {hasExpandableRows ? (
+                      <td className="row-action-cell">
+                        {isExpandable ? (
+                          <button
+                            className="icon-action"
+                            type="button"
+                            title={isExpanded ? "Recolher linha" : "Expandir linha"}
+                            aria-label={isExpanded ? "Recolher linha" : "Expandir linha"}
+                            onClick={() => toggleRow(index)}
+                          >
+                            {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                          </button>
+                        ) : null}
+                      </td>
+                    ) : null}
+                    {columns.map((column) => (
+                      <td key={column}>{formatValue(row[column])}</td>
+                    ))}
+                  </tr>
+                  {isExpanded ? (
+                    <tr className="expanded-row" key={`expanded-${index}`}>
+                      <td colSpan={columns.length + (hasExpandableRows ? 1 : 0)}>
+                        <div className="expanded-content">
+                          {columns.map((column) => (
+                            <section key={column}>
+                              <span>{column}</span>
+                              <pre>{formatValue(row[column])}</pre>
+                            </section>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
