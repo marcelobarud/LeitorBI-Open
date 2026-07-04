@@ -32,7 +32,7 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "columns", label: "Colunas" },
   { key: "measures", label: "Medidas" },
   { key: "sources", label: "Fontes" },
-  { key: "relationships", label: "Relacoes" },
+  { key: "relationships", label: "Relações" },
   { key: "compare", label: "Comparar" },
 ];
 
@@ -608,7 +608,7 @@ function UploadPanel({
         <span className="eyebrow">LeitorBI Web</span>
         <h1>Transforme exports Power BI em uma leitura clara para auditoria e demo.</h1>
         <p>
-          Abra tabelas, medidas, fontes, relacoes e mudancas do modelo em uma interface leve para revisar com o time.
+          Abra tabelas, medidas, fontes, relações e mudancas do modelo em uma interface leve para revisar com o time.
         </p>
         <div className="hero-actions">
           <button className="primary-action" type="button" onClick={onLoadDemo} disabled={loadingDemo}>
@@ -685,7 +685,7 @@ function Overview({
     ["Colunas", totalColumns, `${usedColumns} visiveis`],
     ["Medidas", measures, "Calculos DAX"],
     ["Fontes", sources, summary["Tipos de fontes"]],
-    ["Relacoes", relationships, "Mapa sem tabelas tecnicas"],
+    ["Relações", relationships, "Mapa sem tabelas tecnicas"],
   ];
   const insightCards = [
     {
@@ -698,7 +698,7 @@ function Overview({
     {
       icon: AlertTriangle,
       title: "Pontos de atencao",
-      value: pluralize(inactiveRelationships, "relacao inativa", "relacoes inativas"),
+      value: pluralize(inactiveRelationships, "relação inativa", "relações inativas"),
       detail: `${pluralize(hiddenColumns, "coluna oculta", "colunas ocultas")} e ${pluralize(
         calculatedTables,
         "tabela calculada detectada",
