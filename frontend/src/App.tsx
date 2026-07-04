@@ -260,6 +260,23 @@ function entryTitle(entry: CompareEntry, fallback = "Item") {
   return String(entry.nome ?? entry.medida ?? entry.coluna ?? entry.tabela ?? fallback);
 }
 
+function compareValueToText(value: CompareEntry[string]) {
+  if (Array.isArray(value)) return value.length ? value.join("\n") : "-";
+  return formatValue(value);
+}
+
+function compareDetails(item: string | CompareEntry) {
+  if (typeof item === "string") {
+    return [{ key: "valor", label: "Valor", value: item }];
+  }
+
+  return Object.entries(item).map(([key, value]) => ({
+    key,
+    label: key.replace(/_/g, " "),
+    value: compareValueToText(value),
+  }));
+}
+
 function ChangeList({
   title,
   tone,
@@ -269,6 +286,24 @@ function ChangeList({
   tone: "added" | "removed" | "changed";
   items: Array<string | CompareEntry>;
 }) {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
+
+  useEffect(() => {
+    setExpandedItems(new Set());
+  }, [items]);
+
+  function toggleItem(key: string) {
+    setExpandedItems((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
   return (
     <article className="change-list">
       <header>
@@ -281,18 +316,48 @@ function ChangeList({
         <ul>
           {items.slice(0, 80).map((item, index) => {
             const titleText = typeof item === "string" ? item : entryTitle(item);
-            const detail =
-              typeof item === "string"
-                ? ""
-                : Object.entries(item)
-                    .filter(([key]) => !["antes", "depois"].includes(key))
-                    .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : formatValue(value)}`)
-                    .join(" | ");
+            const itemKey = `${title}-${titleText}-${index}`;
+            const isExpanded = expandedItems.has(itemKey);
+            const details = compareDetails(item);
+            const hasDaxChange = typeof item !== "string" && ("antes" in item || "depois" in item);
 
             return (
-              <li key={`${titleText}-${index}`}>
-                <strong>{titleText}</strong>
-                {detail ? <span>{detail}</span> : null}
+              <li className="change-item" key={itemKey}>
+                <div className="change-item-main">
+                  <strong>{titleText}</strong>
+                  <button
+                    className="icon-action"
+                    type="button"
+                    title={isExpanded ? "Recolher detalhe" : "Expandir detalhe"}
+                    aria-label={isExpanded ? "Recolher detalhe" : "Expandir detalhe"}
+                    onClick={() => toggleItem(itemKey)}
+                  >
+                    {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                  </button>
+                </div>
+                {isExpanded ? (
+                  <div className={hasDaxChange ? "change-detail dax-detail" : "change-detail"}>
+                    {hasDaxChange ? (
+                      <>
+                        <section>
+                          <span>Antes</span>
+                          <pre>{compareValueToText(typeof item === "string" ? "" : item.antes)}</pre>
+                        </section>
+                        <section>
+                          <span>Depois</span>
+                          <pre>{compareValueToText(typeof item === "string" ? "" : item.depois)}</pre>
+                        </section>
+                      </>
+                    ) : (
+                      details.map((detail) => (
+                        <section key={detail.key}>
+                          <span>{detail.label}</span>
+                          <pre>{detail.value}</pre>
+                        </section>
+                      ))
+                    )}
+                  </div>
+                ) : null}
               </li>
             );
           })}
