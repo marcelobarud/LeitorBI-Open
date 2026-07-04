@@ -1,5 +1,7 @@
 import {
   AlertTriangle,
+  BookOpenCheck,
+  ClipboardList,
   Database,
   Download,
   FileJson,
@@ -16,10 +18,11 @@ import { useMemo, useState } from "react";
 import { analyzeDemoModel, analyzeModel, compareModels, exportDemoExcel, exportModelExcel } from "./api";
 import type { CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
 
-type DataTabKey = Exclude<TabKey, "overview" | "compare">;
+type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "overview", label: "Inicio" },
+  { key: "tutorial", label: "Tutorial" },
   { key: "tables", label: "Tabelas" },
   { key: "columns", label: "Colunas" },
   { key: "measures", label: "Medidas" },
@@ -280,6 +283,100 @@ function CompareView() {
           </section>
         </>
       ) : null}
+    </div>
+  );
+}
+
+function TutorialView() {
+  const steps = [
+    {
+      label: "PASSO 1",
+      title: "Abra o Power BI Desktop",
+      detail: "Abra o arquivo .pbix e aguarde o modelo carregar.",
+    },
+    {
+      label: "PASSO 2",
+      title: "Abra o Tabular Editor",
+      detail: "Acesse Ferramentas externas e conecte o Tabular Editor ao modelo.",
+    },
+    {
+      label: "PASSO 3",
+      title: "Execute o script de exportacao",
+      detail: "Execute o script",
+      script: "PBIXExportModel",
+      suffix: "para gerar o JSON de analise.",
+    },
+    {
+      label: "PASSO 4",
+      title: "Abra o JSON no LeitorBI",
+      detail: "Clique em Carregar JSON e selecione o arquivo salvo na pasta Downloads.",
+    },
+    {
+      label: "PASSO 5",
+      title: "Analise e exporte",
+      detail: "Use filtros, detalhamentos e Exportar Excel para compartilhar a analise.",
+    },
+  ];
+
+  const tips = [
+    "O script destacado e o responsavel por extrair o modelo em JSON para leitura no LeitorBI.",
+    "Se o JSON nao aparecer, confirme se o Power BI terminou de carregar o modelo antes de executar o script.",
+    "Depois da extracao, o fluxo continua pela aba Inicio com o botao de carregar JSON.",
+  ];
+
+  return (
+    <div className="tutorial-page">
+      <header className="page-header">
+        <BookOpenCheck size={22} />
+        <div>
+          <h2>Tutorial</h2>
+          <p>Como extrair o JSON do Power BI e abrir a analise no LeitorBI.</p>
+        </div>
+      </header>
+
+      <section className="tutorial-hero">
+        <div>
+          <span className="eyebrow">Extracao do modelo</span>
+          <h1>Gere o JSON pelo Tabular Editor e continue a analise no LeitorBI.</h1>
+          <p>
+            O passo central e executar o script de exportacao usado para transformar o modelo aberto no Power BI em um
+            arquivo JSON.
+          </p>
+        </div>
+        <ClipboardList size={64} />
+      </section>
+
+      <section className="tutorial-steps">
+        {steps.map((step) => (
+          <article className="tutorial-step" key={step.title}>
+            <span>{step.label}</span>
+            <div>
+              <h3>{step.title}</h3>
+              <p>
+                {step.detail}
+                {step.script ? (
+                  <>
+                    {" "}
+                    <code>{step.script}</code>{" "}
+                  </>
+                ) : (
+                  " "
+                )}
+                {step.suffix ?? ""}
+              </p>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="tutorial-notes">
+        <h3>Dicas de uso</h3>
+        <ul>
+          {tips.map((tip) => (
+            <li key={tip}>{tip}</li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
@@ -552,7 +649,8 @@ export function App() {
     relationships: report?.relationships ?? [],
   };
 
-  const activeRows = activeTab === "overview" ? [] : rowsByTab[activeTab as DataTabKey];
+  const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);
+  const activeRows = isDataTab ? rowsByTab[activeTab as DataTabKey] : [];
 
   return (
     <main className="app-shell">
@@ -566,7 +664,7 @@ export function App() {
             <button
               key={tab.key}
               className={activeTab === tab.key ? "active" : ""}
-              disabled={!report && !["overview", "compare"].includes(tab.key)}
+              disabled={!report && !["overview", "tutorial", "compare"].includes(tab.key)}
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.label}
@@ -596,8 +694,9 @@ export function App() {
             isDemo={isDemo}
           />
         ) : null}
+        {activeTab === "tutorial" ? <TutorialView /> : null}
         {activeTab === "compare" ? <CompareView /> : null}
-        {report && activeTab !== "overview" && activeTab !== "compare" ? (
+        {report && isDataTab ? (
           <>
             <header className="page-header">
               <Table2 size={22} />

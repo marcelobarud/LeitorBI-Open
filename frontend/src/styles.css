@@ -445,6 +445,103 @@ td {
   gap: 18px;
 }
 
+.tutorial-page {
+  display: grid;
+  gap: 18px;
+}
+
+.tutorial-hero {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 8px;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 28px;
+}
+
+.tutorial-hero h1 {
+  font-size: 34px;
+  line-height: 1.12;
+  margin-top: 10px;
+  max-width: 720px;
+}
+
+.tutorial-hero p {
+  color: #566274;
+  font-size: 16px;
+  line-height: 1.55;
+  margin-top: 14px;
+  max-width: 680px;
+}
+
+.tutorial-hero svg {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.tutorial-steps {
+  display: grid;
+  gap: 16px;
+}
+
+.tutorial-step,
+.tutorial-notes {
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.tutorial-step {
+  align-items: center;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 78px minmax(0, 1fr);
+}
+
+.tutorial-step > span {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #2563eb;
+  display: inline-grid;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 36px;
+  place-items: center;
+}
+
+.tutorial-step h3,
+.tutorial-notes h3 {
+  font-size: 17px;
+  margin: 0;
+}
+
+.tutorial-step p {
+  color: #64748b;
+  line-height: 1.5;
+  margin-top: 9px;
+}
+
+.tutorial-step code {
+  color: #15803d;
+  font-family: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tutorial-notes ul {
+  color: #334155;
+  display: grid;
+  gap: 10px;
+  line-height: 1.45;
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+
 .compare-picker {
   align-items: stretch;
   background: #ffffff;
@@ -715,6 +812,15 @@ td {
   .compare-hero {
     align-items: stretch;
     display: grid;
+  }
+
+  .tutorial-hero {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .tutorial-step {
+    grid-template-columns: 1fr;
   }
 
   .model-hero {

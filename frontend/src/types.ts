@@ -40,4 +40,12 @@ export type CompareResult = {
   };
 };
 
-export type TabKey = "overview" | "tables" | "columns" | "measures" | "sources" | "relationships" | "compare";
+export type TabKey =
+  | "overview"
+  | "tutorial"
+  | "tables"
+  | "columns"
+  | "measures"
+  | "sources"
+  | "relationships"
+  | "compare";
