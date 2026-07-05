@@ -24,7 +24,6 @@ class ReportResponse(BaseModel):
     measures: list[Row]
     sources: list[Row]
     relationships: list[Row]
-    quality: list[Row]
     columnsUsedInMeasures: list[Row]
     raw: RawModelInfo
 

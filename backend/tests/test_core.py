@@ -21,7 +21,7 @@ class FakeUpload:
         return self._content
 
 
-def test_analyzer_demo_report_has_expected_sections_and_quality_flags():
+def test_analyzer_demo_report_has_expected_sections():
     report = PowerBIAnalyzer(DEMO_MODEL).full_report()
 
     assert report["summary"]["Dashboard"] == "Demo Comercial"
@@ -29,7 +29,7 @@ def test_analyzer_demo_report_has_expected_sections_and_quality_flags():
     assert "SQL" in report["summary"]["Tipos de fontes"]
     assert report["sources"][0]["Servidor"] == "srv-bi"
     assert report["relationships"][-1]["Ativo"] == "Não"
-    assert any(item["Categoria"] == "Relacionamento" for item in report["quality"])
+    assert "quality" not in report
 
 
 def test_analyzer_filters_technical_date_tables():
@@ -59,12 +59,13 @@ def test_compare_models_reports_measure_column_and_relationship_changes():
     )
 
 
-def test_build_excel_includes_quality_sheet():
+def test_build_excel_includes_expected_sheets():
     report = PowerBIAnalyzer(DEMO_MODEL).full_report()
     workbook = load_workbook(build_excel(report))
 
     assert "Resumo" in workbook.sheetnames
-    assert "Qualidade" in workbook.sheetnames
+    assert "Qualidade" not in workbook.sheetnames
+    assert "Colunas em Medidas" in workbook.sheetnames
     assert workbook["Resumo"]["A1"].value == "Indicador"
 
 

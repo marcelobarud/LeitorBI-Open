@@ -34,7 +34,6 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "measures", label: "Medidas" },
   { key: "sources", label: "Fontes" },
   { key: "relationships", label: "Relações" },
-  { key: "quality", label: "Qualidade" },
   { key: "compare", label: "Comparar" },
 ];
 
@@ -1076,7 +1075,6 @@ export function App() {
     measures: report?.measures ?? [],
     sources: report?.sources ?? [],
     relationships: report?.relationships ?? [],
-    quality: report?.quality ?? [],
   };
 
   const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);

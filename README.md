@@ -42,7 +42,7 @@ Frontend:
 
 Para publicar em rede ou produção, configure `LEITORBI_CORS_ORIGINS` com a URL do frontend e `VITE_API_URL` com a URL da API.
 
-## Qualidade
+## Testes
 
 O backend tem testes com `pytest` para análise, comparação, exportação Excel e validação de uploads:
 

@@ -242,7 +242,6 @@ class PowerBIAnalyzer:
         source_types = self.count_source_types(only_physical_tables=True)
         visible_tables = self.visible_physical_tables()
         measures = self.measures()
-        quality = self.quality_rows()
         return {
             "Dashboard": safe_value(self.data, "dashboardName", "Não informado"),
             "Modelo": safe_value(self.data, "modelName", "Não informado"),
@@ -257,7 +256,6 @@ class PowerBIAnalyzer:
             "Tipos de fontes": ", ".join(source_types.keys()) if source_types else "Não detectado",
             "Tabelas totais": len(self.tables_without_technical_dates()),
             "Relacionamentos": len(self.relationship_rows()),
-            "Pontos de atenção": len(quality),
         }
 
     def table_rows(self) -> list[dict[str, Any]]:
@@ -357,69 +355,6 @@ class PowerBIAnalyzer:
             })
         return rows
 
-    def quality_rows(self) -> list[dict[str, Any]]:
-        if "quality_rows" in self._cache:
-            return self._cache["quality_rows"]
-
-        rows: list[dict[str, Any]] = []
-        used_columns = self.columns_used_in_measures()
-
-        for measure in self.measures():
-            if not safe_text(measure.get("Descricao", "")).strip():
-                rows.append({
-                    "Severidade": "Baixa",
-                    "Categoria": "Documentação",
-                    "Item": f"{measure.get('Tabela', '')}.{measure.get('Medida', '')}",
-                    "Diagnóstico": "Medida sem descrição.",
-                    "Recomendação": "Descrever regra de negócio, granularidade e exceções da medida.",
-                })
-            if safe_value(measure, "Tamanho DAX", 0) >= 500:
-                rows.append({
-                    "Severidade": "Média",
-                    "Categoria": "DAX",
-                    "Item": f"{measure.get('Tabela', '')}.{measure.get('Medida', '')}",
-                    "Diagnóstico": "Medida com expressão DAX longa.",
-                    "Recomendação": "Revisar legibilidade, variáveis e possível decomposição em medidas auxiliares.",
-                })
-
-        for table in self.tables_without_technical_dates():
-            table_name = safe_value(table, "name", "")
-            if not safe_list(table, "partitions"):
-                rows.append({
-                    "Severidade": "Média",
-                    "Categoria": "Estrutura",
-                    "Item": table_name,
-                    "Diagnóstico": "Tabela sem partição detectada.",
-                    "Recomendação": "Confirmar se a tabela é válida ou se o export está incompleto.",
-                })
-
-            for column in safe_list(table, "columns"):
-                column_name = safe_value(column, "name", "")
-                if safe_value(column, "isHidden", False):
-                    continue
-                if (table_name, column_name) not in used_columns:
-                    rows.append({
-                        "Severidade": "Baixa",
-                        "Categoria": "Uso",
-                        "Item": f"{table_name}.{column_name}",
-                        "Diagnóstico": "Coluna visível sem referência direta em medidas.",
-                        "Recomendação": "Validar se a coluna deve permanecer visível para relatório ou autoatendimento.",
-                    })
-
-        for relationship in self.relationship_rows():
-            direction = normalize_text(relationship.get("Direcao filtro", ""))
-            if direction in {"bothdirections", "both", "ambas"}:
-                rows.append({
-                    "Severidade": "Alta",
-                    "Categoria": "Relacionamento",
-                    "Item": safe_value(relationship, "Relacionamento", ""),
-                    "Diagnóstico": "Relacionamento com filtro bidirecional.",
-                    "Recomendação": "Revisar impacto em ambiguidade, performance e resultados de medidas.",
-                })
-
-        self._cache["quality_rows"] = rows
-        return rows
-
     def full_report(self) -> dict[str, Any]:
         return {
             "summary": self.summary(),
@@ -428,7 +363,6 @@ class PowerBIAnalyzer:
             "measures": self.measures(),
             "sources": self.source_rows(),
             "relationships": self.relationship_rows(),
-            "quality": self.quality_rows(),
             "columnsUsedInMeasures": [
                 {"Tabela": table, "Coluna": column}
                 for table, column in sorted(self.columns_used_in_measures())

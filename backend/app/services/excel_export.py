@@ -21,7 +21,6 @@ def build_excel(report: dict[str, Any], selected_sheet: str | None = None) -> By
         "Medidas": report.get("measures", []),
         "Fontes": report.get("sources", []),
         "Relacionamentos": report.get("relationships", []),
-        "Qualidade": report.get("quality", []),
         "Colunas em Medidas": report.get("columnsUsedInMeasures", []),
     }
     if selected_sheet:
