@@ -440,25 +440,29 @@ function CompareFileInput({
 function countCompareChanges(result: CompareResult) {
   return {
     added:
-      result.tabelas.adicionadas.length +
-      result.colunas.adicionadas.length +
-      result.medidas.adicionadas.length +
-      result.relacionamentos.adicionados.length,
+      compareItems(result.tabelas.adicionadas).length +
+      compareItems(result.colunas.adicionadas).length +
+      compareItems(result.medidas.adicionadas).length +
+      compareItems(result.relacionamentos.adicionados).length,
     removed:
-      result.tabelas.removidas.length +
-      result.colunas.removidas.length +
-      result.medidas.removidas.length +
-      result.relacionamentos.removidos.length,
+      compareItems(result.tabelas.removidas).length +
+      compareItems(result.colunas.removidas).length +
+      compareItems(result.medidas.removidas).length +
+      compareItems(result.relacionamentos.removidos).length,
     changed:
-      result.tabelas.modificadas.length +
-      result.colunas.modificadas.length +
-      result.medidas.modificadas.length +
-      result.relacionamentos.modificados.length,
+      compareItems(result.tabelas.modificadas).length +
+      compareItems(result.colunas.modificadas).length +
+      compareItems(result.medidas.modificadas).length +
+      compareItems(result.relacionamentos.modificados).length,
   };
 }
 
+function compareItems<T>(items: T[] | null | undefined) {
+  return Array.isArray(items) ? items : [];
+}
+
 function entryTitle(entry: CompareEntry, fallback = "Item") {
-  return String(entry.nome ?? entry.medida ?? entry.coluna ?? entry.tabela ?? fallback);
+  return String(entry.nome ?? entry.medida ?? entry.coluna ?? entry.relacionamento ?? entry.tabela ?? fallback);
 }
 
 function compareValueToText(value: CompareEntry[string]) {
@@ -683,18 +687,30 @@ function CompareView({
           </section>
 
           <section className="change-grid">
-            <ChangeList title="Tabelas adicionadas" tone="added" items={result.tabelas.adicionadas} />
-            <ChangeList title="Tabelas removidas" tone="removed" items={result.tabelas.removidas} />
-            <ChangeList title="Tabelas modificadas" tone="changed" items={result.tabelas.modificadas} />
-            <ChangeList title="Colunas adicionadas" tone="added" items={result.colunas.adicionadas} />
-            <ChangeList title="Colunas removidas" tone="removed" items={result.colunas.removidas} />
-            <ChangeList title="Colunas modificadas" tone="changed" items={result.colunas.modificadas} />
-            <ChangeList title="Medidas adicionadas" tone="added" items={result.medidas.adicionadas} />
-            <ChangeList title="Medidas removidas" tone="removed" items={result.medidas.removidas} />
-            <ChangeList title="Medidas modificadas" tone="changed" items={result.medidas.modificadas} />
-            <ChangeList title="Relacionamentos adicionados" tone="added" items={result.relacionamentos.adicionados} />
-            <ChangeList title="Relacionamentos removidos" tone="removed" items={result.relacionamentos.removidos} />
-            <ChangeList title="Relacionamentos modificados" tone="changed" items={result.relacionamentos.modificados} />
+            <ChangeList title="Tabelas adicionadas" tone="added" items={compareItems(result.tabelas.adicionadas)} />
+            <ChangeList title="Tabelas removidas" tone="removed" items={compareItems(result.tabelas.removidas)} />
+            <ChangeList title="Tabelas modificadas" tone="changed" items={compareItems(result.tabelas.modificadas)} />
+            <ChangeList title="Colunas adicionadas" tone="added" items={compareItems(result.colunas.adicionadas)} />
+            <ChangeList title="Colunas removidas" tone="removed" items={compareItems(result.colunas.removidas)} />
+            <ChangeList title="Colunas modificadas" tone="changed" items={compareItems(result.colunas.modificadas)} />
+            <ChangeList title="Medidas adicionadas" tone="added" items={compareItems(result.medidas.adicionadas)} />
+            <ChangeList title="Medidas removidas" tone="removed" items={compareItems(result.medidas.removidas)} />
+            <ChangeList title="Medidas modificadas" tone="changed" items={compareItems(result.medidas.modificadas)} />
+            <ChangeList
+              title="Relacionamentos adicionados"
+              tone="added"
+              items={compareItems(result.relacionamentos.adicionados)}
+            />
+            <ChangeList
+              title="Relacionamentos removidos"
+              tone="removed"
+              items={compareItems(result.relacionamentos.removidos)}
+            />
+            <ChangeList
+              title="Relacionamentos modificados"
+              tone="changed"
+              items={compareItems(result.relacionamentos.modificados)}
+            />
           </section>
         </>
       ) : null}
