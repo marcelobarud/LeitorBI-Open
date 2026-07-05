@@ -849,6 +849,16 @@ td {
   margin-top: 9px;
 }
 
+.tutorial-step a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.tutorial-step a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .tutorial-step code {
   color: #15803d;
   font-family: inherit;

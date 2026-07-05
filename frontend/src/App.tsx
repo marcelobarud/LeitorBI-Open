@@ -722,28 +722,41 @@ function TutorialView() {
   const steps = [
     {
       label: "PASSO 1",
+      title: "Baixe e instale o Tabular Editor",
+      detail: (
+        <>
+          Baixe e instale o{" "}
+          <a href="https://github.com/TabularEditor/TabularEditor/releases/latest" target="_blank" rel="noreferrer">
+            <strong>Tabular Editor</strong>
+          </a>{" "}
+          antes de iniciar a extração.
+        </>
+      ),
+    },
+    {
+      label: "PASSO 2",
       title: "Abra o Power BI Desktop",
       detail: "Abra o arquivo .pbix e aguarde o modelo carregar.",
     },
     {
-      label: "PASSO 2",
+      label: "PASSO 3",
       title: "Abra o Tabular Editor",
       detail: "Acesse Ferramentas externas e conecte o Tabular Editor ao modelo.",
     },
     {
-      label: "PASSO 3",
+      label: "PASSO 4",
       title: "Execute o script de exportação",
       detail: "Execute o script",
       script: "PBIXExportModel",
       suffix: "para gerar o JSON de análise.",
     },
     {
-      label: "PASSO 4",
+      label: "PASSO 5",
       title: "Abra o JSON no LeitorBI",
       detail: "Clique em Carregar JSON e selecione o arquivo salvo na pasta Downloads.",
     },
     {
-      label: "PASSO 5",
+      label: "PASSO 6",
       title: "Analise e exporte",
       detail: "Use filtros, detalhamentos e Exportar Excel para compartilhar a análise.",
     },
