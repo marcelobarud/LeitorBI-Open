@@ -7,6 +7,7 @@ export type Report = {
   measures: Row[];
   sources: Row[];
   relationships: Row[];
+  quality: Row[];
   columnsUsedInMeasures: Row[];
   raw: {
     dashboardName: string;
@@ -33,10 +34,12 @@ export type CompareResult = {
   colunas: {
     adicionadas: CompareEntry[];
     removidas: CompareEntry[];
+    modificadas: CompareEntry[];
   };
   relacionamentos: {
     adicionados: string[];
     removidos: string[];
+    modificados: CompareEntry[];
   };
 };
 
@@ -48,4 +51,5 @@ export type TabKey =
   | "measures"
   | "sources"
   | "relationships"
+  | "quality"
   | "compare";

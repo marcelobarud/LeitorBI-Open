@@ -27,13 +27,14 @@ import type { CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
 type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
 
 const tabs: Array<{ key: TabKey; label: string }> = [
-  { key: "overview", label: "Inicio" },
+  { key: "overview", label: "Início" },
   { key: "tutorial", label: "Tutorial" },
   { key: "tables", label: "Tabelas" },
   { key: "columns", label: "Colunas" },
   { key: "measures", label: "Medidas" },
   { key: "sources", label: "Fontes" },
   { key: "relationships", label: "Relações" },
+  { key: "quality", label: "Qualidade" },
   { key: "compare", label: "Comparar" },
 ];
 
@@ -201,6 +202,15 @@ function DataTable({ rows }: { rows: Row[] }) {
     });
   }
 
+  if (!rows.length) {
+    return (
+      <section className="data-shell empty-data">
+        <strong>Sem dados para exibir.</strong>
+        <span>Carregue um export com informações nessa categoria ou revise os filtros aplicados.</span>
+      </section>
+    );
+  }
+
   return (
     <section className="data-shell">
       <div className="table-toolbar">
@@ -277,7 +287,7 @@ function DataTable({ rows }: { rows: Row[] }) {
                             </p>
                           ) : null}
                           <div className="column-value-panel">
-                            <span>Valores unicos</span>
+                            <span>Valores únicos</span>
                             <div className="column-value-list">
                               {visibleUniqueValues.length ? (
                                 visibleUniqueValues.map((value) => (
@@ -374,7 +384,7 @@ function DataTable({ rows }: { rows: Row[] }) {
       {visibleRows.length > PAGE_SIZE ? (
         <div className="pagination-bar">
           <span>
-            Pagina {currentPage} de {totalPages}
+            Página {currentPage} de {totalPages}
           </span>
           <div>
             <button
@@ -392,7 +402,7 @@ function DataTable({ rows }: { rows: Row[] }) {
               disabled={currentPage === totalPages}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             >
-              Proxima
+              Próxima
               <ChevronRight size={16} />
             </button>
           </div>
@@ -442,7 +452,9 @@ function countCompareChanges(result: CompareResult) {
       result.relacionamentos.removidos.length,
     changed:
       result.tabelas.modificadas.length +
-      result.medidas.modificadas.length,
+      result.colunas.modificadas.length +
+      result.medidas.modificadas.length +
+      result.relacionamentos.modificados.length,
   };
 }
 
@@ -501,7 +513,7 @@ function ChangeList({
         <h3>{title}</h3>
       </header>
       {items.length === 0 ? (
-        <p className="empty-change">Sem alteracoes nesta categoria.</p>
+        <p className="empty-change">Sem alterações nesta categoria.</p>
       ) : (
         <ul>
           {items.slice(0, 80).map((item, index) => {
@@ -623,7 +635,7 @@ function CompareView({
         <GitCompareArrows size={22} />
         <div>
           <h2>Comparar modelos</h2>
-          <p>Escolha dois exports JSON para descobrir o que mudou entre versoes.</p>
+          <p>Escolha dois exports JSON para descobrir o que mudou entre versões.</p>
         </div>
       </header>
 
@@ -640,7 +652,7 @@ function CompareView({
           {hasComparisonState ? (
             <button className="ghost-action" type="button" onClick={onClear} disabled={loading}>
               <RotateCcw size={18} />
-              Desfazer comparacao
+              Desfazer comparação
             </button>
           ) : null}
         </div>
@@ -652,7 +664,7 @@ function CompareView({
         <>
           <section className="compare-hero">
             <div>
-              <span className="eyebrow">Resultado da comparacao</span>
+              <span className="eyebrow">Resultado da comparação</span>
               <h1>{result.dashboard_base} para {result.dashboard_novo}</h1>
             </div>
             <div className="compare-stats">
@@ -677,11 +689,13 @@ function CompareView({
             <ChangeList title="Tabelas modificadas" tone="changed" items={result.tabelas.modificadas} />
             <ChangeList title="Colunas adicionadas" tone="added" items={result.colunas.adicionadas} />
             <ChangeList title="Colunas removidas" tone="removed" items={result.colunas.removidas} />
+            <ChangeList title="Colunas modificadas" tone="changed" items={result.colunas.modificadas} />
             <ChangeList title="Medidas adicionadas" tone="added" items={result.medidas.adicionadas} />
             <ChangeList title="Medidas removidas" tone="removed" items={result.medidas.removidas} />
             <ChangeList title="Medidas modificadas" tone="changed" items={result.medidas.modificadas} />
             <ChangeList title="Relacionamentos adicionados" tone="added" items={result.relacionamentos.adicionados} />
             <ChangeList title="Relacionamentos removidos" tone="removed" items={result.relacionamentos.removidos} />
+            <ChangeList title="Relacionamentos modificados" tone="changed" items={result.relacionamentos.modificados} />
           </section>
         </>
       ) : null}
@@ -703,10 +717,10 @@ function TutorialView() {
     },
     {
       label: "PASSO 3",
-      title: "Execute o script de exportacao",
+      title: "Execute o script de exportação",
       detail: "Execute o script",
       script: "PBIXExportModel",
-      suffix: "para gerar o JSON de analise.",
+      suffix: "para gerar o JSON de análise.",
     },
     {
       label: "PASSO 4",
@@ -716,14 +730,14 @@ function TutorialView() {
     {
       label: "PASSO 5",
       title: "Analise e exporte",
-      detail: "Use filtros, detalhamentos e Exportar Excel para compartilhar a analise.",
+      detail: "Use filtros, detalhamentos e Exportar Excel para compartilhar a análise.",
     },
   ];
 
   const tips = [
-    "O script destacado e o responsavel por extrair o modelo em JSON para leitura no LeitorBI.",
-    "Se o JSON nao aparecer, confirme se o Power BI terminou de carregar o modelo antes de executar o script.",
-    "Depois da extracao, o fluxo continua pela aba Inicio com o botao de carregar JSON.",
+    "O script destacado é o responsável por extrair o modelo em JSON para leitura no LeitorBI.",
+    "Se o JSON não aparecer, confirme se o Power BI terminou de carregar o modelo antes de executar o script.",
+    "Depois da extração, o fluxo continua pela aba Início com o botão de carregar JSON.",
   ];
 
   return (
@@ -732,16 +746,16 @@ function TutorialView() {
         <BookOpenCheck size={22} />
         <div>
           <h2>Tutorial</h2>
-          <p>Como extrair o JSON do Power BI e abrir a analise no LeitorBI.</p>
+          <p>Como extrair o JSON do Power BI e abrir a análise no LeitorBI.</p>
         </div>
       </header>
 
       <section className="tutorial-hero">
         <div>
-          <span className="eyebrow">Extracao do modelo</span>
-          <h1>Gere o JSON pelo Tabular Editor e continue a analise no LeitorBI.</h1>
+          <span className="eyebrow">Extração do modelo</span>
+          <h1>Gere o JSON pelo Tabular Editor e continue a análise no LeitorBI.</h1>
           <p>
-            O passo central e executar o script de exportacao usado para transformar o modelo aberto no Power BI em um
+            O passo central é executar o script de exportação usado para transformar o modelo aberto no Power BI em um
             arquivo JSON.
           </p>
         </div>
@@ -798,7 +812,7 @@ function UploadPanel({
         <span className="eyebrow">LeitorBI Web</span>
         <h1>Transforme exports Power BI em uma leitura clara para auditoria e demo.</h1>
         <p>
-          Abra tabelas, medidas, fontes, relações e mudancas do modelo em uma interface leve para revisar com o time.
+          Abra tabelas, medidas, fontes, relações e mudanças do modelo em uma interface leve para revisar com o time.
         </p>
         <div className="hero-actions">
           <button className="primary-action" type="button" onClick={onLoadDemo} disabled={loadingDemo}>
@@ -815,13 +829,13 @@ function UploadPanel({
           </div>
           <div>
             <GitCompareArrows size={18} />
-            <strong>Comparacao visual</strong>
-            <span>Mudancas agrupadas entre dois exports.</span>
+            <strong>Comparação visual</strong>
+            <span>Mudanças agrupadas entre dois exports.</span>
           </div>
           <div>
             <Download size={18} />
             <strong>Entrega em Excel</strong>
-            <span>Inventario completo para compartilhar.</span>
+            <span>Inventário completo para compartilhar.</span>
           </div>
         </div>
       </div>
@@ -867,27 +881,27 @@ function Overview({
   const measures = numberValue(summary["Medidas"]);
   const sources = numberValue(summary["Fontes de dados"]);
   const relationships = numberValue(summary["Relacionamentos"]);
-  const inactiveRelationships = report.relationships.filter((row) => formatValue(row["Ativo"]) === "Nao").length;
+  const inactiveRelationships = report.relationships.filter((row) => formatValue(row["Ativo"]) === "Não").length;
   const hiddenColumns = report.columns.filter((row) => formatValue(row["Oculto"]) === "Sim").length;
   const calculatedTables = report.tables.filter((row) => formatValue(row["Tipo"]).toLowerCase().includes("calculada")).length;
   const cards: Array<[string, Row[string], Row[string]]> = [
     ["Tabelas", tables, "Modelo visivel"],
-    ["Colunas", totalColumns, `${usedColumns} visiveis`],
-    ["Medidas", measures, "Calculos DAX"],
+    ["Colunas", totalColumns, `${usedColumns} visíveis`],
+    ["Medidas", measures, "Cálculos DAX"],
     ["Fontes", sources, summary["Tipos de fontes"]],
-    ["Relações", relationships, "Mapa sem tabelas tecnicas"],
+    ["Relações", relationships, "Mapa sem tabelas técnicas"],
   ];
   const insightCards = [
     {
       icon: ShieldCheck,
       title: "Pronto para leitura",
       value: `${tables} tabelas e ${measures} medidas`,
-      detail: "Inventario centralizado para revisar estrutura, fonte e DAX.",
+      detail: "Inventário centralizado para revisar estrutura, fonte e DAX.",
       tone: "good",
     },
     {
       icon: AlertTriangle,
-      title: "Pontos de atencao",
+      title: "Pontos de atenção",
       value: pluralize(inactiveRelationships, "relação inativa", "relações inativas"),
       detail: `${pluralize(hiddenColumns, "coluna oculta", "colunas ocultas")} e ${pluralize(
         calculatedTables,
@@ -900,7 +914,7 @@ function Overview({
       icon: Database,
       title: "Origem dos dados",
       value: formatValue(summary["Tipos de fontes"]),
-      detail: "Tipos de conexao detectados pelas expressoes M das particoes.",
+      detail: "Tipos de conexão detectados pelas expressões M das partições.",
       tone: "info",
     },
   ];
@@ -936,7 +950,7 @@ function Overview({
           </button>
           <button className="ghost-action" type="button" onClick={onClose}>
             <X size={18} />
-            Fechar analise
+            Fechar análise
           </button>
         </div>
       </section>
@@ -1062,6 +1076,7 @@ export function App() {
     measures: report?.measures ?? [],
     sources: report?.sources ?? [],
     relationships: report?.relationships ?? [],
+    quality: report?.quality ?? [],
   };
 
   const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);

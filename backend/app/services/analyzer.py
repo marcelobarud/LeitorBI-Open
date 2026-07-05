@@ -71,6 +71,56 @@ def display_source_type(value: Any) -> str:
     return text
 
 
+SOURCE_RULES = [
+    {"label": "Power BI Dataset", "all": ["analysisservices.database", "powerbi://"]},
+    {
+        "label": "Azure SQL / Synapse",
+        "all": ["sql.database"],
+        "any": ["database.windows.net", ".sql.azuresynapse.net", ".sqlanalytics.net", "synapse"],
+    },
+    {"label": "Databricks", "any": ["databricks.catalogs", "databricks.contents"]},
+    {"label": "Snowflake", "any": ["snowflake.databases"]},
+    {"label": "BigQuery", "any": ["googlebigquery.database"]},
+    {"label": "PostgreSQL", "any": ["postgresql.database"]},
+    {"label": "MySQL", "any": ["mysql.database"]},
+    {"label": "Oracle", "any": ["oracle.database"]},
+    {"label": "Teradata", "any": ["teradata.database"]},
+    {"label": "Azure Data Lake", "any": ["azurestorage.datalake", "azuredatalakestorage.contents"]},
+    {"label": "Azure Blob Storage", "any": ["azurestorage.blobs"]},
+    {"label": "SAP BW", "any": ["sapbusinesswarehouse.cubes"]},
+    {"label": "SAP HANA", "any": ["saphana.database"]},
+    {"label": "Fabric / OneLake", "any": ["onelake", "fabric", "lakehouse"]},
+    {"label": "Salesforce", "any": ["salesforce.data", "salesforce.reports"]},
+    {"label": "Dataverse", "any": ["commondataservice.database", "cds.entities", "dataverse"]},
+    {"label": "Parquet", "any": ["parquet.document", ".parquet"]},
+    {"label": "XML", "any": ["xml.tables", ".xml"]},
+    {"label": "PDF", "any": ["pdf.tables", ".pdf"]},
+    {"label": "Access", "any": ["access.database", ".accdb", ".mdb"]},
+    {"label": "ODBC", "any": ["odbc.datasource", "odbc.query"]},
+    {"label": "OLE DB", "any": ["oledb.datasource"]},
+    {"label": "Exchange", "any": ["exchange.contents"]},
+    {"label": "Google Sheets", "any": ["docs.google.com/spreadsheets", "google.com/spreadsheets"]},
+    {"label": "OneDrive", "any": ["onedrive.live.com", "my.sharepoint.com/personal"]},
+    {"label": "Excel", "any": ["excel.workbook", ".xlsx", ".xls"]},
+    {"label": "SharePoint", "any": ["sharepoint.files", "sharepoint.contents"]},
+    {"label": "Web", "any": ["web.contents"]},
+    {"label": "CSV", "any": ["csv.document", ".csv"]},
+    {"label": "JSON", "any": ["json.document", ".json"]},
+    {"label": "OData", "any": ["odata.feed"]},
+    {"label": "Analysis Services", "any": ["analysisservices.database"]},
+    {"label": "Dataflow", "any": ["powerbi.dataflows"]},
+    {"label": "Pasta", "any": ["folder.files", "folder.contents"]},
+]
+
+
+def matches_source_rule(text: str, rule: dict[str, Any]) -> bool:
+    required_patterns = rule.get("all", [])
+    optional_patterns = rule.get("any", [])
+    has_required = all(pattern in text for pattern in required_patterns)
+    has_optional = not optional_patterns or detect_by_patterns(text, optional_patterns)
+    return has_required and has_optional
+
+
 class PowerBIAnalyzer:
     def __init__(self, data: dict[str, Any]):
         self.data = data
@@ -124,84 +174,14 @@ class PowerBIAnalyzer:
         text = normalize_text(expression)
         source_type_norm = normalize_text(source_type)
 
-        if "analysisservices.database" in text and "powerbi://" in text:
-            return "Power BI Dataset"
-        if "sql.database" in text and (
-            "database.windows.net" in text
-            or ".sql.azuresynapse.net" in text
-            or ".sqlanalytics.net" in text
-            or "synapse" in text
-        ):
-            return "Azure SQL / Synapse"
-        if detect_by_patterns(text, ["databricks.catalogs", "databricks.contents"]):
-            return "Databricks"
-        if "snowflake.databases" in text:
-            return "Snowflake"
-        if "googlebigquery.database" in text:
-            return "BigQuery"
-        if "postgresql.database" in text:
-            return "PostgreSQL"
-        if "mysql.database" in text:
-            return "MySQL"
-        if "oracle.database" in text:
-            return "Oracle"
-        if "teradata.database" in text:
-            return "Teradata"
-        if detect_by_patterns(text, ["azurestorage.datalake", "azuredatalakestorage.contents"]):
-            return "Azure Data Lake"
-        if "azurestorage.blobs" in text:
-            return "Azure Blob Storage"
-        if "sapbusinesswarehouse.cubes" in text:
-            return "SAP BW"
-        if "saphana.database" in text:
-            return "SAP HANA"
-        if detect_by_patterns(text, ["onelake", "fabric", "lakehouse"]):
-            return "Fabric / OneLake"
-        if detect_by_patterns(text, ["salesforce.data", "salesforce.reports"]):
-            return "Salesforce"
-        if detect_by_patterns(text, ["commondataservice.database", "cds.entities", "dataverse"]):
-            return "Dataverse"
-        if "parquet.document" in text or ".parquet" in text:
-            return "Parquet"
-        if "xml.tables" in text or ".xml" in text:
-            return "XML"
-        if "pdf.tables" in text or ".pdf" in text:
-            return "PDF"
-        if "access.database" in text or ".accdb" in text or ".mdb" in text:
-            return "Access"
-        if detect_by_patterns(text, ["odbc.datasource", "odbc.query"]):
-            return "ODBC"
-        if "oledb.datasource" in text:
-            return "OLE DB"
-        if "exchange.contents" in text:
-            return "Exchange"
-        if "docs.google.com/spreadsheets" in text or "google.com/spreadsheets" in text:
-            return "Google Sheets"
-        if detect_by_patterns(text, ["onedrive.live.com", "my.sharepoint.com/personal"]):
-            return "OneDrive"
+        for rule in SOURCE_RULES:
+            if matches_source_rule(text, rule):
+                return safe_text(rule["label"])
         if "sql.database" in text or (source_type_norm == "m" and "select " in text):
             return "SQL"
-        if "excel.workbook" in text or ".xlsx" in text or ".xls" in text:
-            return "Excel"
-        if "sharepoint.files" in text or "sharepoint.contents" in text:
-            return "SharePoint"
-        if "web.contents" in text:
-            return "Web"
-        if "csv.document" in text or ".csv" in text:
-            return "CSV"
-        if "json.document" in text or ".json" in text:
-            return "JSON"
-        if "odata.feed" in text:
-            return "OData"
-        if "analysisservices.database" in text:
-            return "Analysis Services"
-        if "powerbi.dataflows" in text:
-            return "Dataflow"
-        if "folder.files" in text or "folder.contents" in text:
-            return "Pasta"
         if source_type:
             return safe_text(source_type).upper()
-        return "Nao identificado"
+        return "Não identificado"
 
     def count_source_types(self, only_physical_tables: bool = False) -> dict[str, int]:
         cache_key = f"source_types:{only_physical_tables}"
@@ -262,20 +242,22 @@ class PowerBIAnalyzer:
         source_types = self.count_source_types(only_physical_tables=True)
         visible_tables = self.visible_physical_tables()
         measures = self.measures()
+        quality = self.quality_rows()
         return {
-            "Dashboard": safe_value(self.data, "dashboardName", "Nao informado"),
-            "Modelo": safe_value(self.data, "modelName", "Nao informado"),
-            "Data de exportacao": safe_value(self.data, "exportDate", "Nao informado"),
-            "Cultura": safe_value(self.metadata, "culture", "Nao informado"),
-            "Modo padrao": safe_value(self.metadata, "defaultMode", "Nao informado"),
+            "Dashboard": safe_value(self.data, "dashboardName", "Não informado"),
+            "Modelo": safe_value(self.data, "modelName", "Não informado"),
+            "Data de exportacao": safe_value(self.data, "exportDate", "Não informado"),
+            "Cultura": safe_value(self.metadata, "culture", "Não informado"),
+            "Modo padrao": safe_value(self.metadata, "defaultMode", "Não informado"),
             "Colunas utilizadas": self.count_visible_fields(visible_tables),
             "Colunas utilizadas em medidas": len(self.columns_used_in_measures()),
             "Colunas totais": self.count_total_columns(),
             "Medidas": len(measures),
             "Fontes de dados": len(source_types),
-            "Tipos de fontes": ", ".join(source_types.keys()) if source_types else "Nao detectado",
+            "Tipos de fontes": ", ".join(source_types.keys()) if source_types else "Não detectado",
             "Tabelas totais": len(self.tables_without_technical_dates()),
             "Relacionamentos": len(self.relationship_rows()),
+            "Pontos de atenção": len(quality),
         }
 
     def table_rows(self) -> list[dict[str, Any]]:
@@ -283,7 +265,7 @@ class PowerBIAnalyzer:
             {
                 "Tabela": safe_value(table, "name", ""),
                 "Tipo": translate_model_type(safe_value(table, "tableType", "")),
-                "Oculta": "Sim" if safe_value(table, "isHidden", False) else "Nao",
+                "Oculta": "Sim" if safe_value(table, "isHidden", False) else "Não",
                 "Colunas": len(safe_list(table, "columns")),
                 "Colunas visiveis": self.count_visible_fields([table]),
                 "Medidas": len(safe_list(table, "measures")),
@@ -303,7 +285,7 @@ class PowerBIAnalyzer:
                     "Tabela": table_name,
                     "Tipo de dado": safe_value(column, "dataType", ""),
                     "Tipo de coluna": translate_model_type(safe_value(column, "columnType", "")),
-                    "Oculto": "Sim" if safe_value(column, "isHidden", False) else "Nao",
+                    "Oculto": "Sim" if safe_value(column, "isHidden", False) else "Não",
                     "Formato": safe_value(column, "formatString", ""),
                     "Categoria": safe_value(column, "dataCategory", ""),
                     "Pasta": safe_value(column, "displayFolder", ""),
@@ -320,7 +302,7 @@ class PowerBIAnalyzer:
                 rows.append({
                     "Medida": safe_value(measure, "name", ""),
                     "Tabela": table_name,
-                    "Oculta": "Sim" if safe_value(measure, "isHidden", False) else "Nao",
+                    "Oculta": "Sim" if safe_value(measure, "isHidden", False) else "Não",
                     "Formato": safe_value(measure, "formatString", ""),
                     "Pasta": safe_value(measure, "displayFolder", ""),
                     "Tamanho DAX": len(safe_text(expression)),
@@ -370,9 +352,72 @@ class PowerBIAnalyzer:
                 "Cardinalidade origem": safe_value(relationship, "toCardinality", ""),
                 "Cardinalidade destino": safe_value(relationship, "fromCardinality", ""),
                 "Direcao filtro": safe_value(relationship, "crossFilteringBehavior", ""),
-                "Ativo": "Sim" if safe_value(relationship, "isActive", True) else "Nao",
+                "Ativo": "Sim" if safe_value(relationship, "isActive", True) else "Não",
                 "Relacionamento": safe_value(relationship, "name", ""),
             })
+        return rows
+
+    def quality_rows(self) -> list[dict[str, Any]]:
+        if "quality_rows" in self._cache:
+            return self._cache["quality_rows"]
+
+        rows: list[dict[str, Any]] = []
+        used_columns = self.columns_used_in_measures()
+
+        for measure in self.measures():
+            if not safe_text(measure.get("Descricao", "")).strip():
+                rows.append({
+                    "Severidade": "Baixa",
+                    "Categoria": "Documentação",
+                    "Item": f"{measure.get('Tabela', '')}.{measure.get('Medida', '')}",
+                    "Diagnóstico": "Medida sem descrição.",
+                    "Recomendação": "Descrever regra de negócio, granularidade e exceções da medida.",
+                })
+            if safe_value(measure, "Tamanho DAX", 0) >= 500:
+                rows.append({
+                    "Severidade": "Média",
+                    "Categoria": "DAX",
+                    "Item": f"{measure.get('Tabela', '')}.{measure.get('Medida', '')}",
+                    "Diagnóstico": "Medida com expressão DAX longa.",
+                    "Recomendação": "Revisar legibilidade, variáveis e possível decomposição em medidas auxiliares.",
+                })
+
+        for table in self.tables_without_technical_dates():
+            table_name = safe_value(table, "name", "")
+            if not safe_list(table, "partitions"):
+                rows.append({
+                    "Severidade": "Média",
+                    "Categoria": "Estrutura",
+                    "Item": table_name,
+                    "Diagnóstico": "Tabela sem partição detectada.",
+                    "Recomendação": "Confirmar se a tabela é válida ou se o export está incompleto.",
+                })
+
+            for column in safe_list(table, "columns"):
+                column_name = safe_value(column, "name", "")
+                if safe_value(column, "isHidden", False):
+                    continue
+                if (table_name, column_name) not in used_columns:
+                    rows.append({
+                        "Severidade": "Baixa",
+                        "Categoria": "Uso",
+                        "Item": f"{table_name}.{column_name}",
+                        "Diagnóstico": "Coluna visível sem referência direta em medidas.",
+                        "Recomendação": "Validar se a coluna deve permanecer visível para relatório ou autoatendimento.",
+                    })
+
+        for relationship in self.relationship_rows():
+            direction = normalize_text(relationship.get("Direcao filtro", ""))
+            if direction in {"bothdirections", "both", "ambas"}:
+                rows.append({
+                    "Severidade": "Alta",
+                    "Categoria": "Relacionamento",
+                    "Item": safe_value(relationship, "Relacionamento", ""),
+                    "Diagnóstico": "Relacionamento com filtro bidirecional.",
+                    "Recomendação": "Revisar impacto em ambiguidade, performance e resultados de medidas.",
+                })
+
+        self._cache["quality_rows"] = rows
         return rows
 
     def full_report(self) -> dict[str, Any]:
@@ -383,6 +428,7 @@ class PowerBIAnalyzer:
             "measures": self.measures(),
             "sources": self.source_rows(),
             "relationships": self.relationship_rows(),
+            "quality": self.quality_rows(),
             "columnsUsedInMeasures": [
                 {"Tabela": table, "Coluna": column}
                 for table, column in sorted(self.columns_used_in_measures())

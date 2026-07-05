@@ -3,6 +3,36 @@ from typing import Any
 from app.services.analyzer import PowerBIAnalyzer, safe_list, safe_text, safe_value
 
 
+COLUMN_COMPARE_FIELDS = {
+    "dataType": "tipo de dado",
+    "columnType": "tipo de coluna",
+    "isHidden": "visibilidade",
+    "formatString": "formato",
+    "description": "descrição",
+}
+
+RELATIONSHIP_COMPARE_FIELDS = {
+    "fromCardinality": "cardinalidade destino",
+    "toCardinality": "cardinalidade origem",
+    "crossFilteringBehavior": "direção de filtro",
+    "isActive": "ativo",
+}
+
+
+def compare_field_changes(
+    before_item: dict[str, Any],
+    after_item: dict[str, Any],
+    fields: dict[str, str],
+) -> list[dict[str, str]]:
+    changes: list[dict[str, str]] = []
+    for field, label in fields.items():
+        before = safe_text(before_item.get(field, "")).strip()
+        after = safe_text(after_item.get(field, "")).strip()
+        if before != after:
+            changes.append({"campo": label, "antes": before, "depois": after})
+    return changes
+
+
 def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[str, Any]:
     base_analyzer = PowerBIAnalyzer(base_data)
     new_analyzer = PowerBIAnalyzer(new_data)
@@ -32,23 +62,43 @@ def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[
             "modificadas": [],
         },
         "medidas": {"adicionadas": [], "removidas": [], "modificadas": []},
-        "colunas": {"adicionadas": [], "removidas": []},
-        "relacionamentos": {"adicionados": [], "removidos": []},
+        "colunas": {"adicionadas": [], "removidas": [], "modificadas": []},
+        "relacionamentos": {"adicionados": [], "removidos": [], "modificados": []},
     }
 
     for name in sorted(base_names & new_names):
         base_table = base_tables[name]
         new_table = new_tables[name]
 
-        base_columns = {column.get("name", "") for column in safe_list(base_table, "columns") if column.get("name", "")}
-        new_columns = {column.get("name", "") for column in safe_list(new_table, "columns") if column.get("name", "")}
-        added_columns = sorted(new_columns - base_columns)
-        removed_columns = sorted(base_columns - new_columns)
+        base_columns = {
+            column.get("name", ""): column
+            for column in safe_list(base_table, "columns")
+            if column.get("name", "")
+        }
+        new_columns = {
+            column.get("name", ""): column
+            for column in safe_list(new_table, "columns")
+            if column.get("name", "")
+        }
+        base_column_names = set(base_columns)
+        new_column_names = set(new_columns)
+        added_columns = sorted(new_column_names - base_column_names)
+        removed_columns = sorted(base_column_names - new_column_names)
+        modified_columns: list[str] = []
 
         for column in added_columns:
             result["colunas"]["adicionadas"].append({"tabela": name, "coluna": column})
         for column in removed_columns:
             result["colunas"]["removidas"].append({"tabela": name, "coluna": column})
+        for column in sorted(base_column_names & new_column_names):
+            changes = compare_field_changes(base_columns[column], new_columns[column], COLUMN_COMPARE_FIELDS)
+            if changes:
+                modified_columns.append(column)
+                result["colunas"]["modificadas"].append({
+                    "tabela": name,
+                    "coluna": column,
+                    "alterações": [f"{change['campo']}: {change['antes']} -> {change['depois']}" for change in changes],
+                })
 
         base_measures = {
             measure.get("name", ""): measure
@@ -83,11 +133,12 @@ def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[
                     "depois": safe_text(new_measures[measure].get("expression", "")),
                 })
 
-        if added_columns or removed_columns or added_measures or removed_measures or modified_measures:
+        if added_columns or removed_columns or modified_columns or added_measures or removed_measures or modified_measures:
             result["tabelas"]["modificadas"].append({
                 "nome": name,
                 "colunas_adicionadas": added_columns,
                 "colunas_removidas": removed_columns,
+                "colunas_modificadas": modified_columns,
                 "medidas_adicionadas": added_measures,
                 "medidas_removidas": removed_measures,
                 "medidas_modificadas": modified_measures,
@@ -119,5 +170,16 @@ def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[
     result["relacionamentos"]["adicionados"] = sorted(set(new_relationships) - set(base_relationships))
     result["relacionamentos"]["removidos"] = sorted(set(base_relationships) - set(new_relationships))
 
-    return result
+    for relationship in sorted(set(base_relationships) & set(new_relationships)):
+        changes = compare_field_changes(
+            base_relationships[relationship],
+            new_relationships[relationship],
+            RELATIONSHIP_COMPARE_FIELDS,
+        )
+        if changes:
+            result["relacionamentos"]["modificados"].append({
+                "relacionamento": relationship,
+                "alterações": [f"{change['campo']}: {change['antes']} -> {change['depois']}" for change in changes],
+            })
 
+    return result

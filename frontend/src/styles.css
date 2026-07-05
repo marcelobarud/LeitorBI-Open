@@ -373,6 +373,17 @@ p {
   overflow: hidden;
 }
 
+.empty-data {
+  color: #64748b;
+  display: grid;
+  gap: 6px;
+  padding: 22px;
+}
+
+.empty-data strong {
+  color: #172033;
+}
+
 .table-toolbar {
   align-items: center;
   border-bottom: 1px solid #e5edf6;
