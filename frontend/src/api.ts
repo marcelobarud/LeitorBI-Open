@@ -1,6 +1,7 @@
-import type { CompareResult, Report } from "./types";
+import type { AuthUser, CompareResult, Report } from "./types";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:8000`;
+const AUTH_REQUIRED_MESSAGE = "Sessao expirada. Entre novamente.";
 
 async function readError(response: Response, fallback: string) {
   const error = await response.json().catch(() => ({ detail: fallback }));
@@ -10,9 +11,58 @@ async function readError(response: Response, fallback: string) {
 
 async function fetchApi(input: RequestInfo | URL, init?: RequestInit) {
   try {
-    return await fetch(input, init);
+    return await fetch(input, {
+      ...init,
+      credentials: "include",
+    });
   } catch (error) {
     throw new Error("Não foi possível conectar à API. Verifique se o backend está rodando e se VITE_API_URL está correto.");
+  }
+}
+
+export async function login(email: string, password: string): Promise<AuthUser> {
+  const response = await fetchApi(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error("API de autenticacao nao encontrada. Reinicie o backend atualizado.");
+    }
+    if (response.status === 429) {
+      throw new Error(await readError(response, "Muitas tentativas. Aguarde alguns minutos e tente novamente."));
+    }
+    throw new Error("E-mail ou senha invalidos.");
+  }
+
+  return response.json();
+}
+
+export async function getCurrentUser(): Promise<AuthUser | null> {
+  const response = await fetchApi(`${API_URL}/api/auth/me`);
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Erro ao verificar sessao."));
+  }
+
+  return response.json();
+}
+
+export async function logout(): Promise<void> {
+  const response = await fetchApi(`${API_URL}/api/auth/logout`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Erro ao sair."));
   }
 }
 
@@ -26,6 +76,9 @@ export async function analyzeModel(file: File): Promise<Report> {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
     throw new Error(await readError(response, "Erro ao analisar arquivo."));
   }
 
@@ -43,6 +96,9 @@ export async function compareModels(base: File, novo: File): Promise<CompareResu
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
     throw new Error(await readError(response, "Erro ao comparar arquivos."));
   }
 
@@ -53,6 +109,9 @@ export async function analyzeDemoModel(): Promise<Report> {
   const response = await fetchApi(`${API_URL}/api/demo/analyze`);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
     throw new Error(await readError(response, "Erro ao carregar modelo de exemplo."));
   }
 
@@ -69,6 +128,9 @@ export async function exportModelExcel(file: File): Promise<Blob> {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
     throw new Error(await readError(response, "Erro ao exportar Excel."));
   }
 
@@ -79,6 +141,9 @@ export async function exportDemoExcel(): Promise<Blob> {
   const response = await fetchApi(`${API_URL}/api/demo/export-excel`);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
     throw new Error(await readError(response, "Erro ao exportar exemplo."));
   }
 

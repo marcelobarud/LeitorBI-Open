@@ -1,10 +1,11 @@
 import os
 from typing import Any
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
+from app.auth import AuthenticatedUser, current_user, init_auth, router as auth_router
 from app.demo_data import DEMO_MODEL
 from app.schemas import CompareResponse, ReportResponse
 from app.services.analyzer import PowerBIAnalyzer
@@ -13,6 +14,12 @@ from app.services.excel_export import build_excel
 from app.upload_validation import read_json_upload, validate_model_export
 
 app = FastAPI(title="LeitorBI Web API", version="0.1.0")
+app.include_router(auth_router)
+
+
+@app.on_event("startup")
+def startup() -> None:
+    init_auth()
 
 
 def cors_origins() -> list[str]:
@@ -37,32 +44,42 @@ def health() -> dict[str, str]:
 
 
 @app.post("/api/models/analyze", response_model=ReportResponse)
-async def analyze_model(file: UploadFile = File(...)) -> ReportResponse:
+async def analyze_model(
+    file: UploadFile = File(...),
+    _user: AuthenticatedUser = Depends(current_user),
+) -> ReportResponse:
     data = await read_json_upload(file)
     return ReportResponse.model_validate(PowerBIAnalyzer(data).full_report())
 
 
 @app.post("/api/models/compare", response_model=CompareResponse)
-async def compare_model_exports(base: UploadFile = File(...), novo: UploadFile = File(...)) -> CompareResponse:
+async def compare_model_exports(
+    base: UploadFile = File(...),
+    novo: UploadFile = File(...),
+    _user: AuthenticatedUser = Depends(current_user),
+) -> CompareResponse:
     base_data = await read_json_upload(base)
     new_data = await read_json_upload(novo)
     return CompareResponse.model_validate(compare_models(base_data, new_data))
 
 
 @app.post("/api/models/export-excel")
-async def export_excel(file: UploadFile = File(...)) -> StreamingResponse:
+async def export_excel(
+    file: UploadFile = File(...),
+    _user: AuthenticatedUser = Depends(current_user),
+) -> StreamingResponse:
     data = await read_json_upload(file)
     report = PowerBIAnalyzer(data).full_report()
     return excel_response(report)
 
 
 @app.get("/api/demo/analyze", response_model=ReportResponse)
-def analyze_demo_model() -> ReportResponse:
+def analyze_demo_model(_user: AuthenticatedUser = Depends(current_user)) -> ReportResponse:
     return ReportResponse.model_validate(PowerBIAnalyzer(validate_model_export(DEMO_MODEL)).full_report())
 
 
 @app.get("/api/demo/export-excel")
-def export_demo_excel() -> StreamingResponse:
+def export_demo_excel(_user: AuthenticatedUser = Depends(current_user)) -> StreamingResponse:
     report = PowerBIAnalyzer(DEMO_MODEL).full_report()
     return excel_response(report)
 

@@ -1,10 +1,22 @@
 import asyncio
+import sqlite3
 from copy import deepcopy
+from http.cookies import SimpleCookie
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from openpyxl import load_workbook
+from starlette.requests import Request
 
+from app.auth import (
+    SESSION_COOKIE_NAME,
+    LoginRequest,
+    _login_attempts,
+    current_user,
+    init_auth,
+    login,
+    logout,
+)
 from app.demo_data import DEMO_MODEL
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
@@ -90,3 +102,105 @@ def test_read_json_upload_rejects_non_json_extension():
         asyncio.run(read_json_upload(FakeUpload("modelo.txt", b"{}")))
 
     assert exc.value.status_code == 400
+
+
+def make_request(cookie_header: str | None = None) -> Request:
+    headers = []
+    if cookie_header:
+        headers.append((b"cookie", cookie_header.encode("utf-8")))
+    return Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": headers,
+            "client": ("127.0.0.1", 50000),
+        }
+    )
+
+
+def auth_db(monkeypatch: pytest.MonkeyPatch, tmp_path):
+    db_path = tmp_path / "auth.sqlite3"
+    monkeypatch.setenv("LEITORBI_AUTH_DB", str(db_path))
+    monkeypatch.setenv("LEITORBI_ADMIN_EMAIL", "admin@leitorbi.local")
+    monkeypatch.setenv("LEITORBI_ADMIN_PASSWORD", "SenhaForte123!")
+    monkeypatch.delenv("LEITORBI_SESSION_SECURE", raising=False)
+    _login_attempts.clear()
+    init_auth()
+    return db_path
+
+
+def login_cookie() -> tuple[Response, str]:
+    response = Response()
+    login(
+        LoginRequest(email="admin@leitorbi.local", password="SenhaForte123!"),
+        make_request(),
+        response,
+    )
+    cookies = SimpleCookie()
+    cookies.load(response.headers["set-cookie"])
+    token = cookies[SESSION_COOKIE_NAME].value
+    return response, f"{SESSION_COOKIE_NAME}={token}"
+
+
+def test_protected_dependency_requires_session(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+
+    with pytest.raises(HTTPException) as exc:
+        current_user(make_request())
+
+    assert exc.value.status_code == 401
+
+
+def test_login_valid_creates_cookie_and_allows_protected_dependency(monkeypatch, tmp_path):
+    db_path = auth_db(monkeypatch, tmp_path)
+
+    login_response, cookie_header = login_cookie()
+    user = current_user(make_request(cookie_header))
+
+    assert SESSION_COOKIE_NAME in login_response.headers["set-cookie"]
+    assert user.email == "admin@leitorbi.local"
+    assert user.is_admin is True
+
+    with sqlite3.connect(db_path) as connection:
+        user_row = connection.execute("SELECT password_hash FROM users WHERE email = ?", ("admin@leitorbi.local",)).fetchone()
+        session_row = connection.execute("SELECT token_hash FROM sessions").fetchone()
+
+    assert user_row is not None
+    assert user_row[0] != "SenhaForte123!"
+    assert "SenhaForte123!" not in user_row[0]
+    assert session_row is not None
+    assert session_row[0] not in login_response.headers["set-cookie"]
+
+
+def test_login_invalid_is_generic_and_does_not_create_session(monkeypatch, tmp_path):
+    db_path = auth_db(monkeypatch, tmp_path)
+
+    with pytest.raises(HTTPException) as exc:
+        login(
+            LoginRequest(email="admin@leitorbi.local", password="senha-errada"),
+            make_request(),
+            Response(),
+        )
+
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "Credenciais invalidas."
+
+    with sqlite3.connect(db_path) as connection:
+        session_count = connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+
+    assert session_count == 0
+
+
+def test_logout_invalidates_session(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+
+    login_response, cookie_header = login_cookie()
+    logout_response = Response()
+    logout(make_request(cookie_header), logout_response)
+
+    assert SESSION_COOKIE_NAME in login_response.headers["set-cookie"]
+    with pytest.raises(HTTPException) as exc:
+        current_user(make_request(cookie_header))
+
+    assert exc.value.status_code == 401

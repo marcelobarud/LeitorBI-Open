@@ -7,6 +7,9 @@ import {
   Database,
   Download,
   Filter,
+  KeyRound,
+  LogOut,
+  Mail,
   Maximize2,
   Minimize2,
   FileJson,
@@ -20,9 +23,18 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { analyzeDemoModel, analyzeModel, compareModels, exportDemoExcel, exportModelExcel } from "./api";
-import type { CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
+import { Fragment, type FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  analyzeDemoModel,
+  analyzeModel,
+  compareModels,
+  exportDemoExcel,
+  exportModelExcel,
+  getCurrentUser,
+  login as loginUser,
+  logout as logoutUser,
+} from "./api";
+import type { AuthUser, CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
 
 type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
 
@@ -825,6 +837,75 @@ function TutorialView() {
   );
 }
 
+function LoginView({
+  loading,
+  error,
+  onLogin,
+}: {
+  loading: boolean;
+  error: string;
+  onLogin: (email: string, password: string) => Promise<void>;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await onLogin(email, password);
+  }
+
+  return (
+    <main className="login-shell">
+      <section className="login-panel">
+        <div className="login-brand">
+          <Database size={30} />
+          <div>
+            <span>LeitorBI</span>
+            <strong>Acesso ao app</strong>
+          </div>
+        </div>
+
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label>
+            <span>Usuario ou e-mail</span>
+            <div>
+              <Mail size={17} />
+              <input
+                autoComplete="username"
+                autoFocus
+                type="text"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </div>
+          </label>
+
+          <label>
+            <span>Senha</span>
+            <div>
+              <KeyRound size={17} />
+              <input
+                autoComplete="current-password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </div>
+          </label>
+
+          {error ? <div className="error">{error}</div> : null}
+
+          <button className="primary-action" type="submit" disabled={loading}>
+            {loading ? "Entrando..." : "Entrar"}
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}
+
 function UploadPanel({
   onAnalyze,
   onLoadDemo,
@@ -1022,6 +1103,10 @@ function Overview({
 }
 
 export function App() {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [loading, setLoading] = useState(false);
@@ -1036,6 +1121,69 @@ export function App() {
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError] = useState("");
 
+  useEffect(() => {
+    let active = true;
+
+    getCurrentUser()
+      .then((currentUser) => {
+        if (active) setUser(currentUser);
+      })
+      .catch((err) => {
+        if (active) setLoginError(err instanceof Error ? err.message : "Erro ao verificar sessao.");
+      })
+      .finally(() => {
+        if (active) setCheckingSession(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function clearWorkspaceState() {
+    setReport(null);
+    setCurrentFile(null);
+    setIsDemo(false);
+    setError("");
+    setActiveTab("overview");
+    handleClearComparison();
+  }
+
+  async function handleLogin(email: string, password: string) {
+    setLoginLoading(true);
+    setLoginError("");
+    try {
+      const authenticatedUser = await loginUser(email, password);
+      setUser(authenticatedUser);
+      clearWorkspaceState();
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "E-mail ou senha invalidos.");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await logoutUser();
+    } finally {
+      setUser(null);
+      setLoginError("");
+      clearWorkspaceState();
+    }
+  }
+
+  function handleAuthenticatedError(err: unknown, fallback: string, onErrorChange = setError) {
+    const message = err instanceof Error ? err.message : fallback;
+    if (message.includes("Sessao expirada")) {
+      setUser(null);
+      setLoginError(message);
+      clearWorkspaceState();
+      return;
+    }
+    onErrorChange(message);
+  }
+
   async function handleAnalyze(file: File) {
     setLoading(true);
     setError("");
@@ -1046,7 +1194,7 @@ export function App() {
       setIsDemo(false);
       setActiveTab("overview");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado.");
+      handleAuthenticatedError(err, "Erro inesperado.");
     } finally {
       setLoading(false);
     }
@@ -1062,7 +1210,7 @@ export function App() {
       setIsDemo(true);
       setActiveTab("overview");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar exemplo.");
+      handleAuthenticatedError(err, "Erro inesperado ao carregar exemplo.");
     } finally {
       setLoadingDemo(false);
     }
@@ -1076,7 +1224,7 @@ export function App() {
       const dashboardName = report?.raw.dashboardName || "leitorbi";
       downloadBlob(blob, `${dashboardName}_analise.xlsx`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao exportar.");
+      handleAuthenticatedError(err, "Erro inesperado ao exportar.");
     } finally {
       setExporting(false);
     }
@@ -1109,6 +1257,20 @@ export function App() {
   const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);
   const activeRows = isDataTab ? rowsByTab[activeTab as DataTabKey] : [];
 
+  if (checkingSession) {
+    return (
+      <main className="login-shell">
+        <section className="login-panel compact">
+          <div className="status">Verificando sessao...</div>
+        </section>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <LoginView loading={loginLoading} error={loginError} onLogin={handleLogin} />;
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -1128,6 +1290,15 @@ export function App() {
             </button>
           ))}
         </nav>
+        <div className="user-panel">
+          <div>
+            <span>Logado como</span>
+            <strong>{user.email}</strong>
+          </div>
+          <button type="button" onClick={handleLogout} title="Sair" aria-label="Sair">
+            <LogOut size={18} />
+          </button>
+        </div>
         <div className="compare-teaser">
           <GitCompareArrows size={18} />
           <span>Compare dois exports JSON lado a lado.</span>

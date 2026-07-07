@@ -1,5 +1,10 @@
 export type Row = Record<string, string | number | boolean | null | undefined>;
 
+export type AuthUser = {
+  email: string;
+  is_admin: boolean;
+};
+
 export type Report = {
   summary: Row;
   tables: Row[];

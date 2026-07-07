@@ -18,6 +18,10 @@ env/
 .env
 .env.*
 !.env.example
+backend/.data/
+*.sqlite
+*.sqlite3
+*.db
 
 # Node / Vite
 frontend/node_modules/

@@ -23,6 +23,112 @@ button:disabled {
   opacity: 0.65;
 }
 
+.login-shell {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(37, 99, 235, 0.78)),
+    #0f172a;
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.login-panel {
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 8px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+  display: grid;
+  gap: 28px;
+  margin: 0 auto;
+  max-width: 430px;
+  padding: 32px;
+  width: min(100%, 430px);
+}
+
+.login-panel.compact {
+  gap: 0;
+  padding: 18px;
+}
+
+.login-brand {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.login-brand svg {
+  color: #2563eb;
+}
+
+.login-brand div {
+  display: grid;
+  gap: 3px;
+}
+
+.login-brand span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.login-brand strong {
+  color: #172033;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.login-form {
+  display: grid;
+  gap: 16px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.login-form label > span {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.login-form label > div {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #d8e2ee;
+  border-radius: 8px;
+  display: flex;
+  gap: 9px;
+  height: 46px;
+  padding: 0 12px;
+}
+
+.login-form label > div:focus-within {
+  border-color: #8db2e8;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.login-form svg {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.login-form input {
+  background: transparent;
+  border: 0;
+  color: #172033;
+  min-width: 0;
+  outline: 0;
+  width: 100%;
+}
+
+.login-form .primary-action {
+  width: 100%;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
@@ -83,6 +189,55 @@ nav button:disabled {
   gap: 10px;
   margin-top: auto;
   padding: 12px;
+}
+
+.user-panel {
+  align-items: center;
+  background: #18233b;
+  border: 1px solid #273654;
+  border-radius: 8px;
+  color: #b9c4d6;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  padding: 12px;
+}
+
+.user-panel div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.user-panel span {
+  color: #8fa1bc;
+  font-size: 12px;
+}
+
+.user-panel strong {
+  color: #ffffff;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-panel button {
+  align-items: center;
+  background: #0f172a;
+  border: 1px solid #273654;
+  border-radius: 8px;
+  color: #e5edf7;
+  cursor: pointer;
+  display: inline-flex;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.user-panel button:hover {
+  background: #2563eb;
+  border-color: #2563eb;
 }
 
 .content {
