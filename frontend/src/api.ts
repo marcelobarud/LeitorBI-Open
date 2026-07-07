@@ -30,9 +30,6 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   });
 
   if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error("API de autenticacao nao encontrada. Reinicie o backend atualizado.");
-    }
     if (response.status === 429) {
       throw new Error(await readError(response, "Muitas tentativas. Aguarde alguns minutos e tente novamente."));
     }

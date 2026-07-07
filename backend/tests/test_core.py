@@ -176,15 +176,23 @@ def test_login_valid_creates_cookie_and_allows_protected_dependency(monkeypatch,
 def test_login_invalid_is_generic_and_does_not_create_session(monkeypatch, tmp_path):
     db_path = auth_db(monkeypatch, tmp_path)
 
-    with pytest.raises(HTTPException) as exc:
+    with pytest.raises(HTTPException) as wrong_password:
         login(
             LoginRequest(email="admin@leitorbi.local", password="senha-errada"),
             make_request(),
             Response(),
         )
+    with pytest.raises(HTTPException) as unknown_user:
+        login(
+            LoginRequest(email="naoexiste@leitorbi.local", password="senha-errada"),
+            make_request(),
+            Response(),
+        )
 
-    assert exc.value.status_code == 401
-    assert exc.value.detail == "Credenciais invalidas."
+    assert wrong_password.value.status_code == 401
+    assert wrong_password.value.detail == "Credenciais invalidas."
+    assert unknown_user.value.status_code == wrong_password.value.status_code
+    assert unknown_user.value.detail == wrong_password.value.detail
 
     with sqlite3.connect(db_path) as connection:
         session_count = connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
