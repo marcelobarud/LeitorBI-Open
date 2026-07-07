@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  ArrowDown,
   BookOpenCheck,
   ChevronLeft,
   ChevronRight,
@@ -23,12 +24,11 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { Fragment, type FormEvent, useEffect, useMemo, useState } from "react";
+import { Fragment, type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
-  analyzeDemoModel,
   analyzeModel,
+  analyzePublicDemoModel,
   compareModels,
-  exportDemoExcel,
   exportModelExcel,
   getCurrentUser,
   login as loginUser,
@@ -47,6 +47,15 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "sources", label: "Fontes" },
   { key: "relationships", label: "Relações" },
   { key: "compare", label: "Comparar" },
+];
+
+const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare">; label: string }> = [
+  { key: "overview", label: "Resumo" },
+  { key: "tables", label: "Tabelas" },
+  { key: "columns", label: "Colunas" },
+  { key: "measures", label: "Medidas" },
+  { key: "sources", label: "Fontes" },
+  { key: "relationships", label: "Relacoes" },
 ];
 
 const PAGE_SIZE = 250;
@@ -863,7 +872,11 @@ function LandingPage({
           <span>LeitorBI</span>
         </div>
         <div className="landing-access">
-          <button className="ghost-action" type="button" onClick={() => setShowLogin((current) => !current)}>
+          <button
+            className="ghost-action"
+            type="button"
+            onClick={() => setShowLogin((current) => !current)}
+          >
             <KeyRound size={18} />
             Acessar app
           </button>
@@ -927,13 +940,21 @@ function LandingPage({
             comparacao entre versoes e entrega em Excel para o time.
           </p>
           <div className="hero-actions">
-            <button className="primary-action" type="button" onClick={() => setShowLogin(true)}>
+            <button
+              className="primary-action"
+              type="button"
+              onClick={() => setShowLogin(true)}
+            >
               <KeyRound size={18} />
               Entrar agora
             </button>
             <a className="secondary-action" href="#como-usar">
               <BookOpenCheck size={18} />
               Como usar
+            </a>
+            <a className="ghost-action" href="/demo">
+              <PlayCircle size={18} />
+              Ver demonstracao
             </a>
           </div>
         </div>
@@ -1033,6 +1054,172 @@ function LandingPage({
   );
 }
 
+function DemoPage({
+  loading,
+  error,
+  onLogin,
+}: {
+  loading: boolean;
+  error: string;
+  onLogin: (email: string, password: string) => Promise<void>;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showLogin, setShowLogin] = useState(false);
+  const [demoReport, setDemoReport] = useState<Report | null>(null);
+  const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare">>("overview");
+  const [demoLoading, setDemoLoading] = useState(true);
+  const [demoError, setDemoError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    analyzePublicDemoModel()
+      .then((result) => {
+        if (active) setDemoReport(result);
+      })
+      .catch((err) => {
+        if (active) setDemoError(err instanceof Error ? err.message : "Erro inesperado ao carregar demonstracao.");
+      })
+      .finally(() => {
+        if (active) setDemoLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await onLogin(email, password);
+  }
+
+  const rowsByTab: Record<DataTabKey, Row[]> = {
+    tables: demoReport?.tables ?? [],
+    columns: demoReport?.columns ?? [],
+    measures: demoReport?.measures ?? [],
+    sources: demoReport?.sources ?? [],
+    relationships: demoReport?.relationships ?? [],
+  };
+
+  const isDataTab = activeTab !== "overview";
+
+  return (
+    <main className="app-shell demo-shell">
+      <aside className="sidebar">
+        <a className="brand demo-brand-link" href="/">
+          <Database size={24} />
+          <span>LeitorBI</span>
+        </a>
+        <nav>
+          {demoTabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={activeTab === tab.key ? "active" : ""}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+        <div className="compare-teaser">
+          <ShieldCheck size={18} />
+          <span>Demo publica em modo leitura, usando apenas dados de exemplo.</span>
+        </div>
+      </aside>
+
+      <section className="content">
+        <header className="workspace-topbar demo-topbar">
+          <div>
+            <span>Demonstracao publica</span>
+            <strong>{demoReport ? demoReport.raw.dashboardName : "Carregando exemplo"}</strong>
+          </div>
+          <div className="landing-access">
+            <button className="ghost-action" type="button" onClick={() => setShowLogin((current) => !current)}>
+              <KeyRound size={18} />
+              Fazer login
+            </button>
+            {showLogin ? (
+              <aside className="topbar-login" aria-label="Area de acesso">
+                <div className="login-brand">
+                  <Database size={30} />
+                  <div>
+                    <span>Acesso seguro</span>
+                    <strong>Entrar no LeitorBI</strong>
+                  </div>
+                </div>
+
+                <form className="login-form" onSubmit={handleSubmit}>
+                  <label>
+                    <span>Usuario ou e-mail</span>
+                    <div>
+                      <Mail size={17} />
+                      <input
+                        autoComplete="username"
+                        autoFocus
+                        type="text"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        required
+                      />
+                    </div>
+                  </label>
+
+                  <label>
+                    <span>Senha</span>
+                    <div>
+                      <KeyRound size={17} />
+                      <input
+                        autoComplete="current-password"
+                        type="password"
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        required
+                      />
+                    </div>
+                  </label>
+
+                  {error ? <div className="error">{error}</div> : null}
+
+                  <button className="primary-action" type="submit" disabled={loading}>
+                    {loading ? "Entrando..." : "Entrar"}
+                  </button>
+                </form>
+              </aside>
+            ) : null}
+          </div>
+        </header>
+
+        <div className="demo-lock-note">
+          <ShieldCheck size={18} />
+          <span>Previa somente leitura. Para carregar JSON, exportar Excel ou comparar modelos, faca login no app.</span>
+          <a className="ghost-action" href="/">
+            Voltar ao inicio
+          </a>
+        </div>
+
+        {demoLoading ? <div className="status">Carregando demonstracao...</div> : null}
+        {demoError ? <div className="error">{demoError}</div> : null}
+        {demoReport && activeTab === "overview" ? <Overview report={demoReport} isDemo readOnly /> : null}
+        {demoReport && isDataTab ? (
+          <>
+            <header className="page-header">
+              <Table2 size={22} />
+              <div>
+                <h2>{demoTabs.find((tab) => tab.key === activeTab)?.label}</h2>
+                <p>{demoReport.raw.dashboardName}</p>
+              </div>
+            </header>
+            <DataTable rows={rowsByTab[activeTab as DataTabKey]} />
+          </>
+        ) : null}
+      </section>
+    </main>
+  );
+}
+
 function UploadPanel({
   onAnalyze,
   onLoadDemo,
@@ -1093,6 +1280,41 @@ function UploadPanel({
   );
 }
 
+function HomeEmptyState({ onOpenFilePicker, disabled }: { onOpenFilePicker: () => void; disabled: boolean }) {
+  return (
+    <div className="home-empty-page">
+      <header className="page-header">
+        <Database size={22} />
+        <div>
+          <h2>Inicio</h2>
+          <p>Carregue um arquivo JSON exportado do Power BI para iniciar o levantamento.</p>
+        </div>
+      </header>
+
+      <section className="empty-workspace">
+        <h1>Nenhum arquivo carregado</h1>
+        <p>
+          Carregue um arquivo JSON exportado do Power BI para iniciar a analise. O LeitorBI ira levantar tabelas
+          utilizadas no modelo, colunas totais, medidas, fontes de dados e relacionamentos, ignorando tabelas tecnicas
+          de data automatica.
+        </p>
+
+        <button
+          className="empty-drop-hint"
+          type="button"
+          onClick={onOpenFilePicker}
+          disabled={disabled}
+          aria-label="Carregar arquivo JSON exportado do Power BI"
+        >
+          <ArrowDown size={30} />
+          <strong>Clique em Carregar JSON para selecionar o arquivo</strong>
+          <span>Use o botao Carregar JSON na barra superior ou clique aqui.</span>
+        </button>
+      </section>
+    </div>
+  );
+}
+
 function Overview({
   report,
   onAnalyze,
@@ -1101,14 +1323,16 @@ function Overview({
   loading,
   exporting,
   isDemo,
+  readOnly = false,
 }: {
   report: Report;
-  onAnalyze: (file: File) => void;
-  onClose: () => void;
-  onExport: () => void;
-  loading: boolean;
-  exporting: boolean;
+  onAnalyze?: (file: File) => void;
+  onClose?: () => void;
+  onExport?: () => void;
+  loading?: boolean;
+  exporting?: boolean;
   isDemo: boolean;
+  readOnly?: boolean;
 }) {
   const summary = report.summary;
   const tables = numberValue(summary["Tabelas totais"]);
@@ -1165,7 +1389,7 @@ function Overview({
             {formatValue(summary["Modelo"])} | {formatValue(summary["Modo padrao"])} | {formatValue(summary["Data de exportacao"])}
           </p>
         </div>
-        <div className="model-actions">
+        {!readOnly ? <div className="model-actions">
           <label className="secondary-action file-action">
             <FileJson size={18} />
             {loading ? "Analisando..." : "Trocar JSON"}
@@ -1176,7 +1400,7 @@ function Overview({
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
-                if (file) onAnalyze(file);
+                if (file) onAnalyze?.(file);
               }}
             />
           </label>
@@ -1188,7 +1412,7 @@ function Overview({
             <X size={18} />
             Fechar análise
           </button>
-        </div>
+        </div> : null}
       </section>
 
       <section className="metric-grid">
@@ -1230,17 +1454,17 @@ function Overview({
 }
 
 export function App() {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [loading, setLoading] = useState(false);
-  const [loadingDemo, setLoadingDemo] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
-  const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState("");
   const [compareBaseFile, setCompareBaseFile] = useState<File | null>(null);
   const [compareNewFile, setCompareNewFile] = useState<File | null>(null);
@@ -1267,10 +1491,26 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    function handlePopState() {
+      setCurrentPath(window.location.pathname);
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (user && currentPath === "/demo") {
+      window.history.replaceState(null, "", "/");
+      setCurrentPath("/");
+      clearWorkspaceState();
+    }
+  }, [currentPath, user]);
+
   function clearWorkspaceState() {
     setReport(null);
     setCurrentFile(null);
-    setIsDemo(false);
     setError("");
     setActiveTab("overview");
     handleClearComparison();
@@ -1283,6 +1523,8 @@ export function App() {
       const authenticatedUser = await loginUser(email, password);
       setUser(authenticatedUser);
       clearWorkspaceState();
+      window.history.pushState(null, "", "/");
+      setCurrentPath("/");
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : "E-mail ou senha invalidos.");
     } finally {
@@ -1318,7 +1560,6 @@ export function App() {
       const result = await analyzeModel(file);
       setReport(result);
       setCurrentFile(file);
-      setIsDemo(false);
       setActiveTab("overview");
     } catch (err) {
       handleAuthenticatedError(err, "Erro inesperado.");
@@ -1327,27 +1568,24 @@ export function App() {
     }
   }
 
-  async function handleLoadDemo() {
-    setLoadingDemo(true);
-    setError("");
-    try {
-      const result = await analyzeDemoModel();
-      setReport(result);
-      setCurrentFile(null);
-      setIsDemo(true);
-      setActiveTab("overview");
-    } catch (err) {
-      handleAuthenticatedError(err, "Erro inesperado ao carregar exemplo.");
-    } finally {
-      setLoadingDemo(false);
-    }
+  function openFilePicker() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (file) handleAnalyze(file);
   }
 
   async function handleExport() {
     setExporting(true);
     setError("");
     try {
-      const blob = isDemo || !currentFile ? await exportDemoExcel() : await exportModelExcel(currentFile);
+      if (!currentFile) {
+        throw new Error("Carregue um JSON antes de exportar.");
+      }
+      const blob = await exportModelExcel(currentFile);
       const dashboardName = report?.raw.dashboardName || "leitorbi";
       downloadBlob(blob, `${dashboardName}_analise.xlsx`);
     } catch (err) {
@@ -1360,7 +1598,6 @@ export function App() {
   function handleCloseAnalysis() {
     setReport(null);
     setCurrentFile(null);
-    setIsDemo(false);
     setError("");
     setActiveTab("overview");
   }
@@ -1395,6 +1632,10 @@ export function App() {
   }
 
   if (!user) {
+    if (currentPath === "/demo") {
+      return <DemoPage loading={loginLoading} error={loginError} onLogin={handleLogin} />;
+    }
+
     return <LandingPage loading={loginLoading} error={loginError} onLogin={handleLogin} />;
   }
 
@@ -1433,8 +1674,27 @@ export function App() {
       </aside>
 
       <section className="content">
+        <input
+          ref={fileInputRef}
+          className="workspace-file-input"
+          type="file"
+          accept=".json,application/json"
+          onChange={handleFileInputChange}
+        />
+        <header className="workspace-topbar">
+          <div>
+            <span>Workspace</span>
+            <strong>{report ? report.raw.dashboardName : "Nenhum modelo carregado"}</strong>
+          </div>
+          {!report ? (
+            <button className="secondary-action" type="button" onClick={openFilePicker} disabled={loading}>
+              <FileJson size={18} />
+              {loading ? "Analisando..." : "Carregar JSON"}
+            </button>
+          ) : null}
+        </header>
         {!report && activeTab === "overview" ? (
-          <UploadPanel onAnalyze={handleAnalyze} onLoadDemo={handleLoadDemo} loadingDemo={loadingDemo} />
+          <HomeEmptyState onOpenFilePicker={openFilePicker} disabled={loading} />
         ) : null}
         {loading ? <div className="status">Analisando modelo...</div> : null}
         {error ? <div className="error">{error}</div> : null}
@@ -1446,7 +1706,7 @@ export function App() {
             onExport={handleExport}
             loading={loading}
             exporting={exporting}
-            isDemo={isDemo}
+            isDemo={false}
           />
         ) : null}
         {activeTab === "tutorial" ? <TutorialView /> : null}

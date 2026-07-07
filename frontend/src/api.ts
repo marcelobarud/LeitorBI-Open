@@ -115,6 +115,16 @@ export async function analyzeDemoModel(): Promise<Report> {
   return response.json();
 }
 
+export async function analyzePublicDemoModel(): Promise<Report> {
+  const response = await fetchApi(`${API_URL}/api/public/demo/analyze`);
+
+  if (!response.ok) {
+    throw new Error(await readError(response, "Erro ao carregar demonstracao."));
+  }
+
+  return response.json();
+}
+
 export async function exportModelExcel(file: File): Promise<Blob> {
   const form = new FormData();
   form.append("file", file);

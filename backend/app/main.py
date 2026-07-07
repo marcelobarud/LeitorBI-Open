@@ -78,6 +78,11 @@ def analyze_demo_model(_user: AuthenticatedUser = Depends(current_user)) -> Repo
     return ReportResponse.model_validate(PowerBIAnalyzer(validate_model_export(DEMO_MODEL)).full_report())
 
 
+@app.get("/api/public/demo/analyze", response_model=ReportResponse)
+def analyze_public_demo_model() -> ReportResponse:
+    return ReportResponse.model_validate(PowerBIAnalyzer(validate_model_export(DEMO_MODEL)).full_report())
+
+
 @app.get("/api/demo/export-excel")
 def export_demo_excel(_user: AuthenticatedUser = Depends(current_user)) -> StreamingResponse:
     report = PowerBIAnalyzer(DEMO_MODEL).full_report()

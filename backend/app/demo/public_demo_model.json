@@ -1,0 +1,308 @@
+{
+  "dashboardName": "Demo Publica Comercial",
+  "modelName": "Modelo Ficticio de Vendas",
+  "exportDate": "2026-07-07",
+  "modelMetadata": {
+    "culture": "pt-BR",
+    "defaultMode": "Import"
+  },
+  "tables": [
+    {
+      "name": "Fato Vendas Demo",
+      "tableType": "Regular",
+      "isHidden": false,
+      "description": "Tabela fato ficticia para demonstrar metricas comerciais.",
+      "columns": [
+        {
+          "name": "Id Venda",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": true,
+          "description": "Identificador tecnico ficticio da venda."
+        },
+        {
+          "name": "Data Venda",
+          "dataType": "DateTime",
+          "columnType": "DataColumn",
+          "isHidden": false,
+          "formatString": "dd/MM/yyyy"
+        },
+        {
+          "name": "Id Produto",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": true
+        },
+        {
+          "name": "Id Cliente",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": true
+        },
+        {
+          "name": "Id Canal",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": true
+        },
+        {
+          "name": "Receita",
+          "dataType": "Decimal",
+          "columnType": "DataColumn",
+          "isHidden": false,
+          "formatString": "R$ #,0.00",
+          "description": "Valor monetario ficticio da venda."
+        },
+        {
+          "name": "Quantidade",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": false
+        }
+      ],
+      "measures": [
+        {
+          "name": "Receita Total",
+          "expression": "SUM('Fato Vendas Demo'[Receita])",
+          "formatString": "R$ #,0.00",
+          "displayFolder": "Financeiro",
+          "description": "Soma ficticia da receita."
+        },
+        {
+          "name": "Ticket Medio",
+          "expression": "DIVIDE([Receita Total], DISTINCTCOUNT('Fato Vendas Demo'[Id Venda]))",
+          "formatString": "R$ #,0.00",
+          "displayFolder": "Financeiro"
+        },
+        {
+          "name": "Itens Vendidos",
+          "expression": "SUM('Fato Vendas Demo'[Quantidade])",
+          "formatString": "#,0",
+          "displayFolder": "Operacional"
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Fato Vendas Demo",
+          "sourceType": "M",
+          "mode": "Import",
+          "expression": "let Source = Sql.Database(\"demo-sql-server\", \"DemoDW\", [Query=\"select id_venda, data_venda, id_produto, id_cliente, id_canal, receita, quantidade from demo.fato_vendas\"]) in Source"
+        }
+      ]
+    },
+    {
+      "name": "Dim Produto Demo",
+      "tableType": "Regular",
+      "isHidden": false,
+      "description": "Dimensao ficticia de produtos.",
+      "columns": [
+        {
+          "name": "Id Produto",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": true
+        },
+        {
+          "name": "Produto",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        },
+        {
+          "name": "Categoria",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        },
+        {
+          "name": "Preco Sugerido",
+          "dataType": "Decimal",
+          "columnType": "DataColumn",
+          "isHidden": false,
+          "formatString": "R$ #,0.00"
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Dim Produto Demo",
+          "sourceType": "M",
+          "mode": "Import",
+          "expression": "let Source = Excel.Workbook(Web.Contents(\"https://demo.example/files/produtos-demo.xlsx\"), null, true) in Source"
+        }
+      ]
+    },
+    {
+      "name": "Dim Cliente Demo",
+      "tableType": "Regular",
+      "isHidden": false,
+      "description": "Dimensao ficticia de clientes sem dados pessoais.",
+      "columns": [
+        {
+          "name": "Id Cliente",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": true
+        },
+        {
+          "name": "Segmento",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        },
+        {
+          "name": "Regiao",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        },
+        {
+          "name": "Cliente Demo",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false,
+          "description": "Nome generico e ficticio, sem identificacao real."
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Dim Cliente Demo",
+          "sourceType": "M",
+          "mode": "Import",
+          "expression": "let Source = SharePoint.Files(\"https://demo.example/sites/base-comercial\", [ApiVersion = 15]) in Source"
+        }
+      ]
+    },
+    {
+      "name": "Dim Canal Demo",
+      "tableType": "Regular",
+      "isHidden": false,
+      "description": "Dimensao ficticia de canais comerciais.",
+      "columns": [
+        {
+          "name": "Id Canal",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": true
+        },
+        {
+          "name": "Canal",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        },
+        {
+          "name": "Tipo Canal",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Dim Canal Demo",
+          "sourceType": "M",
+          "mode": "Import",
+          "expression": "let Source = Excel.Workbook(Web.Contents(\"https://demo.example/files/canais-demo.xlsx\"), null, true) in Source"
+        }
+      ]
+    },
+    {
+      "name": "Calendario Demo",
+      "tableType": "Regular",
+      "isHidden": false,
+      "description": "Calendario ficticio usado para demonstrar relacionamentos e medidas de tempo.",
+      "columns": [
+        {
+          "name": "Data",
+          "dataType": "DateTime",
+          "columnType": "DataColumn",
+          "isHidden": false,
+          "formatString": "dd/MM/yyyy"
+        },
+        {
+          "name": "Ano",
+          "dataType": "Int64",
+          "columnType": "DataColumn",
+          "isHidden": false
+        },
+        {
+          "name": "Mes",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        },
+        {
+          "name": "Trimestre",
+          "dataType": "String",
+          "columnType": "DataColumn",
+          "isHidden": false
+        }
+      ],
+      "measures": [
+        {
+          "name": "Receita YTD",
+          "expression": "TOTALYTD([Receita Total], 'Calendario Demo'[Data])",
+          "formatString": "R$ #,0.00",
+          "displayFolder": "Tempo"
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Calendario Demo",
+          "sourceType": "M",
+          "mode": "Import",
+          "expression": "let Source = Sql.Database(\"demo-sql-server\", \"DemoDW\", [Query=\"select data, ano, mes, trimestre from demo.dim_calendario\"]) in Source"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "name": "Vendas Demo Produto",
+      "fromTable": "Fato Vendas Demo",
+      "fromColumn": "Id Produto",
+      "toTable": "Dim Produto Demo",
+      "toColumn": "Id Produto",
+      "fromCardinality": "Many",
+      "toCardinality": "One",
+      "crossFilteringBehavior": "OneDirection",
+      "isActive": true
+    },
+    {
+      "name": "Vendas Demo Cliente",
+      "fromTable": "Fato Vendas Demo",
+      "fromColumn": "Id Cliente",
+      "toTable": "Dim Cliente Demo",
+      "toColumn": "Id Cliente",
+      "fromCardinality": "Many",
+      "toCardinality": "One",
+      "crossFilteringBehavior": "OneDirection",
+      "isActive": true
+    },
+    {
+      "name": "Vendas Demo Canal",
+      "fromTable": "Fato Vendas Demo",
+      "fromColumn": "Id Canal",
+      "toTable": "Dim Canal Demo",
+      "toColumn": "Id Canal",
+      "fromCardinality": "Many",
+      "toCardinality": "One",
+      "crossFilteringBehavior": "BothDirections",
+      "isActive": true
+    },
+    {
+      "name": "Vendas Demo Calendario",
+      "fromTable": "Fato Vendas Demo",
+      "fromColumn": "Data Venda",
+      "toTable": "Calendario Demo",
+      "toColumn": "Data",
+      "fromCardinality": "Many",
+      "toCardinality": "One",
+      "crossFilteringBehavior": "OneDirection",
+      "isActive": false
+    }
+  ]
+}

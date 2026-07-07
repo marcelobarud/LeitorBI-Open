@@ -17,7 +17,7 @@ from app.auth import (
     login,
     logout,
 )
-from app.demo_data import DEMO_MODEL
+from app.demo_data import DEMO_MODEL, DEMO_MODEL_PATH
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
@@ -36,10 +36,13 @@ class FakeUpload:
 def test_analyzer_demo_report_has_expected_sections():
     report = PowerBIAnalyzer(DEMO_MODEL).full_report()
 
-    assert report["summary"]["Dashboard"] == "Demo Comercial"
-    assert report["summary"]["Tabelas totais"] == 4
+    assert DEMO_MODEL_PATH.name == "public_demo_model.json"
+    assert report["summary"]["Dashboard"] == "Demo Publica Comercial"
+    assert report["summary"]["Tabelas totais"] == 5
     assert "SQL" in report["summary"]["Tipos de fontes"]
-    assert report["sources"][0]["Servidor"] == "srv-bi"
+    assert "Excel" in report["summary"]["Tipos de fontes"]
+    assert "SharePoint" in report["summary"]["Tipos de fontes"]
+    assert report["sources"][0]["Servidor"] == "demo-sql-server"
     assert report["relationships"][-1]["Ativo"] == "Não"
     assert "quality" not in report
 
@@ -57,8 +60,8 @@ def test_compare_models_reports_measure_column_and_relationship_changes():
     base = deepcopy(DEMO_MODEL)
     new = deepcopy(DEMO_MODEL)
     new["dashboardName"] = "Demo Comercial v2"
-    new["tables"][0]["measures"][0]["expression"] = "SUM('Fato Vendas'[Receita]) * 1.1"
-    new["tables"][0]["columns"][4]["formatString"] = "R$ #,0"
+    new["tables"][0]["measures"][0]["expression"] = "SUM('Fato Vendas Demo'[Receita]) * 1.1"
+    new["tables"][0]["columns"][5]["formatString"] = "R$ #,0"
     new["relationships"][0]["crossFilteringBehavior"] = "BothDirections"
 
     result = compare_models(base, new)
@@ -67,7 +70,7 @@ def test_compare_models_reports_measure_column_and_relationship_changes():
     assert result["medidas"]["modificadas"][0]["medida"] == "Receita Total"
     assert result["colunas"]["modificadas"][0]["coluna"] == "Receita"
     assert result["relacionamentos"]["modificados"][0]["relacionamento"] == (
-        "Fato Vendas.Id Produto -> Dim Produto.Id Produto"
+        "Fato Vendas Demo.Id Produto -> Dim Produto Demo.Id Produto"
     )
 
 
