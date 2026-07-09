@@ -36,19 +36,28 @@ class LoginRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
+    name: str
     email: str
     is_admin: bool
 
 
 class AdminUserResponse(BaseModel):
     id: int
+    name: str
     email: str
     is_admin: bool
     disabled: bool
     created_at: str
 
 
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
 class CreateUserRequest(BaseModel):
+    name: str = ""
     email: str
     password: str
     is_admin: bool = False
@@ -62,6 +71,7 @@ class UpdateUserRequest(BaseModel):
 @dataclass(frozen=True)
 class AuthenticatedUser:
     id: int
+    name: str
     email: str
     is_admin: bool
 
@@ -104,6 +114,7 @@ def init_auth() -> None:
             """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL DEFAULT '',
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 is_admin INTEGER NOT NULL DEFAULT 0,
@@ -126,7 +137,14 @@ def init_auth() -> None:
             CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
             """
         )
+        ensure_user_name_column(connection)
         seed_admin(connection)
+
+
+def ensure_user_name_column(connection: sqlite3.Connection) -> None:
+    columns = connection.execute("PRAGMA table_info(users)").fetchall()
+    if not any(column["name"] == "name" for column in columns):
+        connection.execute("ALTER TABLE users ADD COLUMN name TEXT NOT NULL DEFAULT ''")
 
 
 def seed_admin(connection: sqlite3.Connection) -> None:
@@ -142,10 +160,10 @@ def seed_admin(connection: sqlite3.Connection) -> None:
 
     connection.execute(
         """
-        INSERT INTO users (email, password_hash, is_admin, disabled, created_at)
-        VALUES (?, ?, 1, 0, ?)
+        INSERT INTO users (name, email, password_hash, is_admin, disabled, created_at)
+        VALUES (?, ?, ?, 1, 0, ?)
         """,
-        (normalized_email, hash_password(password), utc_now_text()),
+        ("Administrador", normalized_email, hash_password(password), utc_now_text()),
     )
 
 
@@ -252,7 +270,7 @@ def clear_session_cookie(response: Response) -> None:
 
 
 def user_response(user: AuthenticatedUser) -> UserResponse:
-    return UserResponse(email=user.email, is_admin=user.is_admin)
+    return UserResponse(name=user.name, email=user.email, is_admin=user.is_admin)
 
 
 def load_user_by_session(token: str) -> AuthenticatedUser | None:
@@ -260,7 +278,7 @@ def load_user_by_session(token: str) -> AuthenticatedUser | None:
     with connect_db() as connection:
         row = connection.execute(
             """
-            SELECT users.id, users.email, users.is_admin
+            SELECT users.id, users.name, users.email, users.is_admin
             FROM sessions
             JOIN users ON users.id = sessions.user_id
             WHERE sessions.token_hash = ?
@@ -276,7 +294,7 @@ def load_user_by_session(token: str) -> AuthenticatedUser | None:
             "UPDATE sessions SET last_seen_at = ? WHERE token_hash = ?",
             (now, token_hash(token)),
         )
-        return AuthenticatedUser(id=row["id"], email=row["email"], is_admin=bool(row["is_admin"]))
+        return AuthenticatedUser(id=row["id"], name=row["name"], email=row["email"], is_admin=bool(row["is_admin"]))
 
 
 def current_user(request: Request) -> AuthenticatedUser:
@@ -305,9 +323,19 @@ def validate_user_payload(email: str, password: str | None = None) -> str:
     return normalized_email
 
 
+def validate_user_name(name: str) -> str:
+    normalized_name = " ".join(name.strip().split())
+    if not normalized_name:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe o nome do usuario.")
+    if len(normalized_name) > 120:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nome muito longo.")
+    return normalized_name
+
+
 def admin_user_response(row: sqlite3.Row) -> AdminUserResponse:
     return AdminUserResponse(
         id=row["id"],
+        name=row["name"],
         email=row["email"],
         is_admin=bool(row["is_admin"]),
         disabled=bool(row["disabled"]),
@@ -322,7 +350,7 @@ def login(payload: LoginRequest, request: Request, response: Response) -> UserRe
 
     with connect_db() as connection:
         row = connection.execute(
-            "SELECT id, email, password_hash, is_admin FROM users WHERE email = ? AND disabled = 0",
+            "SELECT id, name, email, password_hash, is_admin FROM users WHERE email = ? AND disabled = 0",
             (email,),
         ).fetchone()
         stored_hash = row["password_hash"] if row else _DUMMY_PASSWORD_HASH
@@ -333,7 +361,37 @@ def login(payload: LoginRequest, request: Request, response: Response) -> UserRe
         token = create_session(connection, row["id"])
         clear_failed_logins(request, email)
         set_session_cookie(response, token)
-        return UserResponse(email=row["email"], is_admin=bool(row["is_admin"]))
+        return UserResponse(name=row["name"], email=row["email"], is_admin=bool(row["is_admin"]))
+
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+def register(payload: RegisterRequest) -> UserResponse:
+    name = validate_user_name(payload.name)
+    email = validate_user_payload(payload.email, payload.password)
+
+    try:
+        with connect_db() as connection:
+            connection.execute(
+                """
+                INSERT INTO users (name, email, password_hash, is_admin, disabled, created_at)
+                VALUES (?, ?, ?, 0, 0, ?)
+                """,
+                (name, email, hash_password(payload.password), utc_now_text()),
+            )
+            row = connection.execute(
+                """
+                SELECT name, email, is_admin
+                FROM users
+                WHERE email = ?
+                """,
+                (email,),
+            ).fetchone()
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Nao foi possivel concluir o cadastro.") from exc
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Cadastro criado, mas nao localizado.")
+    return UserResponse(name=row["name"], email=row["email"], is_admin=bool(row["is_admin"]))
 
 
 @router.get("/me", response_model=UserResponse)
@@ -363,7 +421,7 @@ def list_users(_admin: AuthenticatedUser = Depends(current_admin_user)) -> list[
     with connect_db() as connection:
         rows = connection.execute(
             """
-            SELECT id, email, is_admin, disabled, created_at
+            SELECT id, name, email, is_admin, disabled, created_at
             FROM users
             ORDER BY created_at DESC, id DESC
             """
@@ -376,20 +434,21 @@ def create_user(
     payload: CreateUserRequest,
     _admin: AuthenticatedUser = Depends(current_admin_user),
 ) -> AdminUserResponse:
+    name = validate_user_name(payload.name or payload.email.split("@", 1)[0])
     email = validate_user_payload(payload.email, payload.password)
 
     try:
         with connect_db() as connection:
             connection.execute(
                 """
-                INSERT INTO users (email, password_hash, is_admin, disabled, created_at)
-                VALUES (?, ?, ?, 0, ?)
+                INSERT INTO users (name, email, password_hash, is_admin, disabled, created_at)
+                VALUES (?, ?, ?, ?, 0, ?)
                 """,
-                (email, hash_password(payload.password), int(payload.is_admin), utc_now_text()),
+                (name, email, hash_password(payload.password), int(payload.is_admin), utc_now_text()),
             )
             row = connection.execute(
                 """
-                SELECT id, email, is_admin, disabled, created_at
+                SELECT id, name, email, is_admin, disabled, created_at
                 FROM users
                 WHERE email = ?
                 """,
@@ -439,7 +498,7 @@ def update_user(
         )
         updated = connection.execute(
             """
-            SELECT id, email, is_admin, disabled, created_at
+            SELECT id, name, email, is_admin, disabled, created_at
             FROM users
             WHERE id = ?
             """,
@@ -447,3 +506,33 @@ def update_user(
         ).fetchone()
 
     return admin_user_response(updated)
+
+
+@admin_router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_user(user_id: int, admin: AuthenticatedUser = Depends(current_admin_user)) -> Response:
+    if user_id == admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce nao pode remover seu proprio usuario.")
+
+    with connect_db() as connection:
+        row = connection.execute(
+            "SELECT id, is_admin FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+
+        if bool(row["is_admin"]):
+            other_active_admins = connection.execute(
+                """
+                SELECT COUNT(*)
+                FROM users
+                WHERE id != ? AND is_admin = 1 AND disabled = 0
+                """,
+                (user_id,),
+            ).fetchone()[0]
+            if other_active_admins == 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mantenha ao menos um administrador ativo.")
+
+        connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

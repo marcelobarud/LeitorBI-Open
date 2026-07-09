@@ -12,15 +12,18 @@ from app.auth import (
     SESSION_COOKIE_NAME,
     CreateUserRequest,
     LoginRequest,
+    RegisterRequest,
     UpdateUserRequest,
     _login_attempts,
     create_user,
     current_user,
     current_admin_user,
+    delete_user,
     init_auth,
     list_users,
     login,
     logout,
+    register,
     update_user,
 )
 from app.demo_data import DEMO_MODEL, DEMO_MODEL_PATH
@@ -225,6 +228,7 @@ def test_login_valid_creates_cookie_and_allows_protected_dependency(monkeypatch,
 
     assert SESSION_COOKIE_NAME in login_response.headers["set-cookie"]
     assert user.email == "admin@leitorbi.local"
+    assert user.name == "Administrador"
     assert user.is_admin is True
 
     with sqlite3.connect(db_path) as connection:
@@ -298,15 +302,75 @@ def test_admin_can_manage_users(monkeypatch, tmp_path):
     assert updated.disabled is True
 
 
+def test_public_registration_creates_non_admin_without_session(monkeypatch, tmp_path):
+    db_path = auth_db(monkeypatch, tmp_path)
+
+    created = register(RegisterRequest(name="Ana Souza", email="ANA@LeitorBI.Local", password="SenhaForte123!"))
+
+    assert created.name == "Ana Souza"
+    assert created.email == "ana@leitorbi.local"
+    assert created.is_admin is False
+    with sqlite3.connect(db_path) as connection:
+        user_row = connection.execute(
+            "SELECT name, password_hash, is_admin FROM users WHERE email = ?",
+            ("ana@leitorbi.local",),
+        ).fetchone()
+        session_count = connection.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
+
+    assert user_row is not None
+    assert user_row[0] == "Ana Souza"
+    assert user_row[1] != "SenhaForte123!"
+    assert user_row[2] == 0
+    assert session_count == 0
+
+
+def test_registration_rejects_duplicate_email(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+
+    register(RegisterRequest(name="Ana Souza", email="ana@leitorbi.local", password="SenhaForte123!"))
+
+    with pytest.raises(HTTPException) as exc:
+        register(RegisterRequest(name="Ana Souza", email="ana@leitorbi.local", password="SenhaForte123!"))
+
+    assert exc.value.status_code == 409
+
+
+def test_admin_can_delete_user_but_not_self_or_last_admin(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+    _, cookie_header = login_cookie()
+    admin = current_user(make_request(cookie_header))
+    regular = create_user(
+        CreateUserRequest(name="Analista", email="analista@leitorbi.local", password="SenhaForte123!", is_admin=False),
+        admin,
+    )
+
+    response = delete_user(regular.id, admin)
+
+    assert response.status_code == 204
+    assert all(user.id != regular.id for user in list_users(admin))
+    with pytest.raises(HTTPException) as self_delete:
+        delete_user(admin.id, admin)
+    assert self_delete.value.status_code == 400
+
+    other_admin = create_user(
+        CreateUserRequest(name="Admin Dois", email="admin2@leitorbi.local", password="SenhaForte123!", is_admin=True),
+        admin,
+    )
+    delete_user(other_admin.id, admin)
+
+    assert all(user.id != other_admin.id for user in list_users(admin))
+    assert any(user.id == admin.id for user in list_users(admin))
+
+
 def test_non_admin_cannot_access_admin_dependency(monkeypatch, tmp_path):
     db_path = auth_db(monkeypatch, tmp_path)
     with sqlite3.connect(db_path) as connection:
         connection.execute(
             """
-            INSERT INTO users (email, password_hash, is_admin, disabled, created_at)
-            VALUES (?, ?, 0, 0, ?)
+            INSERT INTO users (name, email, password_hash, is_admin, disabled, created_at)
+            VALUES (?, ?, ?, 0, 0, ?)
             """,
-            ("analista@leitorbi.local", "hash", "2026-07-09T00:00:00+00:00"),
+            ("Analista", "analista@leitorbi.local", "hash", "2026-07-09T00:00:00+00:00"),
         )
         user_id = connection.execute("SELECT id FROM users WHERE email = ?", ("analista@leitorbi.local",)).fetchone()[0]
 

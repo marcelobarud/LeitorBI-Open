@@ -18,6 +18,7 @@ import {
   Search,
   ShieldCheck,
   Table2,
+  Trash2,
   UserPlus,
   Users,
   WandSparkles,
@@ -40,11 +41,13 @@ import {
   analyzePublicDemoModel,
   compareModels,
   createUser,
+  deleteUser,
   exportModelExcel,
   getCurrentUser,
   listUsers,
   login as loginUser,
   logout as logoutUser,
+  registerUser,
   updateUser,
 } from "./api";
 import { LoginPopover } from "./components/LoginPopover";
@@ -986,10 +989,12 @@ function DemoPage({
   loading,
   error,
   onLogin,
+  onRegister,
 }: {
   loading: boolean;
   error: string;
   onLogin: (email: string, password: string) => Promise<void>;
+  onRegister: (name: string, email: string, password: string) => Promise<void>;
 }) {
   const [showLogin, setShowLogin] = useState(false);
   const [demoReport, setDemoReport] = useState<Report | null>(null);
@@ -1062,7 +1067,9 @@ function DemoPage({
               <ShieldCheck size={18} />
               Fazer login
             </button>
-            {showLogin ? <LoginPopover loading={loading} error={error} onLogin={onLogin} /> : null}
+            {showLogin ? (
+              <LoginPopover loading={loading} error={error} onLogin={onLogin} onRegister={onRegister} />
+            ) : null}
           </div>
         </header>
 
@@ -1098,8 +1105,10 @@ function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -1126,8 +1135,9 @@ function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     setError("");
     setSuccess("");
     try {
-      const created = await createUser(email, password, isAdmin);
+      const created = await createUser(name, email, password, isAdmin);
       setUsers((current) => [created, ...current]);
+      setName("");
       setEmail("");
       setPassword("");
       setIsAdmin(false);
@@ -1151,6 +1161,29 @@ function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     }
   }
 
+  async function handleDeleteUser(managedUser: ManagedUser) {
+    if (managedUser.email === currentUser.email) {
+      setError("Voce nao pode remover seu proprio usuario.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Remover o usuario ${managedUser.email}? Esta acao nao pode ser desfeita.`);
+    if (!confirmed) return;
+
+    setDeletingUserId(managedUser.id);
+    setError("");
+    setSuccess("");
+    try {
+      await deleteUser(managedUser.id);
+      setUsers((current) => current.filter((user) => user.id !== managedUser.id));
+      setSuccess("Usuario removido com sucesso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao remover usuario.");
+    } finally {
+      setDeletingUserId(null);
+    }
+  }
+
   return (
     <div className="users-page">
       <header className="page-header">
@@ -1167,6 +1200,16 @@ function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
           <p>Crie acessos individuais. A senha inicial deve ser compartilhada por um canal seguro.</p>
         </div>
         <form className="users-create-form" onSubmit={handleCreateUser}>
+          <label>
+            <span>Nome</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Nome do usuario"
+              required
+            />
+          </label>
           <label>
             <span>E-mail</span>
             <input
@@ -1227,7 +1270,8 @@ function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
               return (
                 <article className={managedUser.disabled ? "user-row disabled" : "user-row"} key={managedUser.id}>
                   <div>
-                    <strong>{managedUser.email}</strong>
+                    <strong>{managedUser.name || managedUser.email}</strong>
+                    {managedUser.name ? <small>{managedUser.email}</small> : null}
                     <span>
                       {managedUser.is_admin ? "Administrador" : "Usuário"} ·{" "}
                       {managedUser.disabled ? "Desativado" : "Ativo"}
@@ -1250,6 +1294,17 @@ function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
                       onClick={() => handleUpdateUser(managedUser.id, { disabled: !managedUser.disabled })}
                     >
                       {managedUser.disabled ? "Reativar" : "Desativar"}
+                    </button>
+                    <button
+                      className="danger-action"
+                      type="button"
+                      title={isSelf ? "Voce nao pode remover seu proprio usuario" : "Remover usuario"}
+                      aria-label={`Remover ${managedUser.email}`}
+                      disabled={isSelf || deletingUserId === managedUser.id}
+                      onClick={() => handleDeleteUser(managedUser)}
+                    >
+                      <Trash2 size={16} />
+                      {deletingUserId === managedUser.id ? "Removendo..." : "Remover"}
                     </button>
                   </div>
                 </article>
@@ -1604,6 +1659,16 @@ export function App() {
     }
   }
 
+  async function handleRegister(name: string, email: string, password: string) {
+    setLoginLoading(true);
+    setLoginError("");
+    try {
+      await registerUser(name, email, password);
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
   async function handleLogout() {
     try {
       await logoutUser();
@@ -1717,10 +1782,10 @@ export function App() {
 
   if (!user) {
     if (currentPath === ROUTES.demo) {
-      return <DemoPage loading={loginLoading} error={loginError} onLogin={handleLogin} />;
+      return <DemoPage loading={loginLoading} error={loginError} onLogin={handleLogin} onRegister={handleRegister} />;
     }
 
-    return <LandingPage loading={loginLoading} error={loginError} onLogin={handleLogin} />;
+    return <LandingPage loading={loginLoading} error={loginError} onLogin={handleLogin} onRegister={handleRegister} />;
   }
 
   return (
@@ -1745,7 +1810,7 @@ export function App() {
         <div className="user-panel">
           <div>
             <span>Logado como</span>
-            <strong>{user.email}</strong>
+            <strong>{user.name || user.email}</strong>
           </div>
           <button type="button" onClick={handleLogout} title="Sair" aria-label="Sair">
             <LogOut size={18} />

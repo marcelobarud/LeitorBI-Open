@@ -69,6 +69,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -105,7 +106,7 @@ describe("App", () => {
     render(<App />);
 
     await userEvent.click(await screen.findByRole("button", { name: /acessar app/i }));
-    await userEvent.type(screen.getByLabelText(/usuario ou e-mail/i), "admin@leitorbi.local");
+    await userEvent.type(screen.getByLabelText(/e-mail/i), "admin@leitorbi.local");
     await userEvent.type(screen.getByLabelText(/senha/i), "SenhaForte123!");
     await userEvent.click(screen.getByRole("button", { name: /^entrar$/i }));
 
@@ -113,6 +114,29 @@ describe("App", () => {
     expect(screen.getByText(/aceita arquivos \.json/i)).toBeInTheDocument();
     expect(screen.getByText("admin@leitorbi.local")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/app");
+  });
+
+  it("permite visitante criar conta e voltar para o login", async () => {
+    mockFetch((url) => {
+      if (url.includes("/api/auth/me")) return jsonResponse({ detail: "Autenticacao necessaria." }, { status: 401 });
+      if (url.includes("/api/auth/register")) {
+        return jsonResponse({ name: "Ana Souza", email: "ana@leitorbi.local", is_admin: false }, { status: 201 });
+      }
+      return jsonResponse({ detail: "Not found" }, { status: 404 });
+    });
+
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /acessar app/i }));
+    await userEvent.click(screen.getByRole("button", { name: /criar conta/i }));
+    await userEvent.type(screen.getByLabelText(/nome/i), "Ana Souza");
+    await userEvent.type(screen.getByLabelText(/e-mail/i), "ana@leitorbi.local");
+    await userEvent.type(screen.getByLabelText(/^senha$/i), "SenhaForte123!");
+    await userEvent.type(screen.getByLabelText(/confirmar senha/i), "SenhaForte123!");
+    await userEvent.click(screen.getByRole("button", { name: /^criar conta$/i }));
+
+    expect(await screen.findByText(/conta criada com sucesso/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^entrar$/i })).toBeInTheDocument();
   });
 
   it("redireciona visitantes de /app para a landing page", async () => {
@@ -203,6 +227,48 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { name: /usuários/i })).toBeInTheDocument();
     expect(screen.getByText("analista@leitorbi.local")).toBeInTheDocument();
     expect(screen.getByText(/gerencie quem pode acessar/i)).toBeInTheDocument();
+  });
+
+  it("permite administrador remover usuario com confirmacao", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/auth/me")) return jsonResponse({ name: "Admin", email: "admin@leitorbi.local", is_admin: true });
+      if (url.includes("/api/admin/users/2") && init?.method === "DELETE") return new Response(null, { status: 204 });
+      if (url.includes("/api/admin/users")) {
+        return jsonResponse([
+          {
+            id: 1,
+            name: "Admin",
+            email: "admin@leitorbi.local",
+            is_admin: true,
+            disabled: false,
+            created_at: "2026-07-09T00:00:00+00:00",
+          },
+          {
+            id: 2,
+            name: "Analista",
+            email: "analista@leitorbi.local",
+            is_admin: false,
+            disabled: false,
+            created_at: "2026-07-09T00:00:00+00:00",
+          },
+        ]);
+      }
+      return jsonResponse({ detail: "Not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<App />);
+
+    expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /usu.rio/i }));
+    expect(await screen.findByText("Analista")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /remover analista@leitorbi.local/i }));
+
+    await waitFor(() => expect(screen.queryByText("Analista")).not.toBeInTheDocument());
+    expect(await screen.findByText(/usuario removido com sucesso/i)).toBeInTheDocument();
   });
 
   it("renderiza comparação mesmo com payload parcial", async () => {

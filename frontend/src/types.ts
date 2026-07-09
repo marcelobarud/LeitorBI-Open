@@ -1,12 +1,14 @@
 export type Row = Record<string, string | number | boolean | null | undefined>;
 
 export type AuthUser = {
+  name: string;
   email: string;
   is_admin: boolean;
 };
 
 export type ManagedUser = {
   id: number;
+  name: string;
   email: string;
   is_admin: boolean;
   disabled: boolean;

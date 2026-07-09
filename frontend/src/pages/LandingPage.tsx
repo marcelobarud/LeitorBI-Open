@@ -16,9 +16,10 @@ type LandingPageProps = {
   loading: boolean;
   error: string;
   onLogin: (email: string, password: string) => Promise<void>;
+  onRegister: (name: string, email: string, password: string) => Promise<void>;
 };
 
-export function LandingPage({ loading, error, onLogin }: LandingPageProps) {
+export function LandingPage({ loading, error, onLogin, onRegister }: LandingPageProps) {
   const [showLogin, setShowLogin] = useState(false);
 
   return (
@@ -37,7 +38,7 @@ export function LandingPage({ loading, error, onLogin }: LandingPageProps) {
             <KeyRound size={18} />
             Acessar app
           </button>
-          {showLogin ? <LoginPopover loading={loading} error={error} onLogin={onLogin} /> : null}
+          {showLogin ? <LoginPopover loading={loading} error={error} onLogin={onLogin} onRegister={onRegister} /> : null}
         </div>
       </header>
 

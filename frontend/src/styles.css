@@ -133,6 +133,16 @@ button:disabled {
   width: 100%;
 }
 
+.login-mode-button {
+  background: transparent;
+  border: 0;
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 800;
+  justify-self: center;
+  padding: 0;
+}
+
 .landing-page {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(219, 234, 254, 0.72)),
@@ -1472,7 +1482,7 @@ td {
   align-items: end;
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(220px, 1fr) minmax(180px, 260px) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(180px, 240px) auto auto;
 }
 
 .users-create-form label {
@@ -1486,6 +1496,7 @@ td {
   font-weight: 800;
 }
 
+.users-create-form input[type="text"],
 .users-create-form input[type="email"],
 .users-create-form input[type="password"] {
   background: #f8fafc;
@@ -1550,6 +1561,14 @@ td {
 .user-row span {
   color: #64748b;
   font-size: 13px;
+}
+
+.user-row small {
+  color: #64748b;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-row-actions {
@@ -1682,6 +1701,26 @@ td {
 
 .ghost-action:hover {
   background: #f8fafc;
+}
+
+.danger-action {
+  align-items: center;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 8px;
+  color: #be123c;
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-weight: 800;
+  gap: 8px;
+  height: 44px;
+  min-width: 0;
+  padding: 0 16px;
+}
+
+.danger-action:hover {
+  background: #ffe4e6;
 }
 
 .compare-hero {
@@ -2124,7 +2163,8 @@ td {
   .upload-rules span,
   .primary-action,
   .secondary-action,
-  .ghost-action {
+  .ghost-action,
+  .danger-action {
     width: 100%;
   }
 
@@ -2134,6 +2174,10 @@ td {
   }
 
   .user-row strong {
+    white-space: normal;
+  }
+
+  .user-row small {
     white-space: normal;
   }
 

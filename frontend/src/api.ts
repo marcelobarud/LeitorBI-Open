@@ -39,6 +39,25 @@ export async function login(email: string, password: string): Promise<AuthUser> 
   return response.json();
 }
 
+export async function registerUser(name: string, email: string, password: string): Promise<AuthUser> {
+  const response = await fetchApi(`${API_URL}/api/auth/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name, email, password }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 409) {
+      throw new Error("Nao foi possivel concluir o cadastro. Revise os dados e tente novamente.");
+    }
+    throw new Error(await readError(response, "Erro ao criar conta."));
+  }
+
+  return response.json();
+}
+
 export async function getCurrentUser(): Promise<AuthUser | null> {
   const response = await fetchApi(`${API_URL}/api/auth/me`);
 
@@ -79,13 +98,13 @@ export async function listUsers(): Promise<ManagedUser[]> {
   return response.json();
 }
 
-export async function createUser(email: string, password: string, isAdmin: boolean): Promise<ManagedUser> {
+export async function createUser(name: string, email: string, password: string, isAdmin: boolean): Promise<ManagedUser> {
   const response = await fetchApi(`${API_URL}/api/admin/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password, is_admin: isAdmin }),
+    body: JSON.stringify({ name, email, password, is_admin: isAdmin }),
   });
 
   if (!response.ok) {
@@ -99,6 +118,22 @@ export async function createUser(email: string, password: string, isAdmin: boole
   }
 
   return response.json();
+}
+
+export async function deleteUser(userId: number): Promise<void> {
+  const response = await fetchApi(`${API_URL}/api/admin/users/${userId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
+    if (response.status === 403) {
+      throw new Error("Acesso restrito a administradores.");
+    }
+    throw new Error(await readError(response, "Erro ao remover usuario."));
+  }
 }
 
 export async function updateUser(
