@@ -40,7 +40,7 @@ Por padrao, o frontend chama a API em `http://localhost:8000`.
 
 Backend:
 
-- `LEITORBI_CORS_ORIGINS`: origens permitidas separadas por vírgula. Padrão: `http://localhost:5173,http://127.0.0.1:5173`.
+- `LEITORBI_CORS_ORIGINS`: origens permitidas separadas por vírgula. Padrão: `http://localhost:5173,http://127.0.0.1:5173`. Não use `*`, pois o app usa cookies de sessão.
 - `LEITORBI_MAX_UPLOAD_MB`: tamanho máximo do JSON enviado. Padrão: `10`.
 
 Frontend:
@@ -50,6 +50,7 @@ Frontend:
 Para publicar em rede ou produção, configure `LEITORBI_CORS_ORIGINS` com a URL do frontend e `VITE_API_URL` com a URL da API.
 
 Todos os endpoints de analise, comparacao, demo e exportacao exigem login; apenas `/api/health` e `/api/auth/*` ficam publicos.
+Requisicoes mutaveis (`POST`, `PUT`, `PATCH`, `DELETE`) validam `Origin` ou `Referer` contra `LEITORBI_CORS_ORIGINS`.
 
 Exemplo local antes de iniciar o backend:
 

@@ -1,13 +1,13 @@
-import os
 from typing import Any
 
-from fastapi import Depends, FastAPI, File, UploadFile
+from fastapi import Depends, FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
 from app.auth import AuthenticatedUser, current_user, init_auth, router as auth_router
 from app.demo_data import DEMO_MODEL
 from app.schemas import CompareResponse, ReportResponse
+from app.security import assert_safe_origin, cors_origins
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
@@ -22,13 +22,6 @@ def startup() -> None:
     init_auth()
 
 
-def cors_origins() -> list[str]:
-    configured = os.getenv("LEITORBI_CORS_ORIGINS")
-    if not configured:
-        return ["http://localhost:5173", "http://127.0.0.1:5173"]
-    return [origin.strip() for origin in configured.split(",") if origin.strip()]
-
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins(),
@@ -36,6 +29,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def reject_unsafe_cross_origin_requests(request: Request, call_next):
+    assert_safe_origin(request)
+    return await call_next(request)
 
 
 @app.get("/api/health")

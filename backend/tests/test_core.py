@@ -18,6 +18,7 @@ from app.auth import (
     logout,
 )
 from app.demo_data import DEMO_MODEL, DEMO_MODEL_PATH
+from app.security import assert_safe_origin, cors_origins
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
@@ -107,14 +108,23 @@ def test_read_json_upload_rejects_non_json_extension():
     assert exc.value.status_code == 400
 
 
-def make_request(cookie_header: str | None = None) -> Request:
+def make_request(
+    cookie_header: str | None = None,
+    method: str = "GET",
+    origin: str | None = None,
+    referer: str | None = None,
+) -> Request:
     headers = []
     if cookie_header:
         headers.append((b"cookie", cookie_header.encode("utf-8")))
+    if origin:
+        headers.append((b"origin", origin.encode("utf-8")))
+    if referer:
+        headers.append((b"referer", referer.encode("utf-8")))
     return Request(
         {
             "type": "http",
-            "method": "GET",
+            "method": method,
             "path": "/",
             "headers": headers,
             "client": ("127.0.0.1", 50000),
@@ -153,6 +163,30 @@ def test_protected_dependency_requires_session(monkeypatch, tmp_path):
         current_user(make_request())
 
     assert exc.value.status_code == 401
+
+
+def test_unsafe_request_origin_must_be_allowed(monkeypatch):
+    monkeypatch.setenv("LEITORBI_CORS_ORIGINS", "http://localhost:5173")
+
+    assert_safe_origin(make_request(method="POST", origin="http://localhost:5173"))
+
+    with pytest.raises(HTTPException) as exc:
+        assert_safe_origin(make_request(method="POST", origin="https://evil.example"))
+
+    assert exc.value.status_code == 403
+
+
+def test_unsafe_request_allows_valid_referer_when_origin_absent(monkeypatch):
+    monkeypatch.setenv("LEITORBI_CORS_ORIGINS", "http://localhost:5173")
+
+    assert_safe_origin(make_request(method="POST", referer="http://localhost:5173/app"))
+
+
+def test_cors_origins_rejects_wildcard_with_credentials(monkeypatch):
+    monkeypatch.setenv("LEITORBI_CORS_ORIGINS", "*")
+
+    with pytest.raises(RuntimeError):
+        cors_origins()
 
 
 def test_login_valid_creates_cookie_and_allows_protected_dependency(monkeypatch, tmp_path):
