@@ -7,9 +7,7 @@ import {
   Database,
   Download,
   Filter,
-  KeyRound,
   LogOut,
-  Mail,
   Maximize2,
   Minimize2,
   FileJson,
@@ -28,7 +26,6 @@ import {
   Fragment,
   type ChangeEvent,
   type ErrorInfo,
-  type FormEvent,
   type ReactNode,
   useEffect,
   useMemo,
@@ -44,16 +41,12 @@ import {
   login as loginUser,
   logout as logoutUser,
 } from "./api";
+import { LoginPopover } from "./components/LoginPopover";
+import { LandingPage } from "./pages/LandingPage";
+import { ROUTES, routeFromPath, type AppRoute } from "./routes";
 import type { AuthUser, CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
 
 type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
-type AppRoute = "/" | "/demo" | "/app";
-
-const ROUTES = {
-  landing: "/",
-  demo: "/demo",
-  app: "/app",
-} as const;
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "overview", label: "Início" },
@@ -79,12 +72,6 @@ const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
 const MAX_JSON_UPLOAD_MB = 10;
 const MAX_JSON_UPLOAD_BYTES = MAX_JSON_UPLOAD_MB * 1024 * 1024;
-
-function routeFromPath(pathname: string): AppRoute {
-  if (pathname === ROUTES.demo) return ROUTES.demo;
-  if (pathname === ROUTES.app) return ROUTES.app;
-  return ROUTES.landing;
-}
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -975,214 +962,6 @@ function TutorialView() {
   );
 }
 
-function LandingPage({
-  loading,
-  error,
-  onLogin,
-}: {
-  loading: boolean;
-  error: string;
-  onLogin: (email: string, password: string) => Promise<void>;
-}) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showLogin, setShowLogin] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await onLogin(email, password);
-  }
-
-  return (
-    <main className="landing-page">
-      <header className="landing-topbar">
-        <div className="brand">
-          <Database size={24} />
-          <span>LeitorBI</span>
-        </div>
-        <div className="landing-access">
-          <button
-            className="ghost-action"
-            type="button"
-            onClick={() => setShowLogin((current) => !current)}
-          >
-            <KeyRound size={18} />
-            Acessar app
-          </button>
-          {showLogin ? (
-            <aside className="topbar-login" aria-label="Area de acesso">
-              <div className="login-brand">
-                <Database size={30} />
-                <div>
-                  <span>Acesso seguro</span>
-                  <strong>Entrar no LeitorBI</strong>
-                </div>
-              </div>
-
-              <form className="login-form" onSubmit={handleSubmit}>
-                <label>
-                  <span>Usuario ou e-mail</span>
-                  <div>
-                    <Mail size={17} />
-                    <input
-                      autoComplete="username"
-                      autoFocus
-                      type="text"
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      required
-                    />
-                  </div>
-                </label>
-
-                <label>
-                  <span>Senha</span>
-                  <div>
-                    <KeyRound size={17} />
-                    <input
-                      autoComplete="current-password"
-                      type="password"
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      required
-                    />
-                  </div>
-                </label>
-
-                {error ? <div className="error">{error}</div> : null}
-
-                <button className="primary-action" type="submit" disabled={loading}>
-                  {loading ? "Entrando..." : "Entrar"}
-                </button>
-              </form>
-            </aside>
-          ) : null}
-        </div>
-      </header>
-
-      <section className="landing-hero">
-        <div className="landing-copy">
-          <span className="eyebrow">LeitorBI Web</span>
-          <h1>Leia modelos Power BI com clareza antes de decidir, auditar ou apresentar.</h1>
-          <p>
-            Uma ferramenta para transformar exports JSON do modelo em inventario visual, filtros de analise,
-            comparacao entre versoes e entrega em Excel para o time.
-          </p>
-          <div className="hero-actions">
-            <button
-              className="primary-action"
-              type="button"
-              onClick={() => setShowLogin(true)}
-            >
-              <KeyRound size={18} />
-              Entrar agora
-            </button>
-            <a className="secondary-action" href="#como-usar">
-              <BookOpenCheck size={18} />
-              Como usar
-            </a>
-            <a className="ghost-action" href={ROUTES.demo}>
-              <PlayCircle size={18} />
-              Ver demonstracao
-            </a>
-          </div>
-        </div>
-
-        <div className="landing-preview" aria-hidden="true">
-          <div className="preview-sidebar">
-            <span />
-            <span />
-            <span />
-            <span />
-          </div>
-          <div>
-            <div className="preview-header">
-              <span>Modelo carregado</span>
-              <strong>Comercial Executivo</strong>
-            </div>
-            <div className="preview-metrics">
-              <div>
-                <span>Tabelas</span>
-                <strong>18</strong>
-              </div>
-              <div>
-                <span>Medidas</span>
-                <strong>64</strong>
-              </div>
-              <div>
-                <span>Fontes</span>
-                <strong>5</strong>
-              </div>
-            </div>
-            <div className="preview-table">
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="landing-insights" aria-label="Destaques">
-        <article className="insight-card good">
-          <ShieldCheck size={22} />
-          <div>
-            <span>Auditoria objetiva</span>
-            <strong>Inventario do modelo em minutos</strong>
-            <p>Tabelas, colunas, medidas, fontes e relacionamentos organizados para revisao tecnica.</p>
-          </div>
-        </article>
-        <article className="insight-card">
-          <GitCompareArrows size={22} />
-          <div>
-            <span>Comparacao visual</span>
-            <strong>Mudancas entre dois exports</strong>
-            <p>Veja itens adicionados, removidos e modificados antes de publicar novas versoes.</p>
-          </div>
-        </article>
-        <article className="insight-card warn">
-          <Download size={22} />
-          <div>
-            <span>Entrega compartilhavel</span>
-            <strong>Exportacao pronta para Excel</strong>
-            <p>Leve a analise para reunioes, documentacao ou revisoes com stakeholders.</p>
-          </div>
-        </article>
-      </section>
-
-      <section className="landing-steps" id="como-usar">
-        <header className="page-header">
-          <ClipboardList size={22} />
-          <div>
-            <h2>Como comecar</h2>
-            <p>O fluxo basico para sair do Power BI e chegar na analise navegavel.</p>
-          </div>
-        </header>
-        <div>
-          <article>
-            <span>1</span>
-            <strong>Exporte o modelo</strong>
-            <p>Abra o PBIX no Power BI, conecte o Tabular Editor e gere o JSON do modelo.</p>
-          </article>
-          <article>
-            <span>2</span>
-            <strong>Entre no LeitorBI</strong>
-            <p>Use a area de acesso desta pagina para abrir o ambiente de analise.</p>
-          </article>
-          <article>
-            <span>3</span>
-            <strong>Carregue, filtre e compartilhe</strong>
-            <p>Envie o JSON, navegue pelas abas, compare versoes e exporte a leitura em Excel.</p>
-          </article>
-        </div>
-      </section>
-    </main>
-  );
-}
-
 function DemoPage({
   loading,
   error,
@@ -1192,8 +971,6 @@ function DemoPage({
   error: string;
   onLogin: (email: string, password: string) => Promise<void>;
 }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showLogin, setShowLogin] = useState(false);
   const [demoReport, setDemoReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare">>("overview");
@@ -1218,11 +995,6 @@ function DemoPage({
       active = false;
     };
   }, []);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    await onLogin(email, password);
-  }
 
   const rowsByTab: Record<DataTabKey, Row[]> = {
     tables: demoReport?.tables ?? [],
@@ -1267,57 +1039,10 @@ function DemoPage({
           </div>
           <div className="landing-access">
             <button className="ghost-action" type="button" onClick={() => setShowLogin((current) => !current)}>
-              <KeyRound size={18} />
+              <ShieldCheck size={18} />
               Fazer login
             </button>
-            {showLogin ? (
-              <aside className="topbar-login" aria-label="Area de acesso">
-                <div className="login-brand">
-                  <Database size={30} />
-                  <div>
-                    <span>Acesso seguro</span>
-                    <strong>Entrar no LeitorBI</strong>
-                  </div>
-                </div>
-
-                <form className="login-form" onSubmit={handleSubmit}>
-                  <label>
-                    <span>Usuario ou e-mail</span>
-                    <div>
-                      <Mail size={17} />
-                      <input
-                        autoComplete="username"
-                        autoFocus
-                        type="text"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        required
-                      />
-                    </div>
-                  </label>
-
-                  <label>
-                    <span>Senha</span>
-                    <div>
-                      <KeyRound size={17} />
-                      <input
-                        autoComplete="current-password"
-                        type="password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        required
-                      />
-                    </div>
-                  </label>
-
-                  {error ? <div className="error">{error}</div> : null}
-
-                  <button className="primary-action" type="submit" disabled={loading}>
-                    {loading ? "Entrando..." : "Entrar"}
-                  </button>
-                </form>
-              </aside>
-            ) : null}
+            {showLogin ? <LoginPopover loading={loading} error={error} onLogin={onLogin} /> : null}
           </div>
         </header>
 
