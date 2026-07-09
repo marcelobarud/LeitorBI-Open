@@ -48,6 +48,13 @@ import {
 import type { AuthUser, CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
 
 type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
+type AppRoute = "/" | "/demo" | "/app";
+
+const ROUTES = {
+  landing: "/",
+  demo: "/demo",
+  app: "/app",
+} as const;
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "overview", label: "Início" },
@@ -71,6 +78,12 @@ const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare">; label: str
 
 const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
+
+function routeFromPath(pathname: string): AppRoute {
+  if (pathname === ROUTES.demo) return ROUTES.demo;
+  if (pathname === ROUTES.app) return ROUTES.app;
+  return ROUTES.landing;
+}
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -1050,7 +1063,7 @@ function LandingPage({
               <BookOpenCheck size={18} />
               Como usar
             </a>
-            <a className="ghost-action" href="/demo">
+            <a className="ghost-action" href={ROUTES.demo}>
               <PlayCircle size={18} />
               Ver demonstracao
             </a>
@@ -1206,7 +1219,7 @@ function DemoPage({
   return (
     <main className="app-shell demo-shell">
       <aside className="sidebar">
-        <a className="brand demo-brand-link" href="/">
+        <a className="brand demo-brand-link" href={ROUTES.landing}>
           <Database size={24} />
           <span>LeitorBI</span>
         </a>
@@ -1293,7 +1306,7 @@ function DemoPage({
         <div className="demo-lock-note">
           <ShieldCheck size={18} />
           <span>Previa somente leitura. Para carregar JSON, exportar Excel ou comparar modelos, faca login no app.</span>
-          <a className="ghost-action" href="/">
+          <a className="ghost-action" href={ROUTES.landing}>
             Voltar ao inicio
           </a>
         </div>
@@ -1555,7 +1568,7 @@ export function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [currentPath, setCurrentPath] = useState(() => window.location.pathname);
+  const [currentPath, setCurrentPath] = useState<AppRoute>(() => routeFromPath(window.location.pathname));
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [report, setReport] = useState<Report | null>(null);
@@ -1591,7 +1604,7 @@ export function App() {
 
   useEffect(() => {
     function handlePopState() {
-      setCurrentPath(window.location.pathname);
+      setCurrentPath(routeFromPath(window.location.pathname));
     }
 
     window.addEventListener("popstate", handlePopState);
@@ -1599,12 +1612,27 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (user && currentPath === "/demo") {
-      window.history.replaceState(null, "", "/");
-      setCurrentPath("/");
-      clearWorkspaceState();
+    if (checkingSession) {
+      return;
     }
-  }, [currentPath, user]);
+
+    if (user && currentPath !== ROUTES.app) {
+      navigateTo(ROUTES.app, { replace: true });
+      return;
+    }
+
+    if (!user && currentPath === ROUTES.app) {
+      navigateTo(ROUTES.landing, { replace: true });
+    }
+  }, [checkingSession, currentPath, user]);
+
+  function navigateTo(path: AppRoute, options: { replace?: boolean } = {}) {
+    if (window.location.pathname !== path) {
+      const method = options.replace ? "replaceState" : "pushState";
+      window.history[method](null, "", path);
+    }
+    setCurrentPath(path);
+  }
 
   function clearWorkspaceState() {
     setReport(null);
@@ -1621,8 +1649,7 @@ export function App() {
       const authenticatedUser = await loginUser(email, password);
       setUser(authenticatedUser);
       clearWorkspaceState();
-      window.history.pushState(null, "", "/");
-      setCurrentPath("/");
+      navigateTo(ROUTES.app);
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : "E-mail ou senha invalidos.");
     } finally {
@@ -1637,6 +1664,7 @@ export function App() {
       setUser(null);
       setLoginError("");
       clearWorkspaceState();
+      navigateTo(ROUTES.landing);
     }
   }
 
@@ -1646,6 +1674,7 @@ export function App() {
       setUser(null);
       setLoginError(message);
       clearWorkspaceState();
+      navigateTo(ROUTES.landing, { replace: true });
       return;
     }
     onErrorChange(message);
@@ -1730,7 +1759,7 @@ export function App() {
   }
 
   if (!user) {
-    if (currentPath === "/demo") {
+    if (currentPath === ROUTES.demo) {
       return <DemoPage loading={loginLoading} error={loginError} onLogin={handleLogin} />;
     }
 

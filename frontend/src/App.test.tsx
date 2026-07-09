@@ -111,6 +111,28 @@ describe("App", () => {
 
     expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
     expect(screen.getByText("admin@leitorbi.local")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/app");
+  });
+
+  it("redireciona visitantes de /app para a landing page", async () => {
+    window.history.pushState(null, "", "/app");
+    mockAnonymousFetch();
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /leia modelos power bi/i })).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/");
+  });
+
+  it("redireciona usuários autenticados de /demo para /app", async () => {
+    window.history.pushState(null, "", "/demo");
+    mockAuthenticatedFetch();
+
+    render(<App />);
+
+    expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/app");
+    expect(screen.queryByText(/previa somente leitura/i)).not.toBeInTheDocument();
   });
 
   it("carrega um JSON na área autenticada", async () => {
