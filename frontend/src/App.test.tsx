@@ -175,6 +175,36 @@ describe("App", () => {
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/models/analyze"), expect.anything());
   });
 
+  it("permite administrador listar usuarios", async () => {
+    mockAuthenticatedFetch({
+      "/api/admin/users": jsonResponse([
+        {
+          id: 1,
+          email: "admin@leitorbi.local",
+          is_admin: true,
+          disabled: false,
+          created_at: "2026-07-09T00:00:00+00:00",
+        },
+        {
+          id: 2,
+          email: "analista@leitorbi.local",
+          is_admin: false,
+          disabled: false,
+          created_at: "2026-07-09T00:00:00+00:00",
+        },
+      ]),
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /usuários/i }));
+
+    expect(await screen.findByRole("heading", { name: /usuários/i })).toBeInTheDocument();
+    expect(screen.getByText("analista@leitorbi.local")).toBeInTheDocument();
+    expect(screen.getByText(/gerencie quem pode acessar/i)).toBeInTheDocument();
+  });
+
   it("renderiza comparação mesmo com payload parcial", async () => {
     mockAuthenticatedFetch({
       "/api/models/compare": jsonResponse({

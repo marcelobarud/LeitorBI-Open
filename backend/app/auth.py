@@ -26,6 +26,7 @@ SCRYPT_P = 1
 KEY_LENGTH = 32
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 _login_attempts: dict[str, list[float]] = {}
 
 
@@ -37,6 +38,25 @@ class LoginRequest(BaseModel):
 class UserResponse(BaseModel):
     email: str
     is_admin: bool
+
+
+class AdminUserResponse(BaseModel):
+    id: int
+    email: str
+    is_admin: bool
+    disabled: bool
+    created_at: str
+
+
+class CreateUserRequest(BaseModel):
+    email: str
+    password: str
+    is_admin: bool = False
+
+
+class UpdateUserRequest(BaseModel):
+    is_admin: bool | None = None
+    disabled: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -270,6 +290,31 @@ def current_user(request: Request) -> AuthenticatedUser:
     return user
 
 
+def current_admin_user(user: AuthenticatedUser = Depends(current_user)) -> AuthenticatedUser:
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso restrito a administradores.")
+    return user
+
+
+def validate_user_payload(email: str, password: str | None = None) -> str:
+    normalized_email = normalize_email(email)
+    if "@" not in normalized_email or "." not in normalized_email.rsplit("@", 1)[-1]:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe um e-mail valido.")
+    if password is not None and len(password) < 8:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A senha deve ter pelo menos 8 caracteres.")
+    return normalized_email
+
+
+def admin_user_response(row: sqlite3.Row) -> AdminUserResponse:
+    return AdminUserResponse(
+        id=row["id"],
+        email=row["email"],
+        is_admin=bool(row["is_admin"]),
+        disabled=bool(row["disabled"]),
+        created_at=row["created_at"],
+    )
+
+
 @router.post("/login", response_model=UserResponse)
 def login(payload: LoginRequest, request: Request, response: Response) -> UserResponse:
     email = normalize_email(payload.email)
@@ -311,3 +356,94 @@ def logout(request: Request, response: Response) -> dict[str, str]:
             )
     clear_session_cookie(response)
     return {"status": "ok"}
+
+
+@admin_router.get("/users", response_model=list[AdminUserResponse])
+def list_users(_admin: AuthenticatedUser = Depends(current_admin_user)) -> list[AdminUserResponse]:
+    with connect_db() as connection:
+        rows = connection.execute(
+            """
+            SELECT id, email, is_admin, disabled, created_at
+            FROM users
+            ORDER BY created_at DESC, id DESC
+            """
+        ).fetchall()
+        return [admin_user_response(row) for row in rows]
+
+
+@admin_router.post("/users", response_model=AdminUserResponse, status_code=status.HTTP_201_CREATED)
+def create_user(
+    payload: CreateUserRequest,
+    _admin: AuthenticatedUser = Depends(current_admin_user),
+) -> AdminUserResponse:
+    email = validate_user_payload(payload.email, payload.password)
+
+    try:
+        with connect_db() as connection:
+            connection.execute(
+                """
+                INSERT INTO users (email, password_hash, is_admin, disabled, created_at)
+                VALUES (?, ?, ?, 0, ?)
+                """,
+                (email, hash_password(payload.password), int(payload.is_admin), utc_now_text()),
+            )
+            row = connection.execute(
+                """
+                SELECT id, email, is_admin, disabled, created_at
+                FROM users
+                WHERE email = ?
+                """,
+                (email,),
+            ).fetchone()
+    except sqlite3.IntegrityError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Usuario ja cadastrado.") from exc
+
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Usuario criado, mas nao localizado.")
+    return admin_user_response(row)
+
+
+@admin_router.patch("/users/{user_id}", response_model=AdminUserResponse)
+def update_user(
+    user_id: int,
+    payload: UpdateUserRequest,
+    admin: AuthenticatedUser = Depends(current_admin_user),
+) -> AdminUserResponse:
+    if payload.is_admin is None and payload.disabled is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe ao menos uma alteracao.")
+    if user_id == admin.id and payload.disabled is True:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce nao pode desativar seu proprio usuario.")
+    if user_id == admin.id and payload.is_admin is False:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce nao pode remover seu proprio perfil admin.")
+
+    updates: list[str] = []
+    params: list[int] = []
+    if payload.is_admin is not None:
+        updates.append("is_admin = ?")
+        params.append(int(payload.is_admin))
+    if payload.disabled is not None:
+        updates.append("disabled = ?")
+        params.append(int(payload.disabled))
+
+    with connect_db() as connection:
+        row = connection.execute(
+            "SELECT id FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+
+        connection.execute(
+            f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
+            (*params, user_id),
+        )
+        updated = connection.execute(
+            """
+            SELECT id, email, is_admin, disabled, created_at
+            FROM users
+            WHERE id = ?
+            """,
+            (user_id,),
+        ).fetchone()
+
+    return admin_user_response(updated)

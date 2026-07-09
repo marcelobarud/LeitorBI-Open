@@ -18,6 +18,8 @@ import {
   Search,
   ShieldCheck,
   Table2,
+  UserPlus,
+  Users,
   WandSparkles,
   X,
 } from "lucide-react";
@@ -26,6 +28,7 @@ import {
   Fragment,
   type ChangeEvent,
   type ErrorInfo,
+  type FormEvent,
   type ReactNode,
   useEffect,
   useMemo,
@@ -36,17 +39,20 @@ import {
   analyzeModel,
   analyzePublicDemoModel,
   compareModels,
+  createUser,
   exportModelExcel,
   getCurrentUser,
+  listUsers,
   login as loginUser,
   logout as logoutUser,
+  updateUser,
 } from "./api";
 import { LoginPopover } from "./components/LoginPopover";
 import { LandingPage } from "./pages/LandingPage";
 import { ROUTES, routeFromPath, type AppRoute } from "./routes";
-import type { AuthUser, CompareEntry, CompareResult, Report, Row, TabKey } from "./types";
+import type { AuthUser, CompareEntry, CompareResult, ManagedUser, Report, Row, TabKey } from "./types";
 
-type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
+type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare" | "users">;
 
 const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "overview", label: "Início" },
@@ -59,7 +65,9 @@ const tabs: Array<{ key: TabKey; label: string }> = [
   { key: "compare", label: "Comparar" },
 ];
 
-const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare">; label: string }> = [
+const adminTabs: Array<{ key: TabKey; label: string }> = [{ key: "users", label: "Usuários" }];
+
+const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare" | "users">; label: string }> = [
   { key: "overview", label: "Resumo" },
   { key: "tables", label: "Tabelas" },
   { key: "columns", label: "Colunas" },
@@ -72,6 +80,7 @@ const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
 const MAX_JSON_UPLOAD_MB = 10;
 const MAX_JSON_UPLOAD_BYTES = MAX_JSON_UPLOAD_MB * 1024 * 1024;
+const TABLE_SEARCH_DEBOUNCE_MS = 180;
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -122,55 +131,66 @@ function validateJsonFile(file: File): string | null {
   return null;
 }
 
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [delayMs, value]);
+
+  return debouncedValue;
+}
+
 function DataTable({ rows }: { rows: Row[] }) {
   const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query, TABLE_SEARCH_DEBOUNCE_MS);
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
   const [columnOptionSearches, setColumnOptionSearches] = useState<Record<string, string>>({});
   const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
   const [filterMenuPosition, setFilterMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
-  const columns = rows[0] ? Object.keys(rows[0]) : [];
-  const uniqueValuesByColumn = useMemo(() => {
-    const valuesByColumn: Record<string, string[]> = {};
+  const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
+  const rowSearchText = useMemo(
+    () => rows.map((row) => Object.values(row).map(formatValue).join("\n").toLowerCase()),
+    [rows],
+  );
+  const openColumnUniqueValues = useMemo(() => {
+    if (!openFilterColumn) return [];
 
-    columns.forEach((column) => {
-      const values = new Set<string>();
-      rows.forEach((row) => {
-        values.add(formatValue(row[column]));
-      });
-      valuesByColumn[column] = Array.from(values).sort((first, second) => first.localeCompare(second));
+    const values = new Set<string>();
+    rows.forEach((row) => {
+      values.add(formatValue(row[openFilterColumn]));
     });
-
-    return valuesByColumn;
-  }, [columns, rows]);
+    return Array.from(values).sort((first, second) => first.localeCompare(second));
+  }, [openFilterColumn, rows]);
   const visibleRows = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
+    const normalized = debouncedQuery.trim().toLowerCase();
     const activeFilters = Object.entries(columnFilters)
       .map(([column, values]) => [column, values.map((value) => value.toLowerCase())] as const)
       .filter(([, values]) => values.length);
 
-    return rows.filter((row) => {
-      const matchesGlobal =
-        !normalized || Object.values(row).some((value) => formatValue(value).toLowerCase().includes(normalized));
+    return rows.filter((row, index) => {
+      const matchesGlobal = !normalized || rowSearchText[index]?.includes(normalized);
       const matchesColumns = activeFilters.every(([column, values]) =>
         values.includes(formatValue(row[column]).toLowerCase()),
       );
       return matchesGlobal && matchesColumns;
     });
-  }, [columnFilters, query, rows]);
+  }, [columnFilters, debouncedQuery, rowSearchText, rows]);
   const activeColumnFilterCount = Object.values(columnFilters).reduce((total, values) => total + values.length, 0);
   const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const endIndex = Math.min(startIndex + PAGE_SIZE, visibleRows.length);
   const pageRows = visibleRows.slice(startIndex, endIndex);
-  const hasExpandableRows = visibleRows.some(hasExpandableContent);
+  const hasExpandableRows = useMemo(() => visibleRows.some(hasExpandableContent), [visibleRows]);
 
   useEffect(() => {
     setPage(1);
     setExpandedRows(new Set());
-  }, [columnFilters, query, rows]);
+  }, [columnFilters, debouncedQuery, rows]);
 
   useEffect(() => {
     setColumnFilters({});
@@ -295,7 +315,7 @@ function DataTable({ rows }: { rows: Row[] }) {
                 const isOpen = openFilterColumn === column;
                 const hasFilter = selectedFilterValues.length > 0;
                 const normalizedOptionSearch = optionSearchValue.trim().toLowerCase();
-                const uniqueValues = (uniqueValuesByColumn[column] ?? []).filter(
+                const uniqueValues = (isOpen ? openColumnUniqueValues : []).filter(
                   (value) => !normalizedOptionSearch || value.toLowerCase().includes(normalizedOptionSearch),
                 );
                 const visibleUniqueValues = uniqueValues.slice(0, UNIQUE_FILTER_LIMIT);
@@ -973,7 +993,7 @@ function DemoPage({
 }) {
   const [showLogin, setShowLogin] = useState(false);
   const [demoReport, setDemoReport] = useState<Report | null>(null);
-  const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare">>("overview");
+  const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare" | "users">>("overview");
   const [demoLoading, setDemoLoading] = useState(true);
   const [demoError, setDemoError] = useState("");
 
@@ -1071,6 +1091,174 @@ function DemoPage({
         ) : null}
       </section>
     </main>
+  );
+}
+
+function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
+  const [users, setUsers] = useState<ManagedUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  async function loadUsers() {
+    setLoading(true);
+    setError("");
+    try {
+      setUsers(await listUsers());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar usuarios.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    try {
+      const created = await createUser(email, password, isAdmin);
+      setUsers((current) => [created, ...current]);
+      setEmail("");
+      setPassword("");
+      setIsAdmin(false);
+      setSuccess("Usuario criado com sucesso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao criar usuario.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUpdateUser(userId: number, changes: Partial<Pick<ManagedUser, "is_admin" | "disabled">>) {
+    setError("");
+    setSuccess("");
+    try {
+      const updated = await updateUser(userId, changes);
+      setUsers((current) => current.map((user) => (user.id === updated.id ? updated : user)));
+      setSuccess("Usuario atualizado com sucesso.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro inesperado ao atualizar usuario.");
+    }
+  }
+
+  return (
+    <div className="users-page">
+      <header className="page-header">
+        <Users size={22} />
+        <div>
+          <h2>Usuários</h2>
+          <p>Gerencie quem pode acessar a área autenticada do LeitorBI.</p>
+        </div>
+      </header>
+
+      <section className="users-create-panel">
+        <div>
+          <h3>Novo usuário</h3>
+          <p>Crie acessos individuais. A senha inicial deve ser compartilhada por um canal seguro.</p>
+        </div>
+        <form className="users-create-form" onSubmit={handleCreateUser}>
+          <label>
+            <span>E-mail</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="analista@empresa.com"
+              required
+            />
+          </label>
+          <label>
+            <span>Senha inicial</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              minLength={8}
+              required
+            />
+          </label>
+          <label className="checkbox-label">
+            <input type="checkbox" checked={isAdmin} onChange={(event) => setIsAdmin(event.target.checked)} />
+            <span>Administrador</span>
+          </label>
+          <button className="primary-action" type="submit" disabled={saving}>
+            <UserPlus size={18} />
+            {saving ? "Criando..." : "Criar usuário"}
+          </button>
+        </form>
+      </section>
+
+      {error ? <div className="error">{error}</div> : null}
+      {success ? <div className="status">{success}</div> : null}
+
+      <section className="users-list-panel">
+        <div className="table-toolbar">
+          <div>
+            <strong>{users.length}</strong>
+            <span> usuários</span>
+          </div>
+          <button className="clear-filters-button" type="button" onClick={loadUsers} disabled={loading}>
+            <RotateCcw size={15} />
+            Atualizar
+          </button>
+        </div>
+
+        {loading ? <div className="status">Carregando usuários...</div> : null}
+        {!loading && !users.length ? (
+          <div className="empty-data">
+            <strong>Nenhum usuário encontrado.</strong>
+            <span>Crie o primeiro usuário para liberar acesso ao app.</span>
+          </div>
+        ) : null}
+        {!loading && users.length ? (
+          <div className="users-list">
+            {users.map((managedUser) => {
+              const isSelf = managedUser.email === currentUser.email;
+              return (
+                <article className={managedUser.disabled ? "user-row disabled" : "user-row"} key={managedUser.id}>
+                  <div>
+                    <strong>{managedUser.email}</strong>
+                    <span>
+                      {managedUser.is_admin ? "Administrador" : "Usuário"} ·{" "}
+                      {managedUser.disabled ? "Desativado" : "Ativo"}
+                      {isSelf ? " · Você" : ""}
+                    </span>
+                  </div>
+                  <div className="user-row-actions">
+                    <button
+                      className="ghost-action"
+                      type="button"
+                      disabled={isSelf}
+                      onClick={() => handleUpdateUser(managedUser.id, { is_admin: !managedUser.is_admin })}
+                    >
+                      {managedUser.is_admin ? "Remover admin" : "Tornar admin"}
+                    </button>
+                    <button
+                      className="ghost-action"
+                      type="button"
+                      disabled={isSelf}
+                      onClick={() => handleUpdateUser(managedUser.id, { disabled: !managedUser.disabled })}
+                    >
+                      {managedUser.disabled ? "Reativar" : "Desativar"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : null}
+      </section>
+    </div>
   );
 }
 
@@ -1513,7 +1701,8 @@ export function App() {
     relationships: report?.relationships ?? [],
   };
 
-  const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);
+  const visibleTabs = user?.is_admin ? [...tabs, ...adminTabs] : tabs;
+  const isDataTab = !["overview", "tutorial", "compare", "users"].includes(activeTab);
   const activeRows = isDataTab ? rowsByTab[activeTab as DataTabKey] : [];
 
   if (checkingSession) {
@@ -1542,11 +1731,11 @@ export function App() {
           <span>LeitorBI</span>
         </div>
         <nav>
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button
               key={tab.key}
               className={activeTab === tab.key ? "active" : ""}
-              disabled={!report && !["overview", "tutorial", "compare"].includes(tab.key)}
+              disabled={!report && !["overview", "tutorial", "compare", "users"].includes(tab.key)}
               onClick={() => setActiveTab(tab.key)}
             >
               {tab.label}
@@ -1626,12 +1815,13 @@ export function App() {
             />
           </CompareErrorBoundary>
         ) : null}
+        {activeTab === "users" && user.is_admin ? <UsersAdminView currentUser={user} /> : null}
         {report && isDataTab ? (
           <>
             <header className="page-header">
               <Table2 size={22} />
               <div>
-                <h2>{tabs.find((tab) => tab.key === activeTab)?.label}</h2>
+                <h2>{visibleTabs.find((tab) => tab.key === activeTab)?.label}</h2>
                 <p>{report.raw.dashboardName}</p>
               </div>
             </header>

@@ -4,8 +4,9 @@ from fastapi import Depends, FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from app.auth import AuthenticatedUser, current_user, init_auth, router as auth_router
+from app.auth import AuthenticatedUser, admin_router, current_user, init_auth, router as auth_router
 from app.demo_data import DEMO_MODEL
+from app.observability import log_http_request
 from app.schemas import CompareResponse, ReportResponse
 from app.security import assert_safe_origin, cors_origins
 from app.services.analyzer import PowerBIAnalyzer
@@ -15,6 +16,7 @@ from app.upload_validation import read_json_upload, validate_model_export
 
 app = FastAPI(title="LeitorBI Web API", version="0.1.0")
 app.include_router(auth_router)
+app.include_router(admin_router)
 
 
 @app.on_event("startup")
@@ -34,7 +36,7 @@ app.add_middleware(
 @app.middleware("http")
 async def reject_unsafe_cross_origin_requests(request: Request, call_next):
     assert_safe_origin(request)
-    return await call_next(request)
+    return await log_http_request(request, call_next)
 
 
 @app.get("/api/health")

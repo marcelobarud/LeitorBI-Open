@@ -1442,6 +1442,123 @@ td {
   padding-left: 20px;
 }
 
+.users-page {
+  display: grid;
+  gap: 18px;
+}
+
+.users-create-panel,
+.users-list-panel {
+  background: #ffffff;
+  border: 1px solid #d8e2ee;
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.users-create-panel h3 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.users-create-panel p {
+  color: #64748b;
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.users-create-form {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 260px) auto auto;
+}
+
+.users-create-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.users-create-form label > span {
+  color: #334155;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.users-create-form input[type="email"],
+.users-create-form input[type="password"] {
+  background: #f8fafc;
+  border: 1px solid #d8e2ee;
+  border-radius: 8px;
+  color: #172033;
+  height: 44px;
+  outline: 0;
+  padding: 0 12px;
+}
+
+.users-create-form input:focus {
+  border-color: #8db2e8;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.checkbox-label {
+  align-items: center;
+  display: flex !important;
+  gap: 8px;
+  height: 44px;
+}
+
+.checkbox-label input {
+  accent-color: #2563eb;
+  height: 16px;
+  width: 16px;
+}
+
+.users-list {
+  display: grid;
+  gap: 10px;
+}
+
+.user-row {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e5edf6;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.user-row.disabled {
+  opacity: 0.72;
+}
+
+.user-row > div:first-child {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.user-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-row span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.user-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .compare-picker {
   align-items: stretch;
   background: #ffffff;
@@ -1873,6 +1990,11 @@ td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .users-create-form {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
   .compare-plus {
     display: none;
   }
@@ -2004,6 +2126,19 @@ td {
   .secondary-action,
   .ghost-action {
     width: 100%;
+  }
+
+  .user-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .user-row strong {
+    white-space: normal;
+  }
+
+  .user-row-actions {
+    display: grid;
   }
 
   .compare-actions {

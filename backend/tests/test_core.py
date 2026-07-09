@@ -10,14 +10,21 @@ from starlette.requests import Request
 
 from app.auth import (
     SESSION_COOKIE_NAME,
+    CreateUserRequest,
     LoginRequest,
+    UpdateUserRequest,
     _login_attempts,
+    create_user,
     current_user,
+    current_admin_user,
     init_auth,
+    list_users,
     login,
     logout,
+    update_user,
 )
 from app.demo_data import DEMO_MODEL, DEMO_MODEL_PATH
+from app.observability import log_http_request
 from app.security import assert_safe_origin, cors_origins
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
@@ -113,6 +120,7 @@ def make_request(
     method: str = "GET",
     origin: str | None = None,
     referer: str | None = None,
+    request_id: str | None = None,
 ) -> Request:
     headers = []
     if cookie_header:
@@ -121,6 +129,8 @@ def make_request(
         headers.append((b"origin", origin.encode("utf-8")))
     if referer:
         headers.append((b"referer", referer.encode("utf-8")))
+    if request_id:
+        headers.append((b"x-request-id", request_id.encode("utf-8")))
     return Request(
         {
             "type": "http",
@@ -130,6 +140,24 @@ def make_request(
             "client": ("127.0.0.1", 50000),
         }
     )
+
+
+def test_request_observability_adds_request_id_and_logs(caplog):
+    async def call_next(_request: Request) -> Response:
+        return Response(status_code=204)
+
+    request = make_request(request_id="teste-request-id")
+
+    with caplog.at_level("INFO", logger="leitorbi.api"):
+        response = asyncio.run(log_http_request(request, call_next))
+
+    assert response.headers["X-Request-ID"] == "teste-request-id"
+    records = [record for record in caplog.records if record.name == "leitorbi.api"]
+    assert records
+    assert records[-1].message == "request_completed"
+    assert records[-1].request_id == "teste-request-id"
+    assert records[-1].status_code == 204
+    assert records[-1].path == "/"
 
 
 def auth_db(monkeypatch: pytest.MonkeyPatch, tmp_path):
@@ -249,3 +277,51 @@ def test_logout_invalidates_session(monkeypatch, tmp_path):
         current_user(make_request(cookie_header))
 
     assert exc.value.status_code == 401
+
+
+def test_admin_can_manage_users(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+    _, cookie_header = login_cookie()
+    admin = current_user(make_request(cookie_header))
+
+    created = create_user(
+        CreateUserRequest(email="analista@leitorbi.local", password="SenhaForte123!", is_admin=False),
+        admin,
+    )
+    users = list_users(admin)
+    updated = update_user(created.id, UpdateUserRequest(disabled=True), admin)
+
+    assert created.email == "analista@leitorbi.local"
+    assert created.is_admin is False
+    assert created.disabled is False
+    assert any(user.email == "analista@leitorbi.local" for user in users)
+    assert updated.disabled is True
+
+
+def test_non_admin_cannot_access_admin_dependency(monkeypatch, tmp_path):
+    db_path = auth_db(monkeypatch, tmp_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO users (email, password_hash, is_admin, disabled, created_at)
+            VALUES (?, ?, 0, 0, ?)
+            """,
+            ("analista@leitorbi.local", "hash", "2026-07-09T00:00:00+00:00"),
+        )
+        user_id = connection.execute("SELECT id FROM users WHERE email = ?", ("analista@leitorbi.local",)).fetchone()[0]
+
+    with pytest.raises(HTTPException) as exc:
+        current_admin_user(type("User", (), {"id": user_id, "email": "analista@leitorbi.local", "is_admin": False})())
+
+    assert exc.value.status_code == 403
+
+
+def test_admin_cannot_disable_self(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+    _, cookie_header = login_cookie()
+    admin = current_user(make_request(cookie_header))
+
+    with pytest.raises(HTTPException) as exc:
+        update_user(admin.id, UpdateUserRequest(disabled=True), admin)
+
+    assert exc.value.status_code == 400

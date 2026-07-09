@@ -1,4 +1,4 @@
-import type { AuthUser, CompareResult, Report } from "./types";
+import type { AuthUser, CompareResult, ManagedUser, Report } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? `${window.location.protocol}//${window.location.hostname}:8000`;
 const AUTH_REQUIRED_MESSAGE = "Sessao expirada. Entre novamente.";
@@ -61,6 +61,69 @@ export async function logout(): Promise<void> {
   if (!response.ok) {
     throw new Error(await readError(response, "Erro ao sair."));
   }
+}
+
+export async function listUsers(): Promise<ManagedUser[]> {
+  const response = await fetchApi(`${API_URL}/api/admin/users`);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
+    if (response.status === 403) {
+      throw new Error("Acesso restrito a administradores.");
+    }
+    throw new Error(await readError(response, "Erro ao carregar usuarios."));
+  }
+
+  return response.json();
+}
+
+export async function createUser(email: string, password: string, isAdmin: boolean): Promise<ManagedUser> {
+  const response = await fetchApi(`${API_URL}/api/admin/users`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password, is_admin: isAdmin }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
+    if (response.status === 403) {
+      throw new Error("Acesso restrito a administradores.");
+    }
+    throw new Error(await readError(response, "Erro ao criar usuario."));
+  }
+
+  return response.json();
+}
+
+export async function updateUser(
+  userId: number,
+  changes: Partial<Pick<ManagedUser, "is_admin" | "disabled">>,
+): Promise<ManagedUser> {
+  const response = await fetchApi(`${API_URL}/api/admin/users/${userId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(changes),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error(AUTH_REQUIRED_MESSAGE);
+    }
+    if (response.status === 403) {
+      throw new Error("Acesso restrito a administradores.");
+    }
+    throw new Error(await readError(response, "Erro ao atualizar usuario."));
+  }
+
+  return response.json();
 }
 
 export async function analyzeModel(file: File): Promise<Report> {

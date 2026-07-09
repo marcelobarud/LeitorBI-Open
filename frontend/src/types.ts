@@ -5,6 +5,14 @@ export type AuthUser = {
   is_admin: boolean;
 };
 
+export type ManagedUser = {
+  id: number;
+  email: string;
+  is_admin: boolean;
+  disabled: boolean;
+  created_at: string;
+};
+
 export type Report = {
   summary: Row;
   tables: Row[];
@@ -55,4 +63,5 @@ export type TabKey =
   | "measures"
   | "sources"
   | "relationships"
-  | "compare";
+  | "compare"
+  | "users";
