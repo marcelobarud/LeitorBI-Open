@@ -1289,6 +1289,16 @@ td {
   gap: 18px;
 }
 
+.compare-runtime-error {
+  align-items: start;
+  display: grid;
+  gap: 10px;
+}
+
+.compare-runtime-error .ghost-action {
+  justify-self: start;
+}
+
 .tutorial-page {
   display: grid;
   gap: 18px;

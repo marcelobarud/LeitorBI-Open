@@ -24,7 +24,18 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { Fragment, type ChangeEvent, type FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Component,
+  Fragment,
+  type ChangeEvent,
+  type ErrorInfo,
+  type FormEvent,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   analyzeModel,
   analyzePublicDemoModel,
@@ -482,6 +493,53 @@ function compareItems<T>(items: T[] | null | undefined) {
   return Array.isArray(items) ? items : [];
 }
 
+function compareEntries(items: unknown): CompareEntry[] {
+  return Array.isArray(items) ? items.filter((item): item is CompareEntry => typeof item === "object" && item !== null) : [];
+}
+
+function compareStrings(items: unknown): string[] {
+  return Array.isArray(items) ? items.map((item) => String(item)) : [];
+}
+
+function compareText(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function normalizeCompareResult(result: CompareResult | null | undefined): CompareResult | null {
+  if (!result) return null;
+
+  const raw = result as unknown as Record<string, any>;
+  const tabelas = raw.tabelas ?? {};
+  const colunas = raw.colunas ?? {};
+  const medidas = raw.medidas ?? {};
+  const relacionamentos = raw.relacionamentos ?? {};
+
+  return {
+    dashboard_base: compareText(raw.dashboard_base, "BASE"),
+    dashboard_novo: compareText(raw.dashboard_novo, "NOVO"),
+    tabelas: {
+      adicionadas: compareStrings(tabelas.adicionadas),
+      removidas: compareStrings(tabelas.removidas),
+      modificadas: compareEntries(tabelas.modificadas),
+    },
+    colunas: {
+      adicionadas: compareEntries(colunas.adicionadas),
+      removidas: compareEntries(colunas.removidas),
+      modificadas: compareEntries(colunas.modificadas),
+    },
+    medidas: {
+      adicionadas: compareEntries(medidas.adicionadas),
+      removidas: compareEntries(medidas.removidas),
+      modificadas: compareEntries(medidas.modificadas),
+    },
+    relacionamentos: {
+      adicionados: compareStrings(relacionamentos.adicionados),
+      removidos: compareStrings(relacionamentos.removidos),
+      modificados: compareEntries(relacionamentos.modificados),
+    },
+  };
+}
+
 function entryTitle(entry: CompareEntry, fallback = "Item") {
   return String(entry.nome ?? entry.medida ?? entry.coluna ?? entry.relacionamento ?? entry.tabela ?? fallback);
 }
@@ -594,6 +652,45 @@ function ChangeList({
   );
 }
 
+class CompareErrorBoundary extends Component<
+  { children: ReactNode; onReset: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: ReactNode; onReset: () => void }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(_error: Error, _info: ErrorInfo) {
+    // Prevent a malformed comparison payload from blanking the entire app.
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false });
+    this.props.onReset();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error compare-runtime-error">
+          <strong>Não foi possível renderizar a comparação.</strong>
+          <span>Limpe o resultado e tente comparar os arquivos novamente.</span>
+          <button className="ghost-action" type="button" onClick={this.handleReset}>
+            Limpar comparação
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function CompareView({
   baseFile,
   newFile,
@@ -620,6 +717,7 @@ function CompareView({
   onClear: () => void;
 }) {
   const hasComparisonState = Boolean(baseFile || newFile || result || error);
+  const normalizedResult = normalizeCompareResult(result);
 
   function handleBaseFileChange(file: File) {
     onBaseFileChange(file);
@@ -643,7 +741,7 @@ function CompareView({
     onErrorChange("");
     try {
       const comparison = await compareModels(baseFile, newFile);
-      onResultChange(comparison);
+      onResultChange(normalizeCompareResult(comparison));
     } catch (err) {
       onErrorChange(err instanceof Error ? err.message : "Erro inesperado ao comparar.");
     } finally {
@@ -651,7 +749,7 @@ function CompareView({
     }
   }
 
-  const totals = result ? countCompareChanges(result) : { added: 0, removed: 0, changed: 0 };
+  const totals = normalizedResult ? countCompareChanges(normalizedResult) : { added: 0, removed: 0, changed: 0 };
 
   return (
     <div className="compare-page">
@@ -684,12 +782,12 @@ function CompareView({
 
       {error ? <div className="error">{error}</div> : null}
 
-      {result ? (
+      {normalizedResult ? (
         <>
           <section className="compare-hero">
             <div>
               <span className="eyebrow">Resultado da comparação</span>
-              <h1>{result.dashboard_base} para {result.dashboard_novo}</h1>
+              <h1>{normalizedResult.dashboard_base} para {normalizedResult.dashboard_novo}</h1>
             </div>
             <div className="compare-stats">
               <div>
@@ -708,29 +806,29 @@ function CompareView({
           </section>
 
           <section className="change-grid">
-            <ChangeList title="Tabelas adicionadas" tone="added" items={compareItems(result.tabelas.adicionadas)} />
-            <ChangeList title="Tabelas removidas" tone="removed" items={compareItems(result.tabelas.removidas)} />
-            <ChangeList title="Tabelas modificadas" tone="changed" items={compareItems(result.tabelas.modificadas)} />
-            <ChangeList title="Colunas adicionadas" tone="added" items={compareItems(result.colunas.adicionadas)} />
-            <ChangeList title="Colunas removidas" tone="removed" items={compareItems(result.colunas.removidas)} />
-            <ChangeList title="Colunas modificadas" tone="changed" items={compareItems(result.colunas.modificadas)} />
-            <ChangeList title="Medidas adicionadas" tone="added" items={compareItems(result.medidas.adicionadas)} />
-            <ChangeList title="Medidas removidas" tone="removed" items={compareItems(result.medidas.removidas)} />
-            <ChangeList title="Medidas modificadas" tone="changed" items={compareItems(result.medidas.modificadas)} />
+            <ChangeList title="Tabelas adicionadas" tone="added" items={normalizedResult.tabelas.adicionadas} />
+            <ChangeList title="Tabelas removidas" tone="removed" items={normalizedResult.tabelas.removidas} />
+            <ChangeList title="Tabelas modificadas" tone="changed" items={normalizedResult.tabelas.modificadas} />
+            <ChangeList title="Colunas adicionadas" tone="added" items={normalizedResult.colunas.adicionadas} />
+            <ChangeList title="Colunas removidas" tone="removed" items={normalizedResult.colunas.removidas} />
+            <ChangeList title="Colunas modificadas" tone="changed" items={normalizedResult.colunas.modificadas} />
+            <ChangeList title="Medidas adicionadas" tone="added" items={normalizedResult.medidas.adicionadas} />
+            <ChangeList title="Medidas removidas" tone="removed" items={normalizedResult.medidas.removidas} />
+            <ChangeList title="Medidas modificadas" tone="changed" items={normalizedResult.medidas.modificadas} />
             <ChangeList
               title="Relacionamentos adicionados"
               tone="added"
-              items={compareItems(result.relacionamentos.adicionados)}
+              items={normalizedResult.relacionamentos.adicionados}
             />
             <ChangeList
               title="Relacionamentos removidos"
               tone="removed"
-              items={compareItems(result.relacionamentos.removidos)}
+              items={normalizedResult.relacionamentos.removidos}
             />
             <ChangeList
               title="Relacionamentos modificados"
               tone="changed"
-              items={compareItems(result.relacionamentos.modificados)}
+              items={normalizedResult.relacionamentos.modificados}
             />
           </section>
         </>
@@ -1711,19 +1809,21 @@ export function App() {
         ) : null}
         {activeTab === "tutorial" ? <TutorialView /> : null}
         {activeTab === "compare" ? (
-          <CompareView
-            baseFile={compareBaseFile}
-            newFile={compareNewFile}
-            result={compareResult}
-            loading={compareLoading}
-            error={compareError}
-            onBaseFileChange={setCompareBaseFile}
-            onNewFileChange={setCompareNewFile}
-            onResultChange={setCompareResult}
-            onLoadingChange={setCompareLoading}
-            onErrorChange={setCompareError}
-            onClear={handleClearComparison}
-          />
+          <CompareErrorBoundary onReset={handleClearComparison}>
+            <CompareView
+              baseFile={compareBaseFile}
+              newFile={compareNewFile}
+              result={compareResult}
+              loading={compareLoading}
+              error={compareError}
+              onBaseFileChange={setCompareBaseFile}
+              onNewFileChange={setCompareNewFile}
+              onResultChange={setCompareResult}
+              onLoadingChange={setCompareLoading}
+              onErrorChange={setCompareError}
+              onClear={handleClearComparison}
+            />
+          </CompareErrorBoundary>
         ) : null}
         {report && isDataTab ? (
           <>
