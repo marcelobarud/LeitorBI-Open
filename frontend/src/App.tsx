@@ -1,6 +1,5 @@
 import {
   AlertTriangle,
-  ArrowDown,
   BookOpenCheck,
   ChevronLeft,
   ChevronRight,
@@ -78,6 +77,8 @@ const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare">; label: str
 
 const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
+const MAX_JSON_UPLOAD_MB = 10;
+const MAX_JSON_UPLOAD_BYTES = MAX_JSON_UPLOAD_MB * 1024 * 1024;
 
 function routeFromPath(pathname: string): AppRoute {
   if (pathname === ROUTES.demo) return ROUTES.demo;
@@ -115,6 +116,23 @@ function downloadBlob(blob: Blob, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function formatFileSize(size: number) {
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function validateJsonFile(file: File): string | null {
+  const isJsonName = file.name.toLowerCase().endsWith(".json");
+  const isJsonType = !file.type || file.type === "application/json";
+  if (!isJsonName || !isJsonType) {
+    return "Selecione um arquivo .json exportado pelo LeitorBI ou Tabular Editor.";
+  }
+  if (file.size > MAX_JSON_UPLOAD_BYTES) {
+    return `Arquivo muito grande. O limite para envio é ${MAX_JSON_UPLOAD_MB} MB.`;
+  }
+  return null;
 }
 
 function DataTable({ rows }: { rows: Row[] }) {
@@ -1391,7 +1409,15 @@ function UploadPanel({
   );
 }
 
-function HomeEmptyState({ onOpenFilePicker, disabled }: { onOpenFilePicker: () => void; disabled: boolean }) {
+function HomeEmptyState({
+  onOpenFilePicker,
+  disabled,
+  selectedFileLabel,
+}: {
+  onOpenFilePicker: () => void;
+  disabled: boolean;
+  selectedFileLabel: string;
+}) {
   return (
     <div className="home-empty-page">
       <header className="page-header">
@@ -1417,10 +1443,16 @@ function HomeEmptyState({ onOpenFilePicker, disabled }: { onOpenFilePicker: () =
           disabled={disabled}
           aria-label="Carregar arquivo JSON exportado do Power BI"
         >
-          <ArrowDown size={30} />
-          <strong>Clique em Carregar JSON para selecionar o arquivo</strong>
-          <span>Use o botao Carregar JSON na barra superior ou clique aqui.</span>
+          <FileJson size={34} />
+          <strong>{disabled ? "Analisando arquivo..." : "Selecionar JSON do modelo"}</strong>
+          <span>{selectedFileLabel || "Aceita arquivos .json de ate 10 MB."}</span>
         </button>
+
+        <div className="upload-rules">
+          <span>Formato aceito: `.json` em UTF-8</span>
+          <span>Limite: {MAX_JSON_UPLOAD_MB} MB por arquivo</span>
+          <span>Dados reais exigem login e ficam restritos ao processamento da API.</span>
+        </div>
       </section>
     </div>
   );
@@ -1576,6 +1608,7 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [pendingFileLabel, setPendingFileLabel] = useState("");
   const [error, setError] = useState("");
   const [compareBaseFile, setCompareBaseFile] = useState<File | null>(null);
   const [compareNewFile, setCompareNewFile] = useState<File | null>(null);
@@ -1637,6 +1670,7 @@ export function App() {
   function clearWorkspaceState() {
     setReport(null);
     setCurrentFile(null);
+    setPendingFileLabel("");
     setError("");
     setActiveTab("overview");
     handleClearComparison();
@@ -1681,8 +1715,16 @@ export function App() {
   }
 
   async function handleAnalyze(file: File) {
+    const validationError = validateJsonFile(file);
+    if (validationError) {
+      setError(validationError);
+      setPendingFileLabel(`${file.name} (${formatFileSize(file.size)})`);
+      return;
+    }
+
     setLoading(true);
     setError("");
+    setPendingFileLabel(`${file.name} (${formatFileSize(file.size)})`);
     try {
       const result = await analyzeModel(file);
       setReport(result);
@@ -1725,6 +1767,7 @@ export function App() {
   function handleCloseAnalysis() {
     setReport(null);
     setCurrentFile(null);
+    setPendingFileLabel("");
     setError("");
     setActiveTab("overview");
   }
@@ -1811,7 +1854,7 @@ export function App() {
         <header className="workspace-topbar">
           <div>
             <span>Workspace</span>
-            <strong>{report ? report.raw.dashboardName : "Nenhum modelo carregado"}</strong>
+            <strong>{report ? report.raw.dashboardName : pendingFileLabel || "Nenhum modelo carregado"}</strong>
           </div>
           {!report ? (
             <button className="secondary-action" type="button" onClick={openFilePicker} disabled={loading}>
@@ -1821,7 +1864,11 @@ export function App() {
           ) : null}
         </header>
         {!report && activeTab === "overview" ? (
-          <HomeEmptyState onOpenFilePicker={openFilePicker} disabled={loading} />
+          <HomeEmptyState
+            onOpenFilePicker={openFilePicker}
+            disabled={loading}
+            selectedFileLabel={pendingFileLabel}
+          />
         ) : null}
         {loading ? <div className="status">Analisando modelo...</div> : null}
         {error ? <div className="error">{error}</div> : null}

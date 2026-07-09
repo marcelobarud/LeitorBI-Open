@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
@@ -110,6 +110,7 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: /^entrar$/i }));
 
     expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
+    expect(screen.getByText(/aceita arquivos \.json/i)).toBeInTheDocument();
     expect(screen.getByText("admin@leitorbi.local")).toBeInTheDocument();
     expect(window.location.pathname).toBe("/app");
   });
@@ -131,7 +132,7 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/app");
+    await waitFor(() => expect(window.location.pathname).toBe("/app"));
     expect(screen.queryByText(/previa somente leitura/i)).not.toBeInTheDocument();
   });
 
@@ -147,10 +148,31 @@ describe("App", () => {
     expect(input).toBeTruthy();
 
     const file = new File([JSON.stringify({ tables: [] })], "modelo.json", { type: "application/json" });
-    await userEvent.upload(input!, file);
+    await userEvent.setup({ applyAccept: false }).upload(input!, file);
 
     expect(await screen.findByRole("heading", { name: "Demo Publica Comercial" })).toBeInTheDocument();
     expect(screen.getAllByText(/Modelo Demo/).length).toBeGreaterThan(0);
+  });
+
+  it("bloqueia upload com extensão inválida antes de enviar para a API", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/auth/me")) return jsonResponse({ email: "admin@leitorbi.local", is_admin: true });
+      if (url.includes("/api/models/analyze")) return jsonResponse(sampleReport);
+      return jsonResponse({ detail: "Not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container } = render(<App />);
+
+    expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(["nao e json"], "modelo.txt", { type: "text/plain" });
+
+    await userEvent.setup({ applyAccept: false }).upload(input!, file);
+
+    expect(await screen.findByText(/selecione um arquivo \.json/i)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/models/analyze"), expect.anything());
   });
 
   it("renderiza comparação mesmo com payload parcial", async () => {

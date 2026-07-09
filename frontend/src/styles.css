@@ -610,6 +610,22 @@ nav button:disabled {
   font-size: 13px;
 }
 
+.upload-rules {
+  align-self: start;
+  color: #64748b;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.upload-rules span {
+  background: #f8fafc;
+  border: 1px solid #d8e2ee;
+  border-radius: 999px;
+  font-size: 13px;
+  padding: 8px 11px;
+}
+
 .upload-panel {
   align-items: stretch;
   display: grid;
