@@ -18,6 +18,10 @@ input {
   font: inherit;
 }
 
+button {
+  min-width: 0;
+}
+
 button:disabled {
   cursor: not-allowed;
   opacity: 0.65;
@@ -140,6 +144,7 @@ button:disabled {
 .landing-topbar {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   justify-content: space-between;
   margin: 0 auto;
@@ -396,6 +401,7 @@ button:disabled {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   min-height: 100vh;
+  min-width: 0;
 }
 
 .sidebar {
@@ -404,6 +410,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 28px;
+  min-width: 0;
   padding: 24px 18px;
 }
 
@@ -427,6 +434,7 @@ nav button {
   border-radius: 8px;
   color: #b9c4d6;
   cursor: pointer;
+  min-width: 0;
   padding: 11px 12px;
   text-align: left;
 }
@@ -451,7 +459,13 @@ nav button:disabled {
   display: flex;
   gap: 10px;
   margin-top: auto;
+  min-width: 0;
   padding: 12px;
+}
+
+.compare-teaser span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .user-panel {
@@ -511,6 +525,7 @@ nav button:disabled {
 .workspace-topbar {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   justify-content: space-between;
   margin-bottom: 18px;
@@ -551,6 +566,7 @@ nav button:disabled {
   border-radius: 8px;
   display: grid;
   gap: 18px;
+  align-content: start;
   min-height: calc(100vh - 160px);
   padding: 28px;
 }
@@ -623,6 +639,7 @@ nav button:disabled {
   border: 1px solid #d8e2ee;
   border-radius: 999px;
   font-size: 13px;
+  overflow-wrap: anywhere;
   padding: 8px 11px;
 }
 
@@ -924,6 +941,7 @@ p {
   align-items: center;
   border-bottom: 1px solid #e5edf6;
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
   padding: 14px;
@@ -932,6 +950,7 @@ p {
 .table-toolbar > div {
   display: grid;
   gap: 3px;
+  min-width: 0;
 }
 
 .table-toolbar small {
@@ -946,6 +965,7 @@ p {
   border-radius: 8px;
   display: flex;
   gap: 8px;
+  min-width: 220px;
   padding: 8px 10px;
   width: min(360px, 48vw);
 }
@@ -1430,6 +1450,7 @@ td {
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr) 180px;
+  min-width: 0;
   padding: 16px;
 }
 
@@ -1498,6 +1519,7 @@ td {
   font-weight: 800;
   height: 48px;
   justify-content: center;
+  min-width: 0;
   padding: 0 18px;
 }
 
@@ -1513,6 +1535,7 @@ td {
   font-weight: 800;
   gap: 8px;
   height: 44px;
+  min-width: 0;
   padding: 0 16px;
 }
 
@@ -1536,6 +1559,7 @@ td {
   font-weight: 800;
   gap: 8px;
   height: 44px;
+  min-width: 0;
   padding: 0 16px;
 }
 
@@ -1719,7 +1743,17 @@ td {
   }
 
   .landing-topbar {
+    align-items: stretch;
     padding-bottom: 16px;
+  }
+
+  .landing-access,
+  .landing-access .ghost-action {
+    width: 100%;
+  }
+
+  .landing-access .ghost-action {
+    justify-content: center;
   }
 
   .landing-hero,
@@ -1740,6 +1774,8 @@ td {
 
   .topbar-login {
     padding: 24px;
+    right: auto;
+    width: 100%;
   }
 
   .preview-sidebar {
@@ -1758,6 +1794,10 @@ td {
 
   .app-shell {
     grid-template-columns: 1fr;
+  }
+
+  .content {
+    padding: 18px;
   }
 
   .workspace-topbar {
@@ -1783,11 +1823,35 @@ td {
   }
 
   .sidebar {
+    gap: 16px;
     position: static;
   }
 
+  .sidebar .brand {
+    justify-content: center;
+  }
+
   nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    gap: 8px;
+    margin: 0 -18px;
+    overflow-x: auto;
+    padding: 0 18px 4px;
+    scrollbar-width: thin;
+  }
+
+  nav button {
+    flex: 0 0 auto;
+    min-width: 112px;
+    text-align: center;
+  }
+
+  .user-panel {
+    grid-template-columns: minmax(0, 1fr) 38px;
+  }
+
+  .compare-teaser {
+    margin-top: 0;
   }
 
   .upload-panel {
@@ -1803,6 +1867,10 @@ td {
   .compare-picker,
   .compare-stats {
     grid-template-columns: 1fr;
+  }
+
+  .compare-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .compare-plus {
@@ -1853,5 +1921,98 @@ td {
 
   .dax-detail {
     grid-template-columns: 1fr;
+  }
+
+  .table-toolbar {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .search-box {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .clear-filters-button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .table-wrap {
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-page,
+  .content,
+  .sidebar {
+    padding: 14px;
+  }
+
+  .landing-topbar {
+    gap: 12px;
+  }
+
+  .landing-copy {
+    padding: 22px;
+  }
+
+  .landing-copy h1,
+  .tutorial-hero h1 {
+    font-size: 28px;
+  }
+
+  .landing-copy p,
+  .tutorial-hero p {
+    font-size: 15px;
+  }
+
+  .topbar-login {
+    padding: 18px;
+  }
+
+  nav {
+    margin: 0 -14px;
+    padding-inline: 14px;
+  }
+
+  .workspace-topbar strong {
+    white-space: normal;
+  }
+
+  .empty-workspace,
+  .model-hero,
+  .tutorial-hero,
+  .compare-hero,
+  .compare-picker {
+    padding: 18px;
+  }
+
+  .empty-workspace h1,
+  .model-hero h1,
+  .compare-hero h1 {
+    font-size: 25px;
+  }
+
+  .upload-rules {
+    display: grid;
+  }
+
+  .upload-rules span,
+  .primary-action,
+  .secondary-action,
+  .ghost-action {
+    width: 100%;
+  }
+
+  .compare-actions {
+    grid-template-columns: 1fr;
+  }
+
+  th,
+  td {
+    max-width: 320px;
+    padding: 10px;
   }
 }
