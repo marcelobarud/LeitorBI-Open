@@ -15,13 +15,13 @@ async function inlineBuiltAssets() {
   const scriptMatches = [...(await readFile(indexPath, "utf8")).matchAll(/<script type="module" crossorigin src="([^"]+)"><\/script>/g)];
   for (const [, source] of scriptMatches) {
     const code = await readFile(join(distDir, source.replace(/^\//, "")), "utf8");
-    html = html.replace("</body>", `<script type="module">\\n${code}\\n</script>\\n</body>`);
+    html = html.replace("</body>", `<script type="module">\n${code}\n</script>\n</body>`);
   }
 
   const styleMatches = [...html.matchAll(/<link rel="stylesheet" crossorigin href="([^"]+)">/g)];
   for (const [tag, source] of styleMatches) {
     const css = await readFile(join(distDir, source.replace(/^\//, "")), "utf8");
-    html = html.replace(tag, `<style>\\n${css}\\n</style>`);
+    html = html.replace(tag, `<style>\n${css}\n</style>`);
   }
 
   return html;
