@@ -25,12 +25,9 @@ import {
   X,
 } from "lucide-react";
 import {
-  Component,
   Fragment,
   type ChangeEvent,
-  type ErrorInfo,
   type FormEvent,
-  type ReactNode,
   useEffect,
   useMemo,
   useRef,
@@ -51,6 +48,9 @@ import {
   updateUser,
 } from "./api";
 import { LoginPopover } from "./components/LoginPopover";
+import { CompareFileInput } from "./components/CompareFileInput";
+import { CompareErrorBoundary } from "./components/CompareErrorBoundary";
+import { HomeEmptyState } from "./components/HomeEmptyState";
 import { LandingPage } from "./pages/LandingPage";
 import { ROUTES, routeFromPath, type AppRoute } from "./routes";
 import type { AuthUser, CompareEntry, CompareResult, ManagedUser, Report, Row, TabKey } from "./types";
@@ -484,32 +484,6 @@ function DataTable({ rows }: { rows: Row[] }) {
   );
 }
 
-function CompareFileInput({
-  label,
-  file,
-  onChange,
-}: {
-  label: string;
-  file: File | null;
-  onChange: (file: File) => void;
-}) {
-  return (
-    <label className="compare-file">
-      <FileJson size={28} />
-      <span>{label}</span>
-      <strong>{file ? file.name : "Selecionar JSON"}</strong>
-      <input
-        type="file"
-        accept=".json,application/json"
-        onChange={(event) => {
-          const selected = event.target.files?.[0];
-          if (selected) onChange(selected);
-        }}
-      />
-    </label>
-  );
-}
-
 function countCompareChanges(result: CompareResult) {
   return {
     added:
@@ -691,45 +665,6 @@ function ChangeList({
       {items.length > 80 ? <p className="hint">Mostrando os primeiros 80 itens.</p> : null}
     </article>
   );
-}
-
-class CompareErrorBoundary extends Component<
-  { children: ReactNode; onReset: () => void },
-  { hasError: boolean }
-> {
-  constructor(props: { children: ReactNode; onReset: () => void }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(_error: Error, _info: ErrorInfo) {
-    // Prevent a malformed comparison payload from blanking the entire app.
-  }
-
-  handleReset = () => {
-    this.setState({ hasError: false });
-    this.props.onReset();
-  };
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="error compare-runtime-error">
-          <strong>Não foi possível renderizar a comparação.</strong>
-          <span>Limpe o resultado e tente comparar os arquivos novamente.</span>
-          <button className="ghost-action" type="button" onClick={this.handleReset}>
-            Limpar comparação
-          </button>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
 }
 
 function CompareView({
@@ -1374,55 +1309,6 @@ function UploadPanel({
         />
       </label>
     </section>
-  );
-}
-
-function HomeEmptyState({
-  onOpenFilePicker,
-  disabled,
-  selectedFileLabel,
-}: {
-  onOpenFilePicker: () => void;
-  disabled: boolean;
-  selectedFileLabel: string;
-}) {
-  return (
-    <div className="home-empty-page">
-      <header className="page-header">
-        <Database size={22} />
-        <div>
-          <h2>Inicio</h2>
-          <p>Carregue um arquivo JSON exportado do Power BI para iniciar o levantamento.</p>
-        </div>
-      </header>
-
-      <section className="empty-workspace">
-        <h1>Nenhum arquivo carregado</h1>
-        <p>
-          Carregue um arquivo JSON exportado do Power BI para iniciar a analise. O LeitorBI ira levantar tabelas
-          utilizadas no modelo, colunas totais, medidas, fontes de dados e relacionamentos, ignorando tabelas tecnicas
-          de data automatica.
-        </p>
-
-        <button
-          className="empty-drop-hint"
-          type="button"
-          onClick={onOpenFilePicker}
-          disabled={disabled}
-          aria-label="Carregar arquivo JSON exportado do Power BI"
-        >
-          <FileJson size={34} />
-          <strong>{disabled ? "Analisando arquivo..." : "Selecionar JSON do modelo"}</strong>
-          <span>{selectedFileLabel || "Aceita arquivos .json de ate 10 MB."}</span>
-        </button>
-
-        <div className="upload-rules">
-          <span>Formato aceito: `.json` em UTF-8</span>
-          <span>Limite: {MAX_JSON_UPLOAD_MB} MB por arquivo</span>
-          <span>Dados reais exigem login e ficam restritos ao processamento da API.</span>
-        </div>
-      </section>
-    </div>
   );
 }
 
