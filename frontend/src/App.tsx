@@ -1849,8 +1849,8 @@ export function App() {
             selectedFileLabel={pendingFileLabel}
           />
         ) : null}
-        {loading ? <div className="status">Analisando modelo...</div> : null}
-        {error ? <div className="error">{error}</div> : null}
+        {loading ? <div className="status" role="status">Analisando modelo...</div> : null}
+        {error ? <div className="error" role="alert">{error}</div> : null}
         {report && activeTab === "overview" ? (
           <Overview
             report={report}

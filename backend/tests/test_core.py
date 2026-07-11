@@ -16,19 +16,22 @@ from app.auth import (
     UpdateUserRequest,
     _login_attempts,
     create_user,
+    connect_db,
     current_user,
     current_admin_user,
     delete_user,
+    ensure_active_admin_remains,
     init_auth,
     list_users,
     login,
     logout,
     register,
+    session_cookie_secure,
     update_user,
 )
 from app.demo_data import DEMO_MODEL, DEMO_MODEL_PATH
 from app.observability import log_http_request
-from app.security import assert_safe_origin, cors_origins
+from app.security import assert_safe_origin, cors_origins, validate_security_config
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
@@ -39,9 +42,16 @@ class FakeUpload:
     def __init__(self, filename: str, content: bytes):
         self.filename = filename
         self._content = content
+        self._position = 0
 
-    async def read(self) -> bytes:
-        return self._content
+    async def read(self, size: int = -1) -> bytes:
+        if size < 0:
+            result = self._content[self._position:]
+            self._position = len(self._content)
+            return result
+        result = self._content[self._position:self._position + size]
+        self._position += len(result)
+        return result
 
 
 def test_analyzer_demo_report_has_expected_sections():
@@ -116,6 +126,32 @@ def test_read_json_upload_rejects_non_json_extension():
         asyncio.run(read_json_upload(FakeUpload("modelo.txt", b"{}")))
 
     assert exc.value.status_code == 400
+
+
+def test_read_json_upload_rejects_empty_file():
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(read_json_upload(FakeUpload("modelo.json", b"")))
+
+    assert exc.value.status_code == 400
+    assert "Arquivo vazio" in exc.value.detail
+
+
+def test_read_json_upload_rejects_file_larger_than_limit(monkeypatch):
+    monkeypatch.setenv("LEITORBI_MAX_UPLOAD_MB", "1")
+    content = b" " * (1024 * 1024 + 1)
+
+    with pytest.raises(HTTPException) as exc:
+        asyncio.run(read_json_upload(FakeUpload("modelo.json", content)))
+
+    assert exc.value.status_code == 413
+
+
+@pytest.mark.parametrize("table", [{}, {"name": "  "}])
+def test_validate_model_export_rejects_table_without_name(table):
+    with pytest.raises(HTTPException) as exc:
+        validate_model_export({"tables": [table]})
+
+    assert exc.value.status_code == 422
 
 
 def make_request(
@@ -213,11 +249,34 @@ def test_unsafe_request_allows_valid_referer_when_origin_absent(monkeypatch):
     assert_safe_origin(make_request(method="POST", referer="http://localhost:5173/app"))
 
 
+def test_unsafe_request_without_origin_is_rejected_when_required(monkeypatch):
+    monkeypatch.setenv("LEITORBI_REQUIRE_ORIGIN", "true")
+
+    with pytest.raises(HTTPException) as exc:
+        assert_safe_origin(make_request(method="POST"))
+
+    assert exc.value.status_code == 403
+
+
 def test_cors_origins_rejects_wildcard_with_credentials(monkeypatch):
     monkeypatch.setenv("LEITORBI_CORS_ORIGINS", "*")
 
     with pytest.raises(RuntimeError):
         cors_origins()
+
+
+def test_production_security_config_requires_cors_and_secure_cookie(monkeypatch):
+    monkeypatch.setenv("LEITORBI_ENV", "production")
+    monkeypatch.delenv("LEITORBI_CORS_ORIGINS", raising=False)
+    monkeypatch.delenv("LEITORBI_SESSION_SECURE", raising=False)
+
+    with pytest.raises(RuntimeError):
+        validate_security_config()
+
+    monkeypatch.setenv("LEITORBI_CORS_ORIGINS", "https://leitorbi.example")
+    monkeypatch.setenv("LEITORBI_SESSION_SECURE", "true")
+    validate_security_config()
+    assert session_cookie_secure() is True
 
 
 def test_login_valid_creates_cookie_and_allows_protected_dependency(monkeypatch, tmp_path):
@@ -389,3 +448,28 @@ def test_admin_cannot_disable_self(monkeypatch, tmp_path):
         update_user(admin.id, UpdateUserRequest(disabled=True), admin)
 
     assert exc.value.status_code == 400
+
+
+def test_active_admin_invariant_requires_another_active_admin(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+    _, cookie_header = login_cookie()
+    admin = current_user(make_request(cookie_header))
+
+    with pytest.raises(HTTPException) as exc:
+        with connect_db() as connection:
+            ensure_active_admin_remains(connection, admin.id)
+
+    assert exc.value.status_code == 400
+
+
+def test_active_admin_invariant_allows_change_when_another_admin_remains(monkeypatch, tmp_path):
+    auth_db(monkeypatch, tmp_path)
+    _, cookie_header = login_cookie()
+    admin = current_user(make_request(cookie_header))
+    other_admin = create_user(
+        CreateUserRequest(name="Admin Dois", email="admin2@leitorbi.local", password="SenhaForte123!", is_admin=True),
+        admin,
+    )
+
+    with connect_db() as connection:
+        ensure_active_admin_remains(connection, other_admin.id)

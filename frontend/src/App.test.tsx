@@ -199,6 +199,24 @@ describe("App", () => {
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/models/analyze"), expect.anything());
   });
 
+  it("exibe a mensagem da API para um export incompatível", async () => {
+    mockAuthenticatedFetch({
+      "/api/models/analyze": jsonResponse(
+        { detail: "Exportação incompatível: campo obrigatório 'tables' ausente ou inválido." },
+        { status: 422 },
+      ),
+    });
+
+    const { container } = render(<App />);
+    expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = new File(["{}"], "modelo.json", { type: "application/json" });
+
+    await userEvent.setup({ applyAccept: false }).upload(input!, file);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/exportação incompatível/i);
+  });
+
   it("permite administrador listar usuarios", async () => {
     mockAuthenticatedFetch({
       "/api/admin/users": jsonResponse([

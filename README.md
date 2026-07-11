@@ -47,6 +47,10 @@ Frontend:
 
 - `VITE_API_URL`: URL base da API. Exemplo para `.env.local`: `VITE_API_URL=http://localhost:8000`.
 
+### Producao
+
+Configure `LEITORBI_ENV=production`, `LEITORBI_CORS_ORIGINS` com as URLs exatas do frontend e `LEITORBI_SESSION_SECURE=true`. Nesse modo, a API nao inicia sem CORS explicito e cookie de sessao seguro, e exige `Origin` ou `Referer` permitido nas operacoes mutaveis. Para aplicar a mesma exigencia fora de producao, use `LEITORBI_REQUIRE_ORIGIN=true`.
+
 Para publicar em rede ou produção, configure `LEITORBI_CORS_ORIGINS` com a URL do frontend e `VITE_API_URL` com a URL da API.
 
 Todos os endpoints de analise, comparacao, demo e exportacao exigem login; apenas `/api/health` e `/api/auth/*` ficam publicos.

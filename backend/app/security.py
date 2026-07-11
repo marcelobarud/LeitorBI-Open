@@ -6,16 +6,34 @@ from fastapi import HTTPException, Request, status
 
 DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+TRUE_VALUES = {"1", "true", "yes", "on"}
+
+
+def is_production() -> bool:
+    return os.getenv("LEITORBI_ENV", "development").strip().lower() == "production"
+
+
+def environment_flag(name: str) -> bool | None:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return None
+    return value.strip().lower() in TRUE_VALUES
 
 
 def cors_origins() -> list[str]:
     configured = os.getenv("LEITORBI_CORS_ORIGINS")
     if not configured:
+        if is_production():
+            raise RuntimeError("LEITORBI_CORS_ORIGINS deve ser configurado em producao.")
         return DEFAULT_CORS_ORIGINS
 
     origins = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
+    if not origins:
+        raise RuntimeError("LEITORBI_CORS_ORIGINS deve conter ao menos uma origem valida.")
     if "*" in origins:
         raise RuntimeError("LEITORBI_CORS_ORIGINS nao pode usar '*' quando cookies de sessao estao habilitados.")
+    if any(origin != origin_from_url(origin) or not origin.startswith(("http://", "https://")) for origin in origins):
+        raise RuntimeError("LEITORBI_CORS_ORIGINS deve conter apenas origens HTTP(S), sem caminho.")
     return origins
 
 
@@ -28,6 +46,17 @@ def origin_from_url(value: str) -> str:
 
 def allowed_request_origins() -> set[str]:
     return set(cors_origins())
+
+
+def require_request_origin() -> bool:
+    configured = environment_flag("LEITORBI_REQUIRE_ORIGIN")
+    return is_production() if configured is None else configured
+
+
+def validate_security_config() -> None:
+    cors_origins()
+    if is_production() and environment_flag("LEITORBI_SESSION_SECURE") is not True:
+        raise RuntimeError("LEITORBI_SESSION_SECURE=true e obrigatorio em producao.")
 
 
 def assert_safe_origin(request: Request) -> None:
@@ -52,3 +81,10 @@ def assert_safe_origin(request: Request) -> None:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Origem da requisicao nao autorizada.",
             )
+        return
+
+    if require_request_origin():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Origem da requisicao obrigatoria.",
+        )

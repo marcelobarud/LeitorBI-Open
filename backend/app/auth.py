@@ -14,6 +14,8 @@ from time import monotonic
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
+from app.security import environment_flag, is_production
+
 
 SESSION_COOKIE_NAME = "leitorbi_session"
 SESSION_SECONDS = 8 * 60 * 60
@@ -96,7 +98,8 @@ def auth_db_path() -> Path:
 
 
 def session_cookie_secure() -> bool:
-    return os.getenv("LEITORBI_SESSION_SECURE", "").strip().lower() in {"1", "true", "yes", "on"}
+    configured = environment_flag("LEITORBI_SESSION_SECURE")
+    return is_production() if configured is None else configured
 
 
 def connect_db() -> sqlite3.Connection:
@@ -343,6 +346,19 @@ def admin_user_response(row: sqlite3.Row) -> AdminUserResponse:
     )
 
 
+def ensure_active_admin_remains(connection: sqlite3.Connection, user_id: int) -> None:
+    other_active_admins = connection.execute(
+        """
+        SELECT COUNT(*)
+        FROM users
+        WHERE id != ? AND is_admin = 1 AND disabled = 0
+        """,
+        (user_id,),
+    ).fetchone()[0]
+    if other_active_admins == 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mantenha ao menos um administrador ativo.")
+
+
 @router.post("/login", response_model=UserResponse)
 def login(payload: LoginRequest, request: Request, response: Response) -> UserResponse:
     email = normalize_email(payload.email)
@@ -485,12 +501,20 @@ def update_user(
         params.append(int(payload.disabled))
 
     with connect_db() as connection:
+        connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(
-            "SELECT id FROM users WHERE id = ?",
+            "SELECT id, is_admin, disabled FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         if row is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+
+        resulting_is_admin = bool(row["is_admin"]) if payload.is_admin is None else payload.is_admin
+        resulting_disabled = bool(row["disabled"]) if payload.disabled is None else payload.disabled
+        was_active_admin = bool(row["is_admin"]) and not bool(row["disabled"])
+        remains_active_admin = resulting_is_admin and not resulting_disabled
+        if was_active_admin and not remains_active_admin:
+            ensure_active_admin_remains(connection, user_id)
 
         connection.execute(
             f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
@@ -514,24 +538,16 @@ def delete_user(user_id: int, admin: AuthenticatedUser = Depends(current_admin_u
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce nao pode remover seu proprio usuario.")
 
     with connect_db() as connection:
+        connection.execute("BEGIN IMMEDIATE")
         row = connection.execute(
-            "SELECT id, is_admin FROM users WHERE id = ?",
+            "SELECT id, is_admin, disabled FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
         if row is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
 
-        if bool(row["is_admin"]):
-            other_active_admins = connection.execute(
-                """
-                SELECT COUNT(*)
-                FROM users
-                WHERE id != ? AND is_admin = 1 AND disabled = 0
-                """,
-                (user_id,),
-            ).fetchone()[0]
-            if other_active_admins == 0:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mantenha ao menos um administrador ativo.")
+        if bool(row["is_admin"]) and not bool(row["disabled"]):
+            ensure_active_admin_remains(connection, user_id)
 
         connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
 

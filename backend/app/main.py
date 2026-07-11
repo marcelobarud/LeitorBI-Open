@@ -8,7 +8,7 @@ from app.auth import AuthenticatedUser, admin_router, current_user, init_auth, r
 from app.demo_data import DEMO_MODEL
 from app.observability import log_http_request
 from app.schemas import CompareResponse, ReportResponse
-from app.security import assert_safe_origin, cors_origins
+from app.security import assert_safe_origin, cors_origins, validate_security_config
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
@@ -21,6 +21,7 @@ app.include_router(admin_router)
 
 @app.on_event("startup")
 def startup() -> None:
+    validate_security_config()
     init_auth()
 
 
