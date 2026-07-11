@@ -110,6 +110,13 @@ function ChangeList({
   items: Array<string | CompareEntry>;
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
+  const [query, setQuery] = useState("");
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleItems = items.filter((item) => {
+    if (!normalizedQuery) return true;
+    const text = typeof item === "string" ? item : Object.values(item).flat().join(" ");
+    return text.toLowerCase().includes(normalizedQuery);
+  });
 
   useEffect(() => {
     setExpandedItems(new Set());
@@ -133,11 +140,20 @@ function ChangeList({
         <span className={`badge ${tone}`}>{items.length}</span>
         <h3>{title}</h3>
       </header>
+      {items.length > 5 ? (
+        <label className="search-box">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar nesta categoria"
+          />
+        </label>
+      ) : null}
       {items.length === 0 ? (
         <p className="empty-change">Sem alterações nesta categoria.</p>
       ) : (
         <ul>
-          {items.slice(0, 80).map((item, index) => {
+          {visibleItems.slice(0, 80).map((item, index) => {
             const titleText = typeof item === "string" ? item : entryTitle(item);
             const itemKey = `${title}-${titleText}-${index}`;
             const isExpanded = expandedItems.has(itemKey);
@@ -186,7 +202,8 @@ function ChangeList({
           })}
         </ul>
       )}
-      {items.length > 80 ? <p className="hint">Mostrando os primeiros 80 itens.</p> : null}
+      {normalizedQuery && visibleItems.length === 0 ? <p className="empty-change">Nenhuma alteração encontrada.</p> : null}
+      {visibleItems.length > 80 ? <p className="hint">Mostrando os primeiros 80 itens.</p> : null}
     </article>
   );
 }
