@@ -32,28 +32,56 @@ export type Report = {
 
 export type CompareEntry = Record<string, string | string[] | number | boolean | null | undefined>;
 
+export type CompareTableChange = CompareEntry & {
+  nome: string;
+  colunas_adicionadas: string[];
+  colunas_removidas: string[];
+  colunas_modificadas: string[];
+  medidas_adicionadas: string[];
+  medidas_removidas: string[];
+  medidas_modificadas: string[];
+};
+
+export type CompareColumnChange = CompareEntry & {
+  tabela: string;
+  coluna: string;
+  alterações: string[];
+};
+
+export type CompareMeasureChange = CompareEntry & {
+  tabela: string;
+  medida: string;
+  antes?: string;
+  depois?: string;
+};
+
+export type CompareRelationshipChange = CompareEntry & {
+  relacionamento: string;
+  alterações: string[];
+};
+
 export type CompareResult = {
   dashboard_base: string;
   dashboard_novo: string;
   tabelas: {
     adicionadas: string[];
     removidas: string[];
-    modificadas: CompareEntry[];
+    modificadas: CompareTableChange[];
   };
   medidas: {
-    adicionadas: CompareEntry[];
-    removidas: CompareEntry[];
-    modificadas: CompareEntry[];
+    adicionadas: CompareColumnChange[];
+    removidas: CompareColumnChange[];
+    modificadas: CompareColumnChange[];
   };
   colunas: {
-    adicionadas: CompareEntry[];
-    removidas: CompareEntry[];
-    modificadas: CompareEntry[];
+    adicionadas: CompareMeasureChange[];
+    removidas: CompareMeasureChange[];
+    modificadas: CompareMeasureChange[];
   };
   relacionamentos: {
     adicionados: string[];
     removidos: string[];
-    modificados: CompareEntry[];
+    modificados: CompareRelationshipChange[];
   };
 };
 

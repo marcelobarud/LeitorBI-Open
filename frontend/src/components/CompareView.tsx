@@ -32,8 +32,8 @@ function compareItems<T>(items: T[] | null | undefined) {
   return Array.isArray(items) ? items : [];
 }
 
-function compareEntries(items: unknown): CompareEntry[] {
-  return Array.isArray(items) ? items.filter((item): item is CompareEntry => typeof item === "object" && item !== null) : [];
+function compareEntries<T extends CompareEntry>(items: unknown): T[] {
+  return Array.isArray(items) ? items.filter((item): item is T => typeof item === "object" && item !== null) : [];
 }
 
 function compareStrings(items: unknown): string[] {
@@ -336,4 +336,3 @@ export function CompareView({
     </div>
   );
 }
-
