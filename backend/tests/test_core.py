@@ -326,7 +326,7 @@ def test_login_invalid_is_generic_and_does_not_create_session(monkeypatch, tmp_p
         )
 
     assert wrong_password.value.status_code == 401
-    assert wrong_password.value.detail == "Credenciais invalidas."
+    assert wrong_password.value.detail == "Credenciais inválidas."
     assert unknown_user.value.status_code == wrong_password.value.status_code
     assert unknown_user.value.detail == wrong_password.value.detail
 

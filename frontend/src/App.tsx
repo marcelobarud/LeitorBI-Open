@@ -74,7 +74,7 @@ const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare" | "users">; 
   { key: "columns", label: "Colunas" },
   { key: "measures", label: "Medidas" },
   { key: "sources", label: "Fontes" },
-  { key: "relationships", label: "Relacoes" },
+  { key: "relationships", label: "Relações" },
 ];
 
 const PAGE_SIZE = 250;
@@ -171,7 +171,7 @@ function TutorialView() {
     },
     {
       label: "PASSO 6",
-      title: "Analise e exporte",
+      title: "Análise e exporte",
       detail: "Use filtros, detalhamentos e Exportar Excel para compartilhar a análise.",
     },
   ];
@@ -264,7 +264,7 @@ function DemoPage({
         if (active) setDemoReport(result);
       })
       .catch((err) => {
-        if (active) setDemoError(err instanceof Error ? err.message : "Erro inesperado ao carregar demonstracao.");
+        if (active) setDemoError(err instanceof Error ? err.message : "Erro inesperado ao carregar demonstração.");
       })
       .finally(() => {
         if (active) setDemoLoading(false);
@@ -306,14 +306,14 @@ function DemoPage({
         </nav>
         <div className="compare-teaser">
           <ShieldCheck size={18} />
-          <span>Demo publica em modo leitura, usando apenas dados de exemplo.</span>
+          <span>Demonstração pública em modo de leitura, usando apenas dados de exemplo.</span>
         </div>
       </aside>
 
       <section className="content">
         <header className="workspace-topbar demo-topbar">
           <div>
-            <span>Demonstracao publica</span>
+            <span>Demonstração pública</span>
             <strong>{demoReport ? demoReport.raw.dashboardName : "Carregando exemplo"}</strong>
           </div>
           <div className="landing-access">
@@ -329,13 +329,13 @@ function DemoPage({
 
         <div className="demo-lock-note">
           <ShieldCheck size={18} />
-          <span>Previa somente leitura. Para carregar JSON, exportar Excel ou comparar modelos, faca login no app.</span>
+          <span>Prévia somente para leitura. Para carregar JSON, exportar Excel ou comparar modelos, faça login no app.</span>
           <a className="ghost-action" href={ROUTES.landing}>
-            Voltar ao inicio
+            Voltar ao início
           </a>
         </div>
 
-        {demoLoading ? <div className="status">Carregando demonstracao...</div> : null}
+        {demoLoading ? <div className="status">Carregando demonstração...</div> : null}
         {demoError ? <div className="error">{demoError}</div> : null}
         {demoReport && activeTab === "overview" ? <Overview report={demoReport} isDemo readOnly /> : null}
         {demoReport && isDataTab ? (
@@ -443,7 +443,7 @@ export function App() {
         if (active) setUser(currentUser);
       })
       .catch((err) => {
-        if (active) setLoginError(err instanceof Error ? err.message : "Erro ao verificar sessao.");
+        if (active) setLoginError(err instanceof Error ? err.message : "Erro ao verificar sessão.");
       })
       .finally(() => {
         if (active) setCheckingSession(false);
@@ -504,7 +504,7 @@ export function App() {
       clearWorkspaceState();
       navigateTo(ROUTES.app);
     } catch (err) {
-      setLoginError(err instanceof Error ? err.message : "E-mail ou senha invalidos.");
+      setLoginError(err instanceof Error ? err.message : "E-mail ou senha inválidos.");
     } finally {
       setLoginLoading(false);
     }
@@ -533,7 +533,7 @@ export function App() {
 
   function handleAuthenticatedError(err: unknown, fallback: string, onErrorChange = setError) {
     const message = err instanceof Error ? err.message : fallback;
-    if (message.includes("Sessao expirada")) {
+    if (message.includes("Sessão expirada")) {
       setUser(null);
       setLoginError(message);
       clearWorkspaceState();
@@ -625,7 +625,7 @@ export function App() {
     return (
       <main className="login-shell">
         <section className="login-panel compact">
-          <div className="status">Verificando sessao...</div>
+          <div className="status">Verificando sessão...</div>
         </section>
       </main>
     );

@@ -20,7 +20,7 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     try {
       setUsers(await listUsers());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar usuarios.");
+      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar usuários.");
     } finally {
       setLoading(false);
     }
@@ -42,9 +42,9 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
       setEmail("");
       setPassword("");
       setIsAdmin(false);
-      setSuccess("Usuario criado com sucesso.");
+      setSuccess("Usuário criado com sucesso.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao criar usuario.");
+      setError(err instanceof Error ? err.message : "Erro inesperado ao criar usuário.");
     } finally {
       setSaving(false);
     }
@@ -56,19 +56,19 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     try {
       const updated = await updateUser(userId, changes);
       setUsers((current) => current.map((user) => (user.id === updated.id ? updated : user)));
-      setSuccess("Usuario atualizado com sucesso.");
+      setSuccess("Usuário atualizado com sucesso.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao atualizar usuario.");
+      setError(err instanceof Error ? err.message : "Erro inesperado ao atualizar usuário.");
     }
   }
 
   async function handleDeleteUser(managedUser: ManagedUser) {
     if (managedUser.email === currentUser.email) {
-      setError("Voce nao pode remover seu proprio usuario.");
+      setError("Você não pode remover seu próprio usuário.");
       return;
     }
 
-    const confirmed = window.confirm(`Remover o usuario ${managedUser.email}? Esta acao nao pode ser desfeita.`);
+    const confirmed = window.confirm(`Remover o usuário ${managedUser.email}? Esta ação não pode ser desfeita.`);
     if (!confirmed) return;
 
     setDeletingUserId(managedUser.id);
@@ -77,9 +77,9 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     try {
       await deleteUser(managedUser.id);
       setUsers((current) => current.filter((user) => user.id !== managedUser.id));
-      setSuccess("Usuario removido com sucesso.");
+      setSuccess("Usuário removido com sucesso.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao remover usuario.");
+      setError(err instanceof Error ? err.message : "Erro inesperado ao remover usuário.");
     } finally {
       setDeletingUserId(null);
     }
@@ -107,7 +107,7 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Nome do usuario"
+              placeholder="Nome do usuário"
               required
             />
           </label>
@@ -199,7 +199,7 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
                     <button
                       className="danger-action"
                       type="button"
-                      title={isSelf ? "Voce nao pode remover seu proprio usuario" : "Remover usuario"}
+                      title={isSelf ? "Você não pode remover seu próprio usuário" : "Remover usuário"}
                       aria-label={`Remover ${managedUser.email}`}
                       disabled={isSelf || deletingUserId === managedUser.id}
                       onClick={() => handleDeleteUser(managedUser)}

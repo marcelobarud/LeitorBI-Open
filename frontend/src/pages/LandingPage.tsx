@@ -47,8 +47,8 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
           <span className="eyebrow">LeitorBI Web</span>
           <h1>Leia modelos Power BI com clareza antes de decidir, auditar ou apresentar.</h1>
           <p>
-            Uma ferramenta para transformar exports JSON do modelo em inventario visual, filtros de analise,
-            comparacao entre versoes e entrega em Excel para o time.
+            Uma ferramenta para transformar exports JSON do modelo em inventário visual, filtros de análise,
+            comparação entre versões e entrega em Excel para a equipe.
           </p>
           <div className="hero-actions">
             <button
@@ -65,7 +65,7 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
             </a>
             <a className="ghost-action" href={ROUTES.demo}>
               <PlayCircle size={18} />
-              Ver demonstracao
+              Ver demonstração
             </a>
           </div>
         </div>
@@ -120,17 +120,17 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
         <article className="insight-card">
           <GitCompareArrows size={22} />
           <div>
-            <span>Comparacao visual</span>
+            <span>Comparação visual</span>
             <strong>Mudancas entre dois exports</strong>
-            <p>Veja itens adicionados, removidos e modificados antes de publicar novas versoes.</p>
+            <p>Veja itens adicionados, removidos e modificados antes de publicar novas versões.</p>
           </div>
         </article>
         <article className="insight-card warn">
           <Download size={22} />
           <div>
             <span>Entrega compartilhavel</span>
-            <strong>Exportacao pronta para Excel</strong>
-            <p>Leve a analise para reunioes, documentacao ou revisoes com stakeholders.</p>
+            <strong>Exportação pronta para Excel</strong>
+            <p>Leve a análise para reuniões, documentação ou revisões com as partes interessadas.</p>
           </div>
         </article>
       </section>
@@ -140,7 +140,7 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
           <ClipboardList size={22} />
           <div>
             <h2>Como comecar</h2>
-            <p>O fluxo basico para sair do Power BI e chegar na analise navegavel.</p>
+            <p>O fluxo básico para sair do Power BI e chegar à análise navegável.</p>
           </div>
         </header>
         <div>
@@ -152,7 +152,7 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
           <article>
             <span>2</span>
             <strong>Entre no LeitorBI</strong>
-            <p>Use a area de acesso desta pagina para abrir o ambiente de analise.</p>
+            <p>Use a área de acesso desta página para abrir o ambiente de análise.</p>
           </article>
           <article>
             <span>3</span>

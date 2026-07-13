@@ -57,7 +57,7 @@ async function expandItem(name: string) {
 }
 
 describe("CompareView", () => {
-  it("mostra somente o DAX da versao nova para medida adicionada", async () => {
+  it("mostra somente o DAX da versão nova para medida adicionada", async () => {
     renderCompare(compareResult({
       medidas: {
         adicionadas: [{
@@ -78,7 +78,7 @@ describe("CompareView", () => {
     expect(within(item).queryByText("Depois")).not.toBeInTheDocument();
   });
 
-  it("mostra somente o DAX da versao anterior para medida removida", async () => {
+  it("mostra somente o DAX da versão anterior para medida removida", async () => {
     renderCompare(compareResult({
       medidas: {
         adicionadas: [],
@@ -121,7 +121,7 @@ describe("CompareView", () => {
     expect(within(item).getByText("SUM('Fato Vendas'[Receita Liquida])")).toBeInTheDocument();
   });
 
-  it("exibe mensagem neutra quando medida adicionada nao tem expressao", async () => {
+  it("exibe mensagem neutra quando medida adicionada não tem expressão", async () => {
     renderCompare(compareResult({
       medidas: {
         adicionadas: [{ tabela: "Fato Vendas", medida: "Sem DAX" }],

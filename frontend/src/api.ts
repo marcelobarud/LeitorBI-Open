@@ -3,7 +3,7 @@ import type { AuthUser, CompareResult, ManagedUser, Report } from "./types";
 const configuredApiUrl = import.meta.env.VITE_API_URL;
 const isLocalHost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const API_URL = configuredApiUrl ?? (isLocalHost ? `${window.location.protocol}//${window.location.hostname}:8000` : "");
-const AUTH_REQUIRED_MESSAGE = "Sessao expirada. Entre novamente.";
+const AUTH_REQUIRED_MESSAGE = "Sessão expirada. Entre novamente.";
 
 async function readError(response: Response, fallback: string) {
   const error = await response.json().catch(() => ({ detail: fallback }));
@@ -35,7 +35,7 @@ export async function login(email: string, password: string): Promise<AuthUser> 
     if (response.status === 429) {
       throw new Error(await readError(response, "Muitas tentativas. Aguarde alguns minutos e tente novamente."));
     }
-    throw new Error("E-mail ou senha invalidos.");
+    throw new Error("E-mail ou senha inválidos.");
   }
 
   return response.json();
@@ -52,7 +52,7 @@ export async function registerUser(name: string, email: string, password: string
 
   if (!response.ok) {
     if (response.status === 409) {
-      throw new Error("Nao foi possivel concluir o cadastro. Revise os dados e tente novamente.");
+      throw new Error("Não foi possível concluir o cadastro. Revise os dados e tente novamente.");
     }
     throw new Error(await readError(response, "Erro ao criar conta."));
   }
@@ -68,7 +68,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   }
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Erro ao verificar sessao."));
+    throw new Error(await readError(response, "Erro ao verificar sessão."));
   }
 
   return response.json();
@@ -94,7 +94,7 @@ export async function listUsers(): Promise<ManagedUser[]> {
     if (response.status === 403) {
       throw new Error("Acesso restrito a administradores.");
     }
-    throw new Error(await readError(response, "Erro ao carregar usuarios."));
+    throw new Error(await readError(response, "Erro ao carregar usuários."));
   }
 
   return response.json();
@@ -116,7 +116,7 @@ export async function createUser(name: string, email: string, password: string, 
     if (response.status === 403) {
       throw new Error("Acesso restrito a administradores.");
     }
-    throw new Error(await readError(response, "Erro ao criar usuario."));
+    throw new Error(await readError(response, "Erro ao criar usuário."));
   }
 
   return response.json();
@@ -134,7 +134,7 @@ export async function deleteUser(userId: number): Promise<void> {
     if (response.status === 403) {
       throw new Error("Acesso restrito a administradores.");
     }
-    throw new Error(await readError(response, "Erro ao remover usuario."));
+    throw new Error(await readError(response, "Erro ao remover usuário."));
   }
 }
 
@@ -157,7 +157,7 @@ export async function updateUser(
     if (response.status === 403) {
       throw new Error("Acesso restrito a administradores.");
     }
-    throw new Error(await readError(response, "Erro ao atualizar usuario."));
+    throw new Error(await readError(response, "Erro ao atualizar usuário."));
   }
 
   return response.json();
@@ -219,7 +219,7 @@ export async function analyzePublicDemoModel(): Promise<Report> {
   const response = await fetchApi(`${API_URL}/api/public/demo/analyze`);
 
   if (!response.ok) {
-    throw new Error(await readError(response, "Erro ao carregar demonstracao."));
+    throw new Error(await readError(response, "Erro ao carregar demonstração."));
   }
 
   return response.json();

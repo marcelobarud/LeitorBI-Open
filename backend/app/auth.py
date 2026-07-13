@@ -239,7 +239,7 @@ def clear_failed_logins(request: Request, email: str) -> None:
 
 
 def invalid_login() -> HTTPException:
-    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais invalidas.")
+    return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Credenciais inválidas.")
 
 
 def create_session(connection: sqlite3.Connection, user_id: int) -> str:
@@ -303,11 +303,11 @@ def load_user_by_session(token: str) -> AuthenticatedUser | None:
 def current_user(request: Request) -> AuthenticatedUser:
     token = request.cookies.get(SESSION_COOKIE_NAME)
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticacao necessaria.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Autenticação necessária.")
 
     user = load_user_by_session(token)
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessao invalida ou expirada.")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Sessão inválida ou expirada.")
     return user
 
 
@@ -320,7 +320,7 @@ def current_admin_user(user: AuthenticatedUser = Depends(current_user)) -> Authe
 def validate_user_payload(email: str, password: str | None = None) -> str:
     normalized_email = normalize_email(email)
     if "@" not in normalized_email or "." not in normalized_email.rsplit("@", 1)[-1]:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe um e-mail valido.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe um e-mail válido.")
     if password is not None and len(password) < 8:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="A senha deve ter pelo menos 8 caracteres.")
     return normalized_email
@@ -329,7 +329,7 @@ def validate_user_payload(email: str, password: str | None = None) -> str:
 def validate_user_name(name: str) -> str:
     normalized_name = " ".join(name.strip().split())
     if not normalized_name:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe o nome do usuario.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe o nome do usuário.")
     if len(normalized_name) > 120:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nome muito longo.")
     return normalized_name
@@ -403,10 +403,10 @@ def register(payload: RegisterRequest) -> UserResponse:
                 (email,),
             ).fetchone()
     except sqlite3.IntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Nao foi possivel concluir o cadastro.") from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Não foi possível concluir o cadastro.") from exc
 
     if row is None:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Cadastro criado, mas nao localizado.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Cadastro criado, mas não localizado.")
     return UserResponse(name=row["name"], email=row["email"], is_admin=bool(row["is_admin"]))
 
 
@@ -471,10 +471,10 @@ def create_user(
                 (email,),
             ).fetchone()
     except sqlite3.IntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Usuario ja cadastrado.") from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Usuário já cadastrado.") from exc
 
     if row is None:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Usuario criado, mas nao localizado.")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Usuário criado, mas não localizado.")
     return admin_user_response(row)
 
 
@@ -485,11 +485,11 @@ def update_user(
     admin: AuthenticatedUser = Depends(current_admin_user),
 ) -> AdminUserResponse:
     if payload.is_admin is None and payload.disabled is None:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe ao menos uma alteracao.")
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Informe ao menos uma alteração.")
     if user_id == admin.id and payload.disabled is True:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce nao pode desativar seu proprio usuario.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Você não pode desativar seu próprio usuário.")
     if user_id == admin.id and payload.is_admin is False:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce nao pode remover seu proprio perfil admin.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Você não pode remover seu próprio perfil de administrador.")
 
     updates: list[str] = []
     params: list[int] = []
@@ -507,7 +507,7 @@ def update_user(
             (user_id,),
         ).fetchone()
         if row is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
 
         resulting_is_admin = bool(row["is_admin"]) if payload.is_admin is None else payload.is_admin
         resulting_disabled = bool(row["disabled"]) if payload.disabled is None else payload.disabled
@@ -535,7 +535,7 @@ def update_user(
 @admin_router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(user_id: int, admin: AuthenticatedUser = Depends(current_admin_user)) -> Response:
     if user_id == admin.id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voce nao pode remover seu proprio usuario.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Você não pode remover seu próprio usuário.")
 
     with connect_db() as connection:
         connection.execute("BEGIN IMMEDIATE")
@@ -544,7 +544,7 @@ def delete_user(user_id: int, admin: AuthenticatedUser = Depends(current_admin_u
             (user_id,),
         ).fetchone()
         if row is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario nao encontrado.")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado.")
 
         if bool(row["is_admin"]) and not bool(row["disabled"]):
             ensure_active_admin_remains(connection, user_id)

@@ -24,14 +24,14 @@ def cors_origins() -> list[str]:
     configured = os.getenv("LEITORBI_CORS_ORIGINS")
     if not configured:
         if is_production():
-            raise RuntimeError("LEITORBI_CORS_ORIGINS deve ser configurado em producao.")
+            raise RuntimeError("LEITORBI_CORS_ORIGINS deve ser configurado em produção.")
         return DEFAULT_CORS_ORIGINS
 
     origins = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
     if not origins:
-        raise RuntimeError("LEITORBI_CORS_ORIGINS deve conter ao menos uma origem valida.")
+        raise RuntimeError("LEITORBI_CORS_ORIGINS deve conter ao menos uma origem válida.")
     if "*" in origins:
-        raise RuntimeError("LEITORBI_CORS_ORIGINS nao pode usar '*' quando cookies de sessao estao habilitados.")
+        raise RuntimeError("LEITORBI_CORS_ORIGINS não pode usar '*' quando cookies de sessão estão habilitados.")
     if any(origin != origin_from_url(origin) or not origin.startswith(("http://", "https://")) for origin in origins):
         raise RuntimeError("LEITORBI_CORS_ORIGINS deve conter apenas origens HTTP(S), sem caminho.")
     return origins
@@ -56,7 +56,7 @@ def require_request_origin() -> bool:
 def validate_security_config() -> None:
     cors_origins()
     if is_production() and environment_flag("LEITORBI_SESSION_SECURE") is not True:
-        raise RuntimeError("LEITORBI_SESSION_SECURE=true e obrigatorio em producao.")
+        raise RuntimeError("LEITORBI_SESSION_SECURE=true é obrigatório em produção.")
 
 
 def assert_safe_origin(request: Request) -> None:
@@ -69,7 +69,7 @@ def assert_safe_origin(request: Request) -> None:
         if origin.rstrip("/") not in allowed_origins:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Origem da requisicao nao autorizada.",
+                detail="Origem da requisição não autorizada.",
             )
         return
 
@@ -79,12 +79,12 @@ def assert_safe_origin(request: Request) -> None:
         if referer_origin not in allowed_origins:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Origem da requisicao nao autorizada.",
+                detail="Origem da requisição não autorizada.",
             )
         return
 
     if require_request_origin():
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Origem da requisicao obrigatoria.",
+            detail="Origem da requisição obrigatória.",
         )

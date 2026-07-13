@@ -80,7 +80,7 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: /leia modelos power bi/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /ver demonstracao/i })).toHaveAttribute("href", "/demo");
+    expect(screen.getByRole("link", { name: /ver demonstração/i })).toHaveAttribute("href", "/demo");
     expect(screen.getByRole("button", { name: /acessar app/i })).toBeInTheDocument();
   });
 
@@ -90,7 +90,7 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(await screen.findByText(/previa somente leitura/i)).toBeInTheDocument();
+    expect(await screen.findByText(/prévia somente para leitura/i)).toBeInTheDocument();
     expect(await screen.findAllByText("Demo Publica Comercial")).not.toHaveLength(0);
     expect(screen.queryByRole("button", { name: /carregar json/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /comparar modelos/i })).not.toBeInTheDocument();
@@ -286,7 +286,7 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: /remover analista@leitorbi.local/i }));
 
     await waitFor(() => expect(screen.queryByText("Analista")).not.toBeInTheDocument());
-    expect(await screen.findByText(/usuario removido com sucesso/i)).toBeInTheDocument();
+    expect(await screen.findByText(/usuário removido com sucesso/i)).toBeInTheDocument();
   });
 
   it("renderiza comparação mesmo com payload parcial", async () => {

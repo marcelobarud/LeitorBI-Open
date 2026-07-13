@@ -28,7 +28,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
     }
 
     if (password !== passwordConfirmation) {
-      setLocalError("A confirmacao de senha deve ser igual a senha.");
+      setLocalError("A confirmação de senha deve ser igual à senha.");
       return;
     }
 
@@ -139,7 +139,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
         onClick={() => switchMode(mode === "login" ? "register" : "login")}
         disabled={loading}
       >
-        {mode === "login" ? "Criar conta" : "Ja tenho conta"}
+        {mode === "login" ? "Criar conta" : "Já tenho conta"}
       </button>
     </aside>
   );

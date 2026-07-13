@@ -12,7 +12,7 @@ export function HomeEmptyState({ onOpenFilePicker, disabled, selectedFileLabel }
       <header className="page-header">
         <FileJson size={22} />
         <div>
-          <h2>Inicio</h2>
+          <h2>Início</h2>
           <p>Carregue um arquivo JSON exportado do Power BI para iniciar o levantamento.</p>
         </div>
       </header>
@@ -20,9 +20,9 @@ export function HomeEmptyState({ onOpenFilePicker, disabled, selectedFileLabel }
       <section className="empty-workspace">
         <h1>Nenhum arquivo carregado</h1>
         <p>
-          Carregue um arquivo JSON exportado do Power BI para iniciar a analise. O LeitorBI ira levantar tabelas
-          utilizadas no modelo, colunas totais, medidas, fontes de dados e relacionamentos, ignorando tabelas tecnicas
-          de data automatica.
+          Carregue um arquivo JSON exportado do Power BI para iniciar a análise. O LeitorBI irá levantar tabelas
+          utilizadas no modelo, colunas totais, medidas, fontes de dados e relacionamentos, ignorando tabelas técnicas
+          de data automática.
         </p>
 
         <button
@@ -34,7 +34,7 @@ export function HomeEmptyState({ onOpenFilePicker, disabled, selectedFileLabel }
         >
           <FileJson size={34} />
           <strong>{disabled ? "Analisando arquivo..." : "Selecionar JSON do modelo"}</strong>
-          <span>{selectedFileLabel || "Aceita arquivos .json de ate 10 MB."}</span>
+          <span>{selectedFileLabel || "Aceita arquivos .json de até 10 MB."}</span>
         </button>
 
         <div className="upload-rules">
