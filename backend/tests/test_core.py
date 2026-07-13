@@ -32,6 +32,7 @@ from app.auth import (
 from app.demo_data import DEMO_MODEL, DEMO_MODEL_PATH
 from app.observability import log_http_request
 from app.security import assert_safe_origin, cors_origins, validate_security_config
+from app.schemas import CompareResponse
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
@@ -82,12 +83,19 @@ def test_compare_models_reports_measure_column_and_relationship_changes():
     new = deepcopy(DEMO_MODEL)
     new["dashboardName"] = "Demo Comercial v2"
     new["tables"][0]["measures"][0]["expression"] = "SUM('Fato Vendas Demo'[Receita]) * 1.1"
+    new["tables"][0]["measures"].append({
+        "name": "Receita Nova",
+        "expression": "SUM('Fato Vendas Demo'[Receita Nova])",
+    })
     new["tables"][0]["columns"][5]["formatString"] = "R$ #,0"
     new["relationships"][0]["crossFilteringBehavior"] = "BothDirections"
 
     result = compare_models(base, new)
+    response = CompareResponse.model_validate(result)
 
     assert result["dashboard_novo"] == "Demo Comercial v2"
+    assert result["medidas"]["adicionadas"][0]["expressao_dax"] == "SUM('Fato Vendas Demo'[Receita Nova])"
+    assert response.medidas.adicionadas[0].expressao_dax == "SUM('Fato Vendas Demo'[Receita Nova])"
     assert result["medidas"]["modificadas"][0]["medida"] == "Receita Total"
     assert result["colunas"]["modificadas"][0]["coluna"] == "Receita"
     assert result["relacionamentos"]["modificados"][0]["relacionamento"] == (

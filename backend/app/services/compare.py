@@ -120,9 +120,17 @@ def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[
         removed_measures = sorted(base_measure_names - new_measure_names)
 
         for measure in added_measures:
-            result["medidas"]["adicionadas"].append({"tabela": name, "medida": measure})
+            result["medidas"]["adicionadas"].append({
+                "tabela": name,
+                "medida": measure,
+                "expressao_dax": safe_text(new_measures[measure].get("expression", "")),
+            })
         for measure in removed_measures:
-            result["medidas"]["removidas"].append({"tabela": name, "medida": measure})
+            result["medidas"]["removidas"].append({
+                "tabela": name,
+                "medida": measure,
+                "expressao_dax": safe_text(base_measures[measure].get("expression", "")),
+            })
 
         modified_measures = []
         for measure in sorted(base_measure_names & new_measure_names):

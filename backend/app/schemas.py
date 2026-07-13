@@ -61,6 +61,7 @@ class CompareMeasureEntry(BaseModel):
 
     tabela: str
     medida: str
+    expressao_dax: str = ""
     antes: str = ""
     depois: str = ""
 

@@ -102,13 +102,63 @@ function compareDetails(item: string | CompareEntry) {
   }));
 }
 
+type ChangeTone = "added" | "removed" | "changed";
+
+function getMeasureDaxExpression(item: CompareEntry) {
+  const candidateKeys = [
+    "expressao_dax",
+    "expressão_dax",
+    "Expressao DAX",
+    "Expressão DAX",
+    "expression",
+    "dax",
+    "after",
+    "new",
+    "current",
+    "before",
+    "old",
+    "previous",
+  ];
+
+  for (const key of candidateKeys) {
+    const value = item[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+
+  return "Expressão DAX não disponível.";
+}
+
+function compareExpansionSections(item: string | CompareEntry, title: string, tone: ChangeTone) {
+  const isMeasureCategory = title.toLowerCase().startsWith("medidas ");
+
+  if (typeof item !== "string" && isMeasureCategory && tone !== "changed") {
+    return [
+      {
+        key: "measure-dax",
+        label: "Medida DAX",
+        value: getMeasureDaxExpression(item),
+        variant: "single-dax",
+      },
+    ];
+  }
+
+  if (typeof item !== "string" && ("antes" in item || "depois" in item)) {
+    return [
+      { key: "before", label: "Antes", value: compareValueToText(item.antes), variant: "dax" },
+      { key: "after", label: "Depois", value: compareValueToText(item.depois), variant: "dax" },
+    ];
+  }
+
+  return compareDetails(item).map((detail) => ({ ...detail, variant: "default" }));
+}
+
 function ChangeList({
   title,
   tone,
   items,
 }: {
   title: string;
-  tone: "added" | "removed" | "changed";
+  tone: ChangeTone;
   items: Array<string | CompareEntry>;
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
@@ -215,8 +265,12 @@ function ChangeList({
             const titleText = typeof item === "string" ? item : entryTitle(item);
             const itemKey = `${title}-${titleText}-${index}`;
             const isExpanded = expandedItems.has(itemKey);
-            const details = compareDetails(item);
-            const hasDaxChange = typeof item !== "string" && ("antes" in item || "depois" in item);
+            const sections = compareExpansionSections(item, title, tone);
+            const detailClassName = sections.some((section) => section.variant === "single-dax")
+              ? "change-detail dax-detail single-dax-detail"
+              : sections.some((section) => section.variant === "dax")
+                ? "change-detail dax-detail"
+                : "change-detail";
 
             return (
               <li className="change-item" key={itemKey}>
@@ -233,26 +287,13 @@ function ChangeList({
                   </button>
                 </div>
                 {isExpanded ? (
-                  <div className={hasDaxChange ? "change-detail dax-detail" : "change-detail"}>
-                    {hasDaxChange ? (
-                      <>
-                        <section>
-                          <span>Antes</span>
-                          <pre>{compareValueToText(typeof item === "string" ? "" : item.antes)}</pre>
-                        </section>
-                        <section>
-                          <span>Depois</span>
-                          <pre>{compareValueToText(typeof item === "string" ? "" : item.depois)}</pre>
-                        </section>
-                      </>
-                    ) : (
-                      details.map((detail) => (
-                        <section key={detail.key}>
-                          <span>{detail.label}</span>
-                          <pre>{detail.value}</pre>
-                        </section>
-                      ))
-                    )}
+                  <div className={detailClassName}>
+                    {sections.map((section) => (
+                      <section key={section.key}>
+                        <span>{section.label}</span>
+                        <pre>{section.value}</pre>
+                      </section>
+                    ))}
                   </div>
                 ) : null}
               </li>

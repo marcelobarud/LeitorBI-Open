@@ -45,19 +45,22 @@ export type CompareTableChange = CompareEntry & {
 export type CompareColumnChange = CompareEntry & {
   tabela: string;
   coluna: string;
-  alterações: string[];
+  alteracoes?: string[];
+  alterações?: string[];
 };
 
 export type CompareMeasureChange = CompareEntry & {
   tabela: string;
   medida: string;
+  expressao_dax?: string;
   antes?: string;
   depois?: string;
 };
 
 export type CompareRelationshipChange = CompareEntry & {
   relacionamento: string;
-  alterações: string[];
+  alteracoes?: string[];
+  alterações?: string[];
 };
 
 export type CompareResult = {
@@ -69,14 +72,14 @@ export type CompareResult = {
     modificadas: CompareTableChange[];
   };
   medidas: {
-    adicionadas: CompareColumnChange[];
-    removidas: CompareColumnChange[];
-    modificadas: CompareColumnChange[];
-  };
-  colunas: {
     adicionadas: CompareMeasureChange[];
     removidas: CompareMeasureChange[];
     modificadas: CompareMeasureChange[];
+  };
+  colunas: {
+    adicionadas: CompareColumnChange[];
+    removidas: CompareColumnChange[];
+    modificadas: CompareColumnChange[];
   };
   relacionamentos: {
     adicionados: string[];
