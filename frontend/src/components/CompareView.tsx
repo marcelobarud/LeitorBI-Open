@@ -1,5 +1,6 @@
-import { GitCompareArrows, Maximize2, Minimize2, Plus, RotateCcw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronDown, GitCompareArrows, Maximize2, Minimize2, Plus, RotateCcw, Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { compareModels } from "../api";
 import { CompareFileInput } from "./CompareFileInput";
 import type { CompareEntry, CompareResult, Row } from "../types";
@@ -8,6 +9,7 @@ function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
   return String(value);
 }
+
 function countCompareChanges(result: CompareResult) {
   return {
     added:
@@ -111,16 +113,54 @@ function ChangeList({
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterPosition, setFilterPosition] = useState<{ left: number; top: number } | null>(null);
+  const filterButtonRef = useRef<HTMLButtonElement>(null);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
+  const [optionQuery, setOptionQuery] = useState("");
+  const [selectedTitles, setSelectedTitles] = useState<string[]>([]);
   const normalizedQuery = query.trim().toLowerCase();
-  const visibleItems = items.filter((item) => {
-    if (!normalizedQuery) return true;
-    const text = typeof item === "string" ? item : Object.values(item).flat().join(" ");
-    return text.toLowerCase().includes(normalizedQuery);
-  });
 
   useEffect(() => {
     setExpandedItems(new Set());
   }, [items]);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!filterButtonRef.current?.contains(event.target as Node) && !filterMenuRef.current?.contains(event.target as Node)) {
+        setFilterOpen(false);
+        filterButtonRef.current?.focus();
+      }
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setFilterOpen(false);
+        filterButtonRef.current?.focus();
+      }
+    }
+    function closeOnViewportChange() {
+      setFilterOpen(false);
+    }
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("resize", closeOnViewportChange);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", closeOnViewportChange);
+    };
+  }, [filterOpen]);
+
+  const options = Array.from(new Set(items.map((item) => typeof item === "string" ? item : entryTitle(item)))).sort();
+  const visibleOptions = options.filter((option) => option.toLowerCase().includes(optionQuery.trim().toLowerCase()));
+  const visibleItems = items.filter((item) => {
+    const titleText = typeof item === "string" ? item : entryTitle(item);
+    if (selectedTitles.length && !selectedTitles.includes(titleText)) return false;
+    if (!normalizedQuery) return true;
+    const text = typeof item === "string" ? item : Object.values(item).flat().join(" ");
+    return text.toLowerCase().includes(normalizedQuery);
+  });
 
   function toggleItem(key: string) {
     setExpandedItems((current) => {
@@ -134,21 +174,39 @@ function ChangeList({
     });
   }
 
+  function toggleFilter(target: HTMLButtonElement) {
+    if (filterOpen) {
+      setFilterOpen(false);
+      setFilterPosition(null);
+      return;
+    }
+    const rect = target.getBoundingClientRect();
+    const margin = 12;
+    const menuWidth = 288;
+    const estimatedMenuHeight = 360;
+    const left = Math.max(margin, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - margin)) + window.scrollX;
+    const top = window.innerHeight - rect.bottom >= estimatedMenuHeight
+      ? rect.bottom + window.scrollY + 8
+      : Math.max(margin, rect.top + window.scrollY - estimatedMenuHeight - 8);
+    setFilterPosition({ left, top });
+    setFilterOpen(true);
+  }
+
   return (
     <article className="change-list">
       <header>
         <span className={`badge ${tone}`}>{items.length}</span>
         <h3>{title}</h3>
       </header>
-      {items.length > 5 ? (
-        <label className="search-box">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar nesta categoria"
-          />
-        </label>
-      ) : null}
+      <div className="table-toolbar compare-category-toolbar">
+        <label className="search-box"><Search size={16} /><input aria-label={`Buscar em ${title}`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nesta categoria" /></label>
+        <button ref={filterButtonRef} className={filterOpen ? "column-filter-button active" : "column-filter-button"} type="button" aria-label={`Filtrar ${title}`} aria-expanded={filterOpen} onClick={(event) => toggleFilter(event.currentTarget)}><ChevronDown size={16} /></button>
+        {filterOpen ? createPortal(<div ref={filterMenuRef} className="column-filter-menu" style={{ ...filterPosition, position: "absolute" }}>
+          <label><span>Buscar nas opções</span><input autoFocus value={optionQuery} onChange={(event) => setOptionQuery(event.target.value)} placeholder={`Buscar ${title}`} /></label>
+          <div className="column-value-panel"><span>Valores únicos</span><div className="column-value-list">{visibleOptions.map((option) => <label className={selectedTitles.includes(option) ? "active" : ""} key={option}><input type="checkbox" checked={selectedTitles.includes(option)} onChange={() => setSelectedTitles((current) => current.includes(option) ? current.filter((value) => value !== option) : [...current, option])} /><span>{option}</span></label>)}</div></div>
+          <div className="column-filter-actions"><button type="button" onClick={() => { setSelectedTitles([]); setOptionQuery(""); }}>Limpar</button><button type="button" onClick={() => setFilterOpen(false)}>Fechar</button></div>
+        </div>, document.body) : null}
+      </div>
       {items.length === 0 ? (
         <p className="empty-change">Sem alterações nesta categoria.</p>
       ) : (
