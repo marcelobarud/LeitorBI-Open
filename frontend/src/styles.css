@@ -5,6 +5,14 @@
   color: #172033;
 }
 
+.locale-toggle { min-width: 38px; padding: 7px; }
+.locale-flag { display: block; width: 20px; height: 14px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 18%); }
+.locale-flag.br { position: relative; background: #009b3a; overflow: hidden; }
+.locale-flag.br::before { content: ""; position: absolute; width: 15px; height: 15px; left: 2.5px; top: -0.5px; background: #ffdf00; transform: rotate(45deg); }
+.locale-flag.br::after { content: ""; position: absolute; width: 7px; height: 7px; left: 6.5px; top: 3.5px; border-radius: 50%; background: #002776; box-shadow: inset 0 -1px 0 rgb(255 255 255 / 80%); }
+.locale-flag.us { background: repeating-linear-gradient(to bottom, #b22234 0 1.5px, #fff 1.5px 3px); position: relative; }
+.locale-flag.us::before { content: ""; position: absolute; width: 9px; height: 8px; background: #3c3b6e; left: 0; top: 0; }
+
 * {
   box-sizing: border-box;
 }

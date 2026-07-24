@@ -42,6 +42,9 @@ import {
   updateUser,
 } from "./api";
 import { LoginPopover } from "./components/LoginPopover";
+import { LocaleToggle } from "./components/LocaleToggle";
+import { translateApiError, useLocale } from "./i18n/LocaleProvider";
+import type { TranslationKey } from "./i18n/types";
 import { CompareFileInput } from "./components/CompareFileInput";
 import { DataTable } from "./components/DataTable";
 import { CompareView } from "./components/CompareView";
@@ -55,26 +58,14 @@ import type { AuthUser, CompareEntry, CompareResult, ManagedUser, Report, Row, T
 
 type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare" | "users">;
 
-const tabs: Array<{ key: TabKey; label: string }> = [
-  { key: "overview", label: "Início" },
-  { key: "tutorial", label: "Tutorial" },
-  { key: "tables", label: "Tabelas" },
-  { key: "columns", label: "Colunas" },
-  { key: "measures", label: "Medidas" },
-  { key: "sources", label: "Fontes" },
-  { key: "relationships", label: "Relações" },
-  { key: "compare", label: "Comparar" },
+const tabs: Array<{ key: TabKey; label: TranslationKey }> = [
+  { key: "overview", label: "nav.home" }, { key: "tutorial", label: "nav.tutorial" }, { key: "tables", label: "nav.tables" }, { key: "columns", label: "nav.columns" }, { key: "measures", label: "nav.measures" }, { key: "sources", label: "nav.sources" }, { key: "relationships", label: "nav.relationships" }, { key: "compare", label: "nav.compare" },
 ];
 
-const adminTabs: Array<{ key: TabKey; label: string }> = [{ key: "users", label: "Usuários" }];
+const adminTabs: Array<{ key: TabKey; label: TranslationKey }> = [{ key: "users", label: "nav.users" }];
 
-const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare" | "users">; label: string }> = [
-  { key: "overview", label: "Resumo" },
-  { key: "tables", label: "Tabelas" },
-  { key: "columns", label: "Colunas" },
-  { key: "measures", label: "Medidas" },
-  { key: "sources", label: "Fontes" },
-  { key: "relationships", label: "Relações" },
+const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare" | "users">; label: TranslationKey }> = [
+  { key: "overview", label: "nav.overview" }, { key: "tables", label: "nav.tables" }, { key: "columns", label: "nav.columns" }, { key: "measures", label: "nav.measures" }, { key: "sources", label: "nav.sources" }, { key: "relationships", label: "nav.relationships" },
 ];
 
 const PAGE_SIZE = 250;
@@ -120,66 +111,54 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function validateJsonFile(file: File): string | null {
+function validateJsonFile(file: File, t: (key: TranslationKey, params?: Record<string, string | number>) => string): string | null {
   const isJsonName = file.name.toLowerCase().endsWith(".json");
   const isJsonType = !file.type || file.type === "application/json";
   if (!isJsonName || !isJsonType) {
-    return "Selecione um arquivo .json exportado pelo LeitorBI ou Tabular Editor.";
+    return t("workspace.invalidFile");
   }
   if (file.size > MAX_JSON_UPLOAD_BYTES) {
-    return `Arquivo muito grande. O limite para envio é ${MAX_JSON_UPLOAD_MB} MB.`;
+    return t("workspace.uploadTooLarge", { count: MAX_JSON_UPLOAD_MB });
   }
   return null;
 }
 
 function TutorialView() {
+  const { t } = useLocale();
   const steps = [
     {
-      label: "PASSO 1",
-      title: "Baixe e instale o Tabular Editor",
+      label: "1",
+      title: t("tutorial.step1"),
       detail: (
         <>
-          Baixe e instale o{" "}
+          {t("tutorial.step1Detail").replace("Tabular Editor", "")}{" "}
           <a href="https://github.com/TabularEditor/TabularEditor/releases/latest" target="_blank" rel="noreferrer">
             <strong>Tabular Editor</strong>
           </a>{" "}
-          antes de iniciar a extração.
         </>
       ),
     },
     {
-      label: "PASSO 2",
-      title: "Abra o Power BI Desktop",
-      detail: "Abra o arquivo .pbix e aguarde o modelo carregar.",
+      label: "2", title: t("tutorial.step2"), detail: t("tutorial.step2Detail"),
     },
     {
-      label: "PASSO 3",
-      title: "Abra o Tabular Editor",
-      detail: "Acesse Ferramentas externas e conecte o Tabular Editor ao modelo.",
+      label: "3", title: t("tutorial.step3"), detail: t("tutorial.step3Instructions"),
     },
     {
-      label: "PASSO 4",
-      title: "Execute o script de exportação",
-      detail: "Execute o script",
+      label: "4", title: t("tutorial.step4"), detail: t("tutorial.step1Title"),
       script: "PBIXExportModel",
-      suffix: "para gerar o JSON de análise.",
+      suffix: t("tutorial.step1Suffix"),
     },
     {
-      label: "PASSO 5",
-      title: "Abra o JSON no LeitorBI",
-      detail: "Clique em Carregar JSON e selecione o arquivo salvo na pasta Downloads.",
+      label: "5", title: t("tutorial.step5"), detail: t("tutorial.step5Detail"),
     },
     {
-      label: "PASSO 6",
-      title: "Análise e exporte",
-      detail: "Use filtros, detalhamentos e Exportar Excel para compartilhar a análise.",
+      label: "6", title: t("tutorial.step6"), detail: t("tutorial.step6Detail"),
     },
   ];
 
   const tips = [
-    "O script destacado é o responsável por extrair o modelo em JSON para leitura no LeitorBI.",
-    "Se o JSON não aparecer, confirme se o Power BI terminou de carregar o modelo antes de executar o script.",
-    "Depois da extração, o fluxo continua pela aba Início com o botão de carregar JSON.",
+    t("tutorial.tip1"), t("tutorial.tip2"), t("tutorial.tip3"),
   ];
 
   return (
@@ -187,19 +166,16 @@ function TutorialView() {
       <header className="page-header">
         <BookOpenCheck size={22} />
         <div>
-          <h2>Tutorial</h2>
-          <p>Como extrair o JSON do Power BI e abrir a análise no LeitorBI.</p>
+          <h2>{t("nav.tutorial")}</h2>
+          <p>{t("tutorial.title")}</p>
         </div>
       </header>
 
       <section className="tutorial-hero">
         <div>
-          <span className="eyebrow">Extração do modelo</span>
-          <h1>Gere o JSON pelo Tabular Editor e continue a análise no LeitorBI.</h1>
-          <p>
-            O passo central é executar o script de exportação usado para transformar o modelo aberto no Power BI em um
-            arquivo JSON.
-          </p>
+          <span className="eyebrow">{t("tutorial.eyebrow")}</span>
+          <h1>{t("tutorial.heading")}</h1>
+          <p>{t("tutorial.intro")}</p>
         </div>
         <ClipboardList size={64} />
       </section>
@@ -228,7 +204,7 @@ function TutorialView() {
       </section>
 
       <section className="tutorial-notes">
-        <h3>Dicas de uso</h3>
+        <h3>{t("tutorial.tips")}</h3>
         <ul>
           {tips.map((tip) => (
             <li key={tip}>{tip}</li>
@@ -250,6 +226,7 @@ function DemoPage({
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (name: string, email: string, password: string) => Promise<void>;
 }) {
+  const { t } = useLocale();
   const [showLogin, setShowLogin] = useState(false);
   const [demoReport, setDemoReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare" | "users">>("overview");
@@ -264,7 +241,7 @@ function DemoPage({
         if (active) setDemoReport(result);
       })
       .catch((err) => {
-        if (active) setDemoError(err instanceof Error ? err.message : "Erro inesperado ao carregar demonstração.");
+        if (active) setDemoError(err instanceof Error ? translateApiError(err.message, t) : t("demo.loadError"));
       })
       .finally(() => {
         if (active) setDemoLoading(false);
@@ -300,26 +277,27 @@ function DemoPage({
               type="button"
               onClick={() => setActiveTab(tab.key)}
             >
-              {tab.label}
+              {t(tab.label)}
             </button>
           ))}
         </nav>
         <div className="compare-teaser">
           <ShieldCheck size={18} />
-          <span>Demonstração pública em modo de leitura, usando apenas dados de exemplo.</span>
+          <span>{t("demo.publicMode")}</span>
         </div>
       </aside>
 
       <section className="content">
         <header className="workspace-topbar demo-topbar">
           <div>
-            <span>Demonstração pública</span>
-            <strong>{demoReport ? demoReport.raw.dashboardName : "Carregando exemplo"}</strong>
+            <span>{t("demo.title")}</span>
+            <strong>{demoReport ? demoReport.raw.dashboardName : t("common.loading")}</strong>
           </div>
           <div className="landing-access">
+            <LocaleToggle />
             <button className="ghost-action" type="button" onClick={() => setShowLogin((current) => !current)}>
               <ShieldCheck size={18} />
-              Fazer login
+              {t("auth.signIn")}
             </button>
             {showLogin ? (
               <LoginPopover loading={loading} error={error} onLogin={onLogin} onRegister={onRegister} />
@@ -329,13 +307,13 @@ function DemoPage({
 
         <div className="demo-lock-note">
           <ShieldCheck size={18} />
-          <span>Prévia somente para leitura. Para carregar JSON, exportar Excel ou comparar modelos, faça login no app.</span>
+          <span>{t("demo.readOnly")}</span>
           <a className="ghost-action" href={ROUTES.landing}>
-            Voltar ao início
+            {t("demo.backHome")}
           </a>
         </div>
 
-        {demoLoading ? <div className="status">Carregando demonstração...</div> : null}
+        {demoLoading ? <div className="status">{t("demo.loading")}</div> : null}
         {demoError ? <div className="error">{demoError}</div> : null}
         {demoReport && activeTab === "overview" ? <Overview report={demoReport} isDemo readOnly /> : null}
         {demoReport && isDataTab ? (
@@ -343,7 +321,7 @@ function DemoPage({
             <header className="page-header">
               <Table2 size={22} />
               <div>
-                <h2>{demoTabs.find((tab) => tab.key === activeTab)?.label}</h2>
+                <h2>{t(demoTabs.find((tab) => tab.key === activeTab)?.label ?? "nav.overview")}</h2>
                 <p>{demoReport.raw.dashboardName}</p>
               </div>
             </header>
@@ -364,44 +342,43 @@ function UploadPanel({
   onLoadDemo: () => void;
   loadingDemo: boolean;
 }) {
+  const { t } = useLocale();
   return (
     <section className="upload-panel">
       <div className="upload-copy">
-        <span className="eyebrow">LeitorBI Web</span>
-        <h1>Transforme exports Power BI em uma leitura clara para auditoria e demo.</h1>
-        <p>
-          Abra tabelas, medidas, fontes, relações e mudanças do modelo em uma interface leve para revisar com o time.
-        </p>
+        <span className="eyebrow">{t("landing.product")}</span>
+        <h1>{t("upload.title")}</h1>
+        <p>{t("demo.description")}</p>
         <div className="hero-actions">
           <button className="primary-action" type="button" onClick={onLoadDemo} disabled={loadingDemo}>
             <PlayCircle size={18} />
-            {loadingDemo ? "Carregando..." : "Carregar exemplo"}
+            {loadingDemo ? t("common.loading") : t("upload.loadExample")}
           </button>
-          <span>Ou envie um JSON real exportado pelo LeitorBI.</span>
+          <span>{t("upload.realJson")}</span>
         </div>
         <div className="hero-proof">
           <div>
             <WandSparkles size={18} />
-            <strong>Resumo executivo</strong>
-            <span>KPIs do modelo prontos para apresentar.</span>
+            <strong>{t("upload.summary")}</strong>
+            <span>{t("upload.summaryDetail")}</span>
           </div>
           <div>
             <GitCompareArrows size={18} />
-            <strong>Comparação visual</strong>
-            <span>Mudanças agrupadas entre dois exports.</span>
+            <strong>{t("upload.comparison")}</strong>
+            <span>{t("upload.comparisonDetail")}</span>
           </div>
           <div>
             <Download size={18} />
-            <strong>Entrega em Excel</strong>
-            <span>Inventário completo para compartilhar.</span>
+            <strong>{t("upload.excel")}</strong>
+            <span>{t("upload.excelDetail")}</span>
           </div>
         </div>
       </div>
 
       <label className="drop-zone">
         <FileJson size={42} />
-        <strong>Selecionar JSON do modelo</strong>
-        <span>O arquivo fica apenas no processamento da API local.</span>
+        <strong>{t("workspace.selectModelJson")}</strong>
+        <span>{t("upload.apiOnly")}</span>
         <input
           type="file"
           accept=".json,application/json"
@@ -416,6 +393,7 @@ function UploadPanel({
 }
 
 export function App() {
+  const { t } = useLocale();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -443,7 +421,7 @@ export function App() {
         if (active) setUser(currentUser);
       })
       .catch((err) => {
-        if (active) setLoginError(err instanceof Error ? err.message : "Erro ao verificar sessão.");
+        if (active) setLoginError(err instanceof Error ? translateApiError(err.message, t) : t("api.session"));
       })
       .finally(() => {
         if (active) setCheckingSession(false);
@@ -504,7 +482,7 @@ export function App() {
       clearWorkspaceState();
       navigateTo(ROUTES.app);
     } catch (err) {
-      setLoginError(err instanceof Error ? err.message : "E-mail ou senha inválidos.");
+      setLoginError(err instanceof Error ? translateApiError(err.message, t) : t("auth.invalidCredentials"));
     } finally {
       setLoginLoading(false);
     }
@@ -544,7 +522,7 @@ export function App() {
   }
 
   async function handleAnalyze(file: File) {
-    const validationError = validateJsonFile(file);
+    const validationError = validateJsonFile(file, t);
     if (validationError) {
       setError(validationError);
       setPendingFileLabel(`${file.name} (${formatFileSize(file.size)})`);
@@ -560,7 +538,7 @@ export function App() {
       setCurrentFile(file);
       setActiveTab("overview");
     } catch (err) {
-      handleAuthenticatedError(err, "Erro inesperado.");
+      handleAuthenticatedError(err, t("api.unknown"));
     } finally {
       setLoading(false);
     }
@@ -581,13 +559,13 @@ export function App() {
     setError("");
     try {
       if (!currentFile) {
-        throw new Error("Carregue um JSON antes de exportar.");
+        throw new Error(t("workspace.noFile"));
       }
       const blob = await exportModelExcel(currentFile);
       const dashboardName = report?.raw.dashboardName || "leitorbi";
       downloadBlob(blob, `${dashboardName}_analise.xlsx`);
     } catch (err) {
-      handleAuthenticatedError(err, "Erro inesperado ao exportar.");
+      handleAuthenticatedError(err, t("api.unknown"));
     } finally {
       setExporting(false);
     }
@@ -625,7 +603,7 @@ export function App() {
     return (
       <main className="login-shell">
         <section className="login-panel compact">
-          <div className="status">Verificando sessão...</div>
+          <div className="status">{t("auth.checkingSession")}</div>
         </section>
       </main>
     );
@@ -654,22 +632,22 @@ export function App() {
               disabled={!report && !["overview", "tutorial", "compare", "users"].includes(tab.key)}
               onClick={() => setActiveTab(tab.key)}
             >
-              {tab.label}
+              {t(tab.label)}
             </button>
           ))}
         </nav>
         <div className="user-panel">
           <div>
-            <span>Logado como</span>
+            <span>{t("auth.signedInAs")}</span>
             <strong>{user.name || user.email}</strong>
           </div>
-          <button type="button" onClick={handleLogout} title="Sair" aria-label="Sair">
+          <button type="button" onClick={handleLogout} title={t("auth.logout")} aria-label={t("auth.logout")}>
             <LogOut size={18} />
           </button>
         </div>
         <div className="compare-teaser">
           <GitCompareArrows size={18} />
-          <span>Compare dois exports JSON lado a lado.</span>
+          <span>{t("workspace.compareHint")}</span>
         </div>
       </aside>
 
@@ -683,13 +661,13 @@ export function App() {
         />
         <header className="workspace-topbar">
           <div>
-            <span>Workspace</span>
-            <strong>{report ? report.raw.dashboardName : pendingFileLabel || "Nenhum modelo carregado"}</strong>
+            <span>{t("workspace.title")}</span>
+            <strong>{report ? report.raw.dashboardName : pendingFileLabel || t("workspace.noModel")}</strong>
           </div>
           {!report ? (
             <button className="secondary-action" type="button" onClick={openFilePicker} disabled={loading}>
               <FileJson size={18} />
-              {loading ? "Analisando..." : "Carregar JSON"}
+              {loading ? t("workspace.analyzing") : t("workspace.uploadJson")}
             </button>
           ) : null}
         </header>
@@ -700,7 +678,7 @@ export function App() {
             selectedFileLabel={pendingFileLabel}
           />
         ) : null}
-        {loading ? <div className="status" role="status">Analisando modelo...</div> : null}
+        {loading ? <div className="status" role="status">{t("workspace.analyzingModel")}</div> : null}
         {error ? <div className="error" role="alert">{error}</div> : null}
         {report && activeTab === "overview" ? (
           <Overview
@@ -715,7 +693,7 @@ export function App() {
         ) : null}
         {activeTab === "tutorial" ? <TutorialView /> : null}
         {activeTab === "compare" ? (
-          <CompareErrorBoundary onReset={handleClearComparison}>
+          <CompareErrorBoundary onReset={handleClearComparison} messages={{ title: t("comparison.renderError"), description: t("comparison.renderErrorDescription"), clear: t("comparison.clear") }}>
             <CompareView
               baseFile={compareBaseFile}
               newFile={compareNewFile}
@@ -737,7 +715,7 @@ export function App() {
             <header className="page-header">
               <Table2 size={22} />
               <div>
-                <h2>{visibleTabs.find((tab) => tab.key === activeTab)?.label}</h2>
+                <h2>{t(visibleTabs.find((tab) => tab.key === activeTab)?.label ?? "nav.overview")}</h2>
                 <p>{report.raw.dashboardName}</p>
               </div>
             </header>

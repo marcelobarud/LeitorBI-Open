@@ -1,4 +1,5 @@
 import { FileJson } from "lucide-react";
+import { useLocale } from "../i18n/LocaleProvider";
 
 type HomeEmptyStateProps = {
   onOpenFilePicker: () => void;
@@ -7,40 +8,37 @@ type HomeEmptyStateProps = {
 };
 
 export function HomeEmptyState({ onOpenFilePicker, disabled, selectedFileLabel }: HomeEmptyStateProps) {
+  const { t } = useLocale();
   return (
     <div className="home-empty-page">
       <header className="page-header">
         <FileJson size={22} />
         <div>
-          <h2>Início</h2>
-          <p>Carregue um arquivo JSON exportado do Power BI para iniciar o levantamento.</p>
+          <h2>{t("nav.home")}</h2>
+          <p>{t("workspace.homeDescription")}</p>
         </div>
       </header>
 
       <section className="empty-workspace">
-        <h1>Nenhum arquivo carregado</h1>
-        <p>
-          Carregue um arquivo JSON exportado do Power BI para iniciar a análise. O LeitorBI irá levantar tabelas
-          utilizadas no modelo, colunas totais, medidas, fontes de dados e relacionamentos, ignorando tabelas técnicas
-          de data automática.
-        </p>
+        <h1>{t("workspace.noFile")}</h1>
+        <p>{t("workspace.noFileDescription")}</p>
 
         <button
           className="empty-drop-hint"
           type="button"
           onClick={onOpenFilePicker}
           disabled={disabled}
-          aria-label="Carregar arquivo JSON exportado do Power BI"
+          aria-label={t("workspace.uploadAria")}
         >
           <FileJson size={34} />
-          <strong>{disabled ? "Analisando arquivo..." : "Selecionar JSON do modelo"}</strong>
-          <span>{selectedFileLabel || "Aceita arquivos .json de até 10 MB."}</span>
+          <strong>{disabled ? t("workspace.analyzingFile") : t("workspace.selectModelJson")}</strong>
+          <span>{selectedFileLabel || t("workspace.fileLimit")}</span>
         </button>
 
         <div className="upload-rules">
-          <span>Formato aceito: `.json` em UTF-8</span>
-          <span>Limite: 10 MB por arquivo</span>
-          <span>Dados reais exigem login e ficam restritos ao processamento da API.</span>
+          <span>{t("workspace.acceptedFormat")}</span>
+          <span>{t("workspace.fileSizeLimit")}</span>
+          <span>{t("workspace.realDataNotice")}</span>
         </div>
       </section>
     </div>

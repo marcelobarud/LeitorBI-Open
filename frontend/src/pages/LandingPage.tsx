@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { LoginPopover } from "../components/LoginPopover";
+import { LocaleToggle } from "../components/LocaleToggle";
+import { useLocale } from "../i18n/LocaleProvider";
 import { ROUTES } from "../routes";
 
 type LandingPageProps = {
@@ -21,6 +23,7 @@ type LandingPageProps = {
 
 export function LandingPage({ loading, error, onLogin, onRegister }: LandingPageProps) {
   const [showLogin, setShowLogin] = useState(false);
+  const { t } = useLocale();
 
   return (
     <main className="landing-page">
@@ -30,13 +33,14 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
           <span>LeitorBI</span>
         </div>
         <div className="landing-access">
+          <LocaleToggle />
           <button
             className="ghost-action"
             type="button"
             onClick={() => setShowLogin((current) => !current)}
           >
             <KeyRound size={18} />
-            Acessar app
+            {t("landing.accessApp")}
           </button>
           {showLogin ? <LoginPopover loading={loading} error={error} onLogin={onLogin} onRegister={onRegister} /> : null}
         </div>
@@ -44,12 +48,9 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
 
       <section className="landing-hero">
         <div className="landing-copy">
-          <span className="eyebrow">LeitorBI Web</span>
-          <h1>Leia modelos Power BI com clareza antes de decidir, auditar ou apresentar.</h1>
-          <p>
-            Uma ferramenta para transformar exports JSON do modelo em inventário visual, filtros de análise,
-            comparação entre versões e entrega em Excel para a equipe.
-          </p>
+          <span className="eyebrow">{t("landing.product")}</span>
+          <h1>{t("landing.hero")}</h1>
+          <p>{t("landing.heroDescription")}</p>
           <div className="hero-actions">
             <button
               className="primary-action"
@@ -57,15 +58,15 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
               onClick={() => setShowLogin(true)}
             >
               <KeyRound size={18} />
-              Entrar agora
+              {t("landing.signInNow")}
             </button>
             <a className="secondary-action" href="#como-usar">
               <BookOpenCheck size={18} />
-              Como usar
+              {t("landing.howItWorks")}
             </a>
             <a className="ghost-action" href={ROUTES.demo}>
               <PlayCircle size={18} />
-              Ver demonstração
+              {t("landing.viewDemo")}
             </a>
           </div>
         </div>
@@ -79,20 +80,20 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
           </div>
           <div>
             <div className="preview-header">
-              <span>Modelo carregado</span>
+              <span>{t("landing.previewModelLoaded")}</span>
               <strong>Comercial Executivo</strong>
             </div>
             <div className="preview-metrics">
               <div>
-                <span>Tabelas</span>
+                <span>{t("nav.tables")}</span>
                 <strong>18</strong>
               </div>
               <div>
-                <span>Medidas</span>
+                <span>{t("nav.measures")}</span>
                 <strong>64</strong>
               </div>
               <div>
-                <span>Fontes</span>
+                <span>{t("nav.sources")}</span>
                 <strong>5</strong>
               </div>
             </div>
@@ -108,29 +109,29 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
         </div>
       </section>
 
-      <section className="landing-insights" aria-label="Destaques">
+      <section className="landing-insights" aria-label={t("landing.highlights")}>
         <article className="insight-card good">
           <ShieldCheck size={22} />
           <div>
-            <span>Auditoria objetiva</span>
-            <strong>Inventario do modelo em minutos</strong>
-            <p>Tabelas, colunas, medidas, fontes e relacionamentos organizados para revisao tecnica.</p>
+            <span>{t("landing.objectiveAudit")}</span>
+            <strong>{t("landing.inventoryMinutes")}</strong>
+            <p>{t("landing.auditDescription")}</p>
           </div>
         </article>
         <article className="insight-card">
           <GitCompareArrows size={22} />
           <div>
-            <span>Comparação visual</span>
-            <strong>Mudancas entre dois exports</strong>
-            <p>Veja itens adicionados, removidos e modificados antes de publicar novas versões.</p>
+            <span>{t("landing.visualComparison")}</span>
+            <strong>{t("landing.changesBetween")}</strong>
+            <p>{t("landing.changesDescription")}</p>
           </div>
         </article>
         <article className="insight-card warn">
           <Download size={22} />
           <div>
-            <span>Entrega compartilhavel</span>
-            <strong>Exportação pronta para Excel</strong>
-            <p>Leve a análise para reuniões, documentação ou revisões com as partes interessadas.</p>
+            <span>{t("landing.sharedDelivery")}</span>
+            <strong>{t("landing.excelReady")}</strong>
+            <p>{t("landing.excelDescription")}</p>
           </div>
         </article>
       </section>
@@ -139,25 +140,25 @@ export function LandingPage({ loading, error, onLogin, onRegister }: LandingPage
         <header className="page-header">
           <ClipboardList size={22} />
           <div>
-            <h2>Como comecar</h2>
-            <p>O fluxo básico para sair do Power BI e chegar à análise navegável.</p>
+            <h2>{t("landing.howToStart")}</h2>
+            <p>{t("landing.workflowDescription")}</p>
           </div>
         </header>
         <div>
           <article>
             <span>1</span>
-            <strong>Exporte o modelo</strong>
-            <p>Abra o PBIX no Power BI, conecte o Tabular Editor e gere o JSON do modelo.</p>
+            <strong>{t("landing.exportModel")}</strong>
+            <p>{t("landing.exportModelDescription")}</p>
           </article>
           <article>
             <span>2</span>
-            <strong>Entre no LeitorBI</strong>
-            <p>Use a área de acesso desta página para abrir o ambiente de análise.</p>
+            <strong>{t("landing.signInLeitorBI")}</strong>
+            <p>{t("landing.signInDescription")}</p>
           </article>
           <article>
             <span>3</span>
-            <strong>Carregue, filtre e compartilhe</strong>
-            <p>Envie o JSON, navegue pelas abas, compare versoes e exporte a leitura em Excel.</p>
+            <strong>{t("landing.uploadFilterShare")}</strong>
+            <p>{t("landing.uploadFilterShareDescription")}</p>
           </article>
         </div>
       </section>

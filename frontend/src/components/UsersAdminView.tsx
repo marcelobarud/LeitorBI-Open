@@ -2,7 +2,9 @@ import { Plus, RotateCcw, ShieldCheck, Trash2, UserPlus, Users } from "lucide-re
 import { type FormEvent, useEffect, useState } from "react";
 import { createUser, deleteUser, listUsers, updateUser } from "../api";
 import type { AuthUser, ManagedUser } from "../types";
+import { translateApiError, useLocale } from "../i18n/LocaleProvider";
 export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
+  const { t } = useLocale();
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -20,7 +22,7 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     try {
       setUsers(await listUsers());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao carregar usuários.");
+      setError(err instanceof Error ? translateApiError(err.message, t) : t("admin.loadError"));
     } finally {
       setLoading(false);
     }
@@ -42,9 +44,9 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
       setEmail("");
       setPassword("");
       setIsAdmin(false);
-      setSuccess("Usuário criado com sucesso.");
+      setSuccess(t("admin.created"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao criar usuário.");
+      setError(err instanceof Error ? translateApiError(err.message, t) : t("admin.createError"));
     } finally {
       setSaving(false);
     }
@@ -56,19 +58,19 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     try {
       const updated = await updateUser(userId, changes);
       setUsers((current) => current.map((user) => (user.id === updated.id ? updated : user)));
-      setSuccess("Usuário atualizado com sucesso.");
+      setSuccess(t("admin.updated"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao atualizar usuário.");
+      setError(err instanceof Error ? translateApiError(err.message, t) : t("admin.updateError"));
     }
   }
 
   async function handleDeleteUser(managedUser: ManagedUser) {
     if (managedUser.email === currentUser.email) {
-      setError("Você não pode remover seu próprio usuário.");
+      setError(t("admin.cannotRemoveSelf"));
       return;
     }
 
-    const confirmed = window.confirm(`Remover o usuário ${managedUser.email}? Esta ação não pode ser desfeita.`);
+    const confirmed = window.confirm(t("admin.deleteConfirmation", { email: managedUser.email }));
     if (!confirmed) return;
 
     setDeletingUserId(managedUser.id);
@@ -77,9 +79,9 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
     try {
       await deleteUser(managedUser.id);
       setUsers((current) => current.filter((user) => user.id !== managedUser.id));
-      setSuccess("Usuário removido com sucesso.");
+      setSuccess(t("admin.removed"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro inesperado ao remover usuário.");
+      setError(err instanceof Error ? translateApiError(err.message, t) : t("admin.deleteError"));
     } finally {
       setDeletingUserId(null);
     }
@@ -90,29 +92,29 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
       <header className="page-header">
         <Users size={22} />
         <div>
-          <h2>Usuários</h2>
-          <p>Gerencie quem pode acessar a área autenticada do LeitorBI.</p>
+          <h2>{t("admin.title")}</h2>
+          <p>{t("admin.description")}</p>
         </div>
       </header>
 
       <section className="users-create-panel">
         <div>
-          <h3>Novo usuário</h3>
-          <p>Crie acessos individuais. A senha inicial deve ser compartilhada por um canal seguro.</p>
+          <h3>{t("admin.newUser")}</h3>
+          <p>{t("admin.newUserDescription")}</p>
         </div>
         <form className="users-create-form" onSubmit={handleCreateUser}>
           <label>
-            <span>Nome</span>
+            <span>{t("common.name")}</span>
             <input
               type="text"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Nome do usuário"
+              placeholder={t("admin.namePlaceholder")}
               required
             />
           </label>
           <label>
-            <span>E-mail</span>
+            <span>{t("common.email")}</span>
             <input
               type="email"
               value={email}
@@ -122,7 +124,7 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
             />
           </label>
           <label>
-            <span>Senha inicial</span>
+            <span>{t("admin.initialPassword")}</span>
             <input
               type="password"
               value={password}
@@ -133,11 +135,11 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
           </label>
           <label className="checkbox-label">
             <input type="checkbox" checked={isAdmin} onChange={(event) => setIsAdmin(event.target.checked)} />
-            <span>Administrador</span>
+            <span>{t("admin.administrator")}</span>
           </label>
           <button className="primary-action" type="submit" disabled={saving}>
             <UserPlus size={18} />
-            {saving ? "Criando..." : "Criar usuário"}
+            {saving ? t("admin.creating") : t("admin.createUser")}
           </button>
         </form>
       </section>
@@ -149,19 +151,19 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
         <div className="table-toolbar">
           <div>
             <strong>{users.length}</strong>
-            <span> usuários</span>
+            <span>{t("admin.users", { count: users.length }).replace(String(users.length), "")}</span>
           </div>
           <button className="clear-filters-button" type="button" onClick={loadUsers} disabled={loading}>
             <RotateCcw size={15} />
-            Atualizar
+            {t("common.refresh")}
           </button>
         </div>
 
-        {loading ? <div className="status">Carregando usuários...</div> : null}
+        {loading ? <div className="status">{t("admin.loadingUsers")}</div> : null}
         {!loading && !users.length ? (
           <div className="empty-data">
-            <strong>Nenhum usuário encontrado.</strong>
-            <span>Crie o primeiro usuário para liberar acesso ao app.</span>
+            <strong>{t("admin.noUsers")}</strong>
+            <span>{t("admin.noUsersDescription")}</span>
           </div>
         ) : null}
         {!loading && users.length ? (
@@ -174,9 +176,9 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
                     <strong>{managedUser.name || managedUser.email}</strong>
                     {managedUser.name ? <small>{managedUser.email}</small> : null}
                     <span>
-                      {managedUser.is_admin ? "Administrador" : "Usuário"} ·{" "}
-                      {managedUser.disabled ? "Desativado" : "Ativo"}
-                      {isSelf ? " · Você" : ""}
+                      {managedUser.is_admin ? t("admin.administrator") : t("admin.user")} ·{" "}
+                      {managedUser.disabled ? t("admin.disabled") : t("admin.active")}
+                      {isSelf ? ` · ${t("admin.you")}` : ""}
                     </span>
                   </div>
                   <div className="user-row-actions">
@@ -186,7 +188,7 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
                       disabled={isSelf}
                       onClick={() => handleUpdateUser(managedUser.id, { is_admin: !managedUser.is_admin })}
                     >
-                      {managedUser.is_admin ? "Remover admin" : "Tornar admin"}
+                      {managedUser.is_admin ? t("admin.removeAdmin") : t("admin.makeAdmin")}
                     </button>
                     <button
                       className="ghost-action"
@@ -194,18 +196,18 @@ export function UsersAdminView({ currentUser }: { currentUser: AuthUser }) {
                       disabled={isSelf}
                       onClick={() => handleUpdateUser(managedUser.id, { disabled: !managedUser.disabled })}
                     >
-                      {managedUser.disabled ? "Reativar" : "Desativar"}
+                      {managedUser.disabled ? t("admin.reactivate") : t("admin.disable")}
                     </button>
                     <button
                       className="danger-action"
                       type="button"
-                      title={isSelf ? "Você não pode remover seu próprio usuário" : "Remover usuário"}
-                      aria-label={`Remover ${managedUser.email}`}
+                      title={isSelf ? t("admin.cannotRemoveSelf") : t("admin.removeUser")}
+                      aria-label={`${t("admin.remove")} ${managedUser.email}`}
                       disabled={isSelf || deletingUserId === managedUser.id}
                       onClick={() => handleDeleteUser(managedUser)}
                     >
                       <Trash2 size={16} />
-                      {deletingUserId === managedUser.id ? "Removendo..." : "Remover"}
+                      {deletingUserId === managedUser.id ? t("admin.removing") : t("admin.remove")}
                     </button>
                   </div>
                 </article>

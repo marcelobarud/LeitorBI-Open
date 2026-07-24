@@ -1,5 +1,7 @@
 import { AlertTriangle, Database, Download, FileJson, ShieldCheck, X } from "lucide-react";
 import type { Report, Row } from "../types";
+import { LocaleToggle } from "./LocaleToggle";
+import { useLocale } from "../i18n/LocaleProvider";
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -11,9 +13,6 @@ function numberValue(value: Row[string]) {
   return Number.isFinite(number) ? number : 0;
 }
 
-function pluralize(count: number, singular: string, plural: string) {
-  return count === 1 ? `${count} ${singular}` : `${count} ${plural}`;
-}
 export function Overview({
   report,
   onAnalyze,
@@ -33,6 +32,7 @@ export function Overview({
   isDemo: boolean;
   readOnly?: boolean;
 }) {
+  const { t, locale } = useLocale();
   const summary = report.summary;
   const tables = numberValue(summary["Tabelas totais"]);
   const totalColumns = numberValue(summary["Colunas totais"]);
@@ -44,36 +44,32 @@ export function Overview({
   const hiddenColumns = report.columns.filter((row) => formatValue(row["Oculto"]) === "Sim").length;
   const calculatedTables = report.tables.filter((row) => formatValue(row["Tipo"]).toLowerCase().includes("calculada")).length;
   const cards: Array<[string, Row[string], Row[string]]> = [
-    ["Tabelas", tables, "Modelo visivel"],
-    ["Colunas", totalColumns, `${usedColumns} visíveis`],
-    ["Medidas", measures, "Cálculos DAX"],
-    ["Fontes", sources, summary["Tipos de fontes"]],
-    ["Relações", relationships, "Mapa sem tabelas técnicas"],
+    [t("nav.tables"), tables, t("overview.visibleModel")],
+    [t("nav.columns"), totalColumns, t("overview.visibleColumns", { count: usedColumns })],
+    [t("nav.measures"), measures, t("overview.daxCalculations")],
+    [t("nav.sources"), sources, summary["Tipos de fontes"]],
+    [t("nav.relationships"), relationships, t("overview.relationshipMap")],
   ];
   const insightCards = [
     {
       icon: ShieldCheck,
-      title: "Pronto para leitura",
-      value: `${tables} tabelas e ${measures} medidas`,
-      detail: "Inventário centralizado para revisar estrutura, fonte e DAX.",
+      title: t("overview.ready"),
+      value: t("overview.readyValue", { tables, measures }),
+      detail: t("overview.readyDescription"),
       tone: "good",
     },
     {
       icon: AlertTriangle,
-      title: "Pontos de atenção",
-      value: pluralize(inactiveRelationships, "relação inativa", "relações inativas"),
-      detail: `${pluralize(hiddenColumns, "coluna oculta", "colunas ocultas")} e ${pluralize(
-        calculatedTables,
-        "tabela calculada detectada",
-        "tabelas calculadas detectadas",
-      )}.`,
+      title: t("overview.attention"),
+      value: t("overview.inactiveRelationship", { count: inactiveRelationships }),
+      detail: `${t("overview.hiddenColumn", { count: hiddenColumns })} ${locale === "pt-BR" ? "e" : "and"} ${t("overview.calculatedTable", { count: calculatedTables })}.`,
       tone: inactiveRelationships ? "warn" : "good",
     },
     {
       icon: Database,
-      title: "Origem dos dados",
+      title: t("overview.dataOrigin"),
       value: formatValue(summary["Tipos de fontes"]),
-      detail: "Tipos de conexão detectados pelas expressões M das partições.",
+      detail: t("overview.dataOriginDescription"),
       tone: "info",
     },
   ];
@@ -82,7 +78,7 @@ export function Overview({
     <div className="overview">
       <section className="model-hero">
         <div>
-          <span className="eyebrow">{isDemo ? "Modelo de exemplo" : "Modelo carregado"}</span>
+          <span className="eyebrow">{isDemo ? t("workspace.exampleModel") : t("workspace.modelLoaded")}</span>
           <h1>{formatValue(summary["Dashboard"])}</h1>
           <p>
             {formatValue(summary["Modelo"])} | {formatValue(summary["Modo padrao"])} | {formatValue(summary["Data de exportacao"])}
@@ -91,7 +87,7 @@ export function Overview({
         {!readOnly ? <div className="model-actions">
           <label className="secondary-action file-action">
             <FileJson size={18} />
-            {loading ? "Analisando..." : "Trocar JSON"}
+            {loading ? t("workspace.analyzing") : t("workspace.replaceJson")}
             <input
               type="file"
               accept=".json,application/json"
@@ -105,11 +101,12 @@ export function Overview({
           </label>
           <button className="secondary-action" type="button" onClick={onExport} disabled={exporting}>
             <Download size={18} />
-            {exporting ? "Exportando..." : "Exportar Excel"}
+            {exporting ? t("workspace.exporting") : t("workspace.exportExcel")}
           </button>
+          <LocaleToggle />
           <button className="ghost-action" type="button" onClick={onClose}>
             <X size={18} />
-            Fechar análise
+            {t("workspace.closeAnalysis")}
           </button>
         </div> : null}
       </section>

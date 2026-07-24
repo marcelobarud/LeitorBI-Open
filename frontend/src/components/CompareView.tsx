@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { compareModels } from "../api";
 import { CompareFileInput } from "./CompareFileInput";
 import type { CompareEntry, CompareResult, Row } from "../types";
+import { useLocale } from "../i18n/LocaleProvider";
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -104,7 +105,7 @@ function compareDetails(item: string | CompareEntry) {
 
 type ChangeTone = "added" | "removed" | "changed";
 
-function getMeasureDaxExpression(item: CompareEntry) {
+function getMeasureDaxExpression(item: CompareEntry, fallback: string) {
   const candidateKeys = [
     "expressao_dax",
     "expressão_dax",
@@ -125,18 +126,18 @@ function getMeasureDaxExpression(item: CompareEntry) {
     if (typeof value === "string" && value.trim()) return value;
   }
 
-  return "Expressão DAX não disponível.";
+  return fallback;
 }
 
-function compareExpansionSections(item: string | CompareEntry, title: string, tone: ChangeTone) {
-  const isMeasureCategory = title.toLowerCase().startsWith("medidas ");
+function compareExpansionSections(item: string | CompareEntry, title: string, tone: ChangeTone, labels: { dax: string; before: string; after: string; unavailable: string }) {
+  const isMeasureCategory = /^(medidas|added measures|removed measures|changed measures)/i.test(title);
 
   if (typeof item !== "string" && isMeasureCategory && tone !== "changed") {
     return [
       {
         key: "measure-dax",
-        label: "Medida DAX",
-        value: getMeasureDaxExpression(item),
+        label: labels.dax,
+        value: getMeasureDaxExpression(item, labels.unavailable),
         variant: "single-dax",
       },
     ];
@@ -144,8 +145,8 @@ function compareExpansionSections(item: string | CompareEntry, title: string, to
 
   if (typeof item !== "string" && ("antes" in item || "depois" in item)) {
     return [
-      { key: "before", label: "Antes", value: compareValueToText(item.antes), variant: "dax" },
-      { key: "after", label: "Depois", value: compareValueToText(item.depois), variant: "dax" },
+      { key: "before", label: labels.before, value: compareValueToText(item.antes), variant: "dax" },
+      { key: "after", label: labels.after, value: compareValueToText(item.depois), variant: "dax" },
     ];
   }
 
@@ -161,6 +162,7 @@ function ChangeList({
   tone: ChangeTone;
   items: Array<string | CompareEntry>;
 }) {
+  const { t } = useLocale();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(() => new Set());
   const [query, setQuery] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
@@ -249,23 +251,23 @@ function ChangeList({
         <h3>{title}</h3>
       </header>
       <div className="table-toolbar compare-category-toolbar">
-        <label className="search-box"><Search size={16} /><input aria-label={`Buscar em ${title}`} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar nesta categoria" /></label>
-        <button ref={filterButtonRef} className={filterOpen ? "column-filter-button active" : "column-filter-button"} type="button" aria-label={`Filtrar ${title}`} aria-expanded={filterOpen} onClick={(event) => toggleFilter(event.currentTarget)}><ChevronDown size={16} /></button>
+        <label className="search-box"><Search size={16} /><input aria-label={t("comparison.searchCategory")} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("comparison.searchCategory")} /></label>
+        <button ref={filterButtonRef} className={filterOpen ? "column-filter-button active" : "column-filter-button"} type="button" aria-label={t("comparison.filterCategory", { category: title })} aria-expanded={filterOpen} onClick={(event) => toggleFilter(event.currentTarget)}><ChevronDown size={16} /></button>
         {filterOpen ? createPortal(<div ref={filterMenuRef} className="column-filter-menu" style={{ ...filterPosition, position: "absolute" }}>
-          <label><span>Buscar nas opções</span><input autoFocus value={optionQuery} onChange={(event) => setOptionQuery(event.target.value)} placeholder={`Buscar ${title}`} /></label>
-          <div className="column-value-panel"><span>Valores únicos</span><div className="column-value-list">{visibleOptions.map((option) => <label className={selectedTitles.includes(option) ? "active" : ""} key={option}><input type="checkbox" checked={selectedTitles.includes(option)} onChange={() => setSelectedTitles((current) => current.includes(option) ? current.filter((value) => value !== option) : [...current, option])} /><span>{option}</span></label>)}</div></div>
-          <div className="column-filter-actions"><button type="button" onClick={() => { setSelectedTitles([]); setOptionQuery(""); }}>Limpar</button><button type="button" onClick={() => setFilterOpen(false)}>Fechar</button></div>
+          <label><span>{t("table.searchOptions")}</span><input autoFocus value={optionQuery} onChange={(event) => setOptionQuery(event.target.value)} placeholder={t("table.searchColumn", { column: title })} /></label>
+          <div className="column-value-panel"><span>{t("table.uniqueValues")}</span><div className="column-value-list">{visibleOptions.map((option) => <label className={selectedTitles.includes(option) ? "active" : ""} key={option}><input type="checkbox" checked={selectedTitles.includes(option)} onChange={() => setSelectedTitles((current) => current.includes(option) ? current.filter((value) => value !== option) : [...current, option])} /><span>{option}</span></label>)}</div></div>
+          <div className="column-filter-actions"><button type="button" onClick={() => { setSelectedTitles([]); setOptionQuery(""); }}>{t("common.clear")}</button><button type="button" onClick={() => setFilterOpen(false)}>{t("common.close")}</button></div>
         </div>, document.body) : null}
       </div>
       {items.length === 0 ? (
-        <p className="empty-change">Sem alterações nesta categoria.</p>
+        <p className="empty-change">{t("comparison.noChanges")}</p>
       ) : (
         <ul>
           {visibleItems.slice(0, 80).map((item, index) => {
             const titleText = typeof item === "string" ? item : entryTitle(item);
             const itemKey = `${title}-${titleText}-${index}`;
             const isExpanded = expandedItems.has(itemKey);
-            const sections = compareExpansionSections(item, title, tone);
+            const sections = compareExpansionSections(item, title, tone, { dax: t("comparison.daxMeasure"), before: t("comparison.before"), after: t("comparison.after"), unavailable: t("comparison.daxUnavailable") });
             const detailClassName = sections.some((section) => section.variant === "single-dax")
               ? "change-detail dax-detail single-dax-detail"
               : sections.some((section) => section.variant === "dax")
@@ -279,8 +281,8 @@ function ChangeList({
                   <button
                     className="icon-action"
                     type="button"
-                    title={isExpanded ? "Recolher detalhe" : "Expandir detalhe"}
-                    aria-label={isExpanded ? "Recolher detalhe" : "Expandir detalhe"}
+                    title={t(isExpanded ? "comparison.collapseDetails" : "comparison.expandDetails")}
+                    aria-label={t(isExpanded ? "comparison.collapseDetails" : "comparison.expandDetails")}
                     onClick={() => toggleItem(itemKey)}
                   >
                     {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
@@ -301,8 +303,8 @@ function ChangeList({
           })}
         </ul>
       )}
-      {normalizedQuery && visibleItems.length === 0 ? <p className="empty-change">Nenhuma alteração encontrada.</p> : null}
-      {visibleItems.length > 80 ? <p className="hint">Mostrando os primeiros 80 itens.</p> : null}
+      {normalizedQuery && visibleItems.length === 0 ? <p className="empty-change">{t("comparison.noChangesFound")}</p> : null}
+      {visibleItems.length > 80 ? <p className="hint">{t("comparison.firstItems", { count: 80 })}</p> : null}
     </article>
   );
 }
@@ -332,6 +334,7 @@ export function CompareView({
   onErrorChange: (error: string) => void;
   onClear: () => void;
 }) {
+  const { t } = useLocale();
   const hasComparisonState = Boolean(baseFile || newFile || result || error);
   const normalizedResult = normalizeCompareResult(result);
 
@@ -349,7 +352,7 @@ export function CompareView({
 
   async function handleCompare() {
     if (!baseFile || !newFile) {
-      onErrorChange("Selecione os dois JSONs para comparar.");
+      onErrorChange(t("comparison.selectBoth"));
       return;
     }
 
@@ -359,7 +362,7 @@ export function CompareView({
       const comparison = await compareModels(baseFile, newFile);
       onResultChange(normalizeCompareResult(comparison));
     } catch (err) {
-      onErrorChange(err instanceof Error ? err.message : "Erro inesperado ao comparar.");
+      onErrorChange(err instanceof Error ? err.message : t("comparison.unexpectedError"));
     } finally {
       onLoadingChange(false);
     }
@@ -372,25 +375,25 @@ export function CompareView({
       <header className="page-header">
         <GitCompareArrows size={22} />
         <div>
-          <h2>Comparar modelos</h2>
-          <p>Escolha dois exports JSON para descobrir o que mudou entre versões.</p>
+          <h2>{t("comparison.title")}</h2>
+          <p>{t("comparison.description")}</p>
         </div>
       </header>
 
       <section className="compare-picker">
-        <CompareFileInput label="Modelo base" file={baseFile} onChange={handleBaseFileChange} />
+        <CompareFileInput label={t("comparison.baseModel")} file={baseFile} onChange={handleBaseFileChange} />
         <div className="compare-plus">
           <Plus size={20} />
         </div>
-        <CompareFileInput label="Modelo novo" file={newFile} onChange={handleNewFileChange} />
+        <CompareFileInput label={t("comparison.newModel")} file={newFile} onChange={handleNewFileChange} />
         <div className="compare-actions">
           <button className="primary-action" disabled={loading || !baseFile || !newFile} onClick={handleCompare}>
-            {loading ? "Comparando..." : "Comparar modelos"}
+            {loading ? t("comparison.comparing") : t("comparison.title")}
           </button>
           {hasComparisonState ? (
             <button className="ghost-action" type="button" onClick={onClear} disabled={loading}>
               <RotateCcw size={18} />
-              Desfazer comparação
+              {t("comparison.undo")}
             </button>
           ) : null}
         </div>
@@ -402,47 +405,47 @@ export function CompareView({
         <>
           <section className="compare-hero">
             <div>
-              <span className="eyebrow">Resultado da comparação</span>
-              <h1>{normalizedResult.dashboard_base} para {normalizedResult.dashboard_novo}</h1>
+              <span className="eyebrow">{t("comparison.result")}</span>
+              <h1>{t("comparison.fromTo", { base: normalizedResult.dashboard_base, next: normalizedResult.dashboard_novo })}</h1>
             </div>
             <div className="compare-stats">
               <div>
-                <span>Adicionados</span>
+                <span>{t("comparison.added")}</span>
                 <strong>{totals.added}</strong>
               </div>
               <div>
-                <span>Removidos</span>
+                <span>{t("comparison.removed")}</span>
                 <strong>{totals.removed}</strong>
               </div>
               <div>
-                <span>Alterados</span>
+                <span>{t("comparison.changed")}</span>
                 <strong>{totals.changed}</strong>
               </div>
             </div>
           </section>
 
           <section className="change-grid">
-            <ChangeList title="Tabelas adicionadas" tone="added" items={normalizedResult.tabelas.adicionadas} />
-            <ChangeList title="Tabelas removidas" tone="removed" items={normalizedResult.tabelas.removidas} />
-            <ChangeList title="Tabelas modificadas" tone="changed" items={normalizedResult.tabelas.modificadas} />
-            <ChangeList title="Colunas adicionadas" tone="added" items={normalizedResult.colunas.adicionadas} />
-            <ChangeList title="Colunas removidas" tone="removed" items={normalizedResult.colunas.removidas} />
-            <ChangeList title="Colunas modificadas" tone="changed" items={normalizedResult.colunas.modificadas} />
-            <ChangeList title="Medidas adicionadas" tone="added" items={normalizedResult.medidas.adicionadas} />
-            <ChangeList title="Medidas removidas" tone="removed" items={normalizedResult.medidas.removidas} />
-            <ChangeList title="Medidas modificadas" tone="changed" items={normalizedResult.medidas.modificadas} />
+            <ChangeList title={t("comparison.tablesAdded")} tone="added" items={normalizedResult.tabelas.adicionadas} />
+            <ChangeList title={t("comparison.tablesRemoved")} tone="removed" items={normalizedResult.tabelas.removidas} />
+            <ChangeList title={t("comparison.tablesChanged")} tone="changed" items={normalizedResult.tabelas.modificadas} />
+            <ChangeList title={t("comparison.columnsAdded")} tone="added" items={normalizedResult.colunas.adicionadas} />
+            <ChangeList title={t("comparison.columnsRemoved")} tone="removed" items={normalizedResult.colunas.removidas} />
+            <ChangeList title={t("comparison.columnsChanged")} tone="changed" items={normalizedResult.colunas.modificadas} />
+            <ChangeList title={t("comparison.measuresAdded")} tone="added" items={normalizedResult.medidas.adicionadas} />
+            <ChangeList title={t("comparison.measuresRemoved")} tone="removed" items={normalizedResult.medidas.removidas} />
+            <ChangeList title={t("comparison.measuresChanged")} tone="changed" items={normalizedResult.medidas.modificadas} />
             <ChangeList
-              title="Relacionamentos adicionados"
+              title={t("comparison.relationshipsAdded")}
               tone="added"
               items={normalizedResult.relacionamentos.adicionados}
             />
             <ChangeList
-              title="Relacionamentos removidos"
+              title={t("comparison.relationshipsRemoved")}
               tone="removed"
               items={normalizedResult.relacionamentos.removidos}
             />
             <ChangeList
-              title="Relacionamentos modificados"
+              title={t("comparison.relationshipsChanged")}
               tone="changed"
               items={normalizedResult.relacionamentos.modificados}
             />

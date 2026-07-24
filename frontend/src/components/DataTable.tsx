@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Filter, Maximize2, Minimize2, Search, X } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import type { Row } from "../types";
+import { useLocale } from "../i18n/LocaleProvider";
 
 const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
@@ -29,6 +30,7 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
 }
 
 export function DataTable({ rows }: { rows: Row[] }) {
+  const { t } = useLocale();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, TABLE_SEARCH_DEBOUNCE_MS);
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
@@ -160,8 +162,8 @@ export function DataTable({ rows }: { rows: Row[] }) {
   if (!rows.length) {
     return (
       <section className="data-shell empty-data">
-        <strong>Sem dados para exibir.</strong>
-        <span>Carregue um export com informações nessa categoria ou revise os filtros aplicados.</span>
+        <strong>{t("table.empty")}</strong>
+        <span>{t("table.emptyDescription")}</span>
       </section>
     );
   }
@@ -171,21 +173,21 @@ export function DataTable({ rows }: { rows: Row[] }) {
       <div className="table-toolbar">
         <div>
           <strong>{visibleRows.length}</strong>
-          <span> registros</span>
+          <span>{t("table.records", { count: visibleRows.length }).replace(String(visibleRows.length), "")}</span>
           {visibleRows.length > PAGE_SIZE ? (
             <small>
-              Exibindo {startIndex + 1}-{endIndex}
+              {t("table.showingRange", { start: startIndex + 1, end: endIndex })}
             </small>
           ) : null}
         </div>
         <label className="search-box">
           <Search size={16} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar em tudo" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("table.searchAll")} />
         </label>
         {activeColumnFilterCount ? (
           <button className="clear-filters-button" type="button" onClick={clearAllColumnFilters}>
             <X size={15} />
-            Limpar filtros ({activeColumnFilterCount})
+            {t("table.clearFilters", { count: activeColumnFilterCount })}
           </button>
         ) : null}
       </div>
@@ -194,7 +196,7 @@ export function DataTable({ rows }: { rows: Row[] }) {
         <table>
           <thead>
             <tr>
-              {hasExpandableRows ? <th className="row-action-header">Detalhes</th> : null}
+              {hasExpandableRows ? <th className="row-action-header">{t("common.details")}</th> : null}
               {columns.map((column) => {
                 const selectedFilterValues = columnFilters[column] ?? [];
                 const optionSearchValue = columnOptionSearches[column] ?? "";
@@ -212,8 +214,8 @@ export function DataTable({ rows }: { rows: Row[] }) {
                       <button
                         className={hasFilter ? "column-filter-button active" : "column-filter-button"}
                         type="button"
-                        title={`Filtrar coluna ${column}`}
-                        aria-label={`Filtrar coluna ${column}`}
+                        title={t("table.filterColumn", { column })}
+                        aria-label={t("table.filterColumn", { column })}
                         onClick={(event) => toggleColumnFilterMenu(column, event.currentTarget)}
                       >
                         <Filter size={14} />
@@ -228,21 +230,21 @@ export function DataTable({ rows }: { rows: Row[] }) {
                           }
                         >
                           <label>
-                            <span>Buscar nas opções</span>
+                            <span>{t("table.searchOptions")}</span>
                             <input
                               autoFocus
                               value={optionSearchValue}
                               onChange={(event) => updateColumnOptionSearch(column, event.target.value)}
-                              placeholder={`Buscar ${column}`}
+                              placeholder={t("table.searchColumn", { column })}
                             />
                           </label>
                           {hasFilter ? (
                             <p className="column-filter-current">
-                              {selectedFilterValues.length} valor(es) selecionado(s)
+                              {t("table.selectedValues", { count: selectedFilterValues.length })}
                             </p>
                           ) : null}
                           <div className="column-value-panel">
-                            <span>Valores únicos</span>
+                            <span>{t("table.uniqueValues")}</span>
                             <div className="column-value-list">
                               {visibleUniqueValues.length ? (
                                 visibleUniqueValues.map((value) => (
@@ -260,16 +262,16 @@ export function DataTable({ rows }: { rows: Row[] }) {
                                   </label>
                                 ))
                               ) : (
-                                <p>Nenhum valor encontrado.</p>
+                                <p>{t("common.noValues")}</p>
                               )}
                             </div>
                             {uniqueValues.length > UNIQUE_FILTER_LIMIT ? (
-                              <small>Mostrando {UNIQUE_FILTER_LIMIT} de {uniqueValues.length} valores.</small>
+                              <small>{t("table.showingValues", { shown: UNIQUE_FILTER_LIMIT, total: uniqueValues.length })}</small>
                             ) : null}
                           </div>
                           <div className="column-filter-actions">
                             <button type="button" onClick={() => clearColumnFilter(column)} disabled={!hasFilter}>
-                              Limpar
+                              {t("common.clear")}
                             </button>
                             <button
                               type="button"
@@ -278,7 +280,7 @@ export function DataTable({ rows }: { rows: Row[] }) {
                                 setFilterMenuPosition(null);
                               }}
                             >
-                              Fechar
+                              {t("common.close")}
                             </button>
                           </div>
                         </div>
@@ -303,8 +305,8 @@ export function DataTable({ rows }: { rows: Row[] }) {
                           <button
                             className="icon-action"
                             type="button"
-                            title={isExpanded ? "Recolher linha" : "Expandir linha"}
-                            aria-label={isExpanded ? "Recolher linha" : "Expandir linha"}
+                            title={t(isExpanded ? "table.collapseRow" : "table.expandRow")}
+                            aria-label={t(isExpanded ? "table.collapseRow" : "table.expandRow")}
                             onClick={() => toggleRow(rowIndex)}
                           >
                             {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
@@ -339,7 +341,7 @@ export function DataTable({ rows }: { rows: Row[] }) {
       {visibleRows.length > PAGE_SIZE ? (
         <div className="pagination-bar">
           <span>
-            Página {currentPage} de {totalPages}
+            {t("table.pageOf", { current: currentPage, total: totalPages })}
           </span>
           <div>
             <button
@@ -349,7 +351,7 @@ export function DataTable({ rows }: { rows: Row[] }) {
               onClick={() => setPage((current) => Math.max(1, current - 1))}
             >
               <ChevronLeft size={16} />
-              Anterior
+              {t("common.previous")}
             </button>
             <button
               type="button"
@@ -357,7 +359,7 @@ export function DataTable({ rows }: { rows: Row[] }) {
               disabled={currentPage === totalPages}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             >
-              Próxima
+              {t("common.next")}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -366,4 +368,3 @@ export function DataTable({ rows }: { rows: Row[] }) {
     </section>
   );
 }
-

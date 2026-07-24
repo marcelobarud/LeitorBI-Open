@@ -1,4 +1,5 @@
 import { FileJson } from "lucide-react";
+import { useLocale } from "../i18n/LocaleProvider";
 
 type CompareFileInputProps = {
   label: string;
@@ -7,11 +8,12 @@ type CompareFileInputProps = {
 };
 
 export function CompareFileInput({ label, file, onChange }: CompareFileInputProps) {
+  const { t } = useLocale();
   return (
     <label className="compare-file">
       <FileJson size={28} />
       <span>{label}</span>
-      <strong>{file ? file.name : "Selecionar JSON"}</strong>
+      <strong>{file ? file.name : t("comparison.selectJson")}</strong>
       <input
         type="file"
         accept=".json,application/json"

@@ -3,6 +3,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 type CompareErrorBoundaryProps = {
   children: ReactNode;
   onReset: () => void;
+  messages: { title: string; description: string; clear: string };
 };
 
 type CompareErrorBoundaryState = {
@@ -32,10 +33,10 @@ export class CompareErrorBoundary extends Component<CompareErrorBoundaryProps, C
     if (this.state.hasError) {
       return (
         <div className="error compare-runtime-error">
-          <strong>Não foi possível renderizar a comparação.</strong>
-          <span>Limpe o resultado e tente comparar os arquivos novamente.</span>
+          <strong>{this.props.messages.title}</strong>
+          <span>{this.props.messages.description}</span>
           <button className="ghost-action" type="button" onClick={this.handleReset}>
-            Limpar comparação
+            {this.props.messages.clear}
           </button>
         </div>
       );

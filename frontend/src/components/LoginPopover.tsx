@@ -1,5 +1,6 @@
 import { Database, KeyRound, Mail, UserPlus } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { useLocale } from "../i18n/LocaleProvider";
 
 type LoginPopoverProps = {
   loading: boolean;
@@ -9,6 +10,7 @@ type LoginPopoverProps = {
 };
 
 export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopoverProps) {
+  const { t } = useLocale();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -28,7 +30,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
     }
 
     if (password !== passwordConfirmation) {
-      setLocalError("A confirmação de senha deve ser igual à senha.");
+      setLocalError(t("auth.passwordMismatch"));
       return;
     }
 
@@ -38,9 +40,9 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
       setName("");
       setPassword("");
       setPasswordConfirmation("");
-      setSuccess("Conta criada com sucesso. Entre com seu e-mail e senha.");
+      setSuccess(t("auth.accountCreated"));
     } catch (err) {
-      setLocalError(err instanceof Error ? err.message : "Erro inesperado ao criar conta.");
+      setLocalError(err instanceof Error ? err.message : t("auth.unknownCreateError"));
     }
   }
 
@@ -51,19 +53,19 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
   }
 
   return (
-    <aside className="topbar-login" aria-label="Area de acesso">
+    <aside className="topbar-login" aria-label={t("auth.accessArea")}>
       <div className="login-brand">
         {mode === "login" ? <Database size={30} /> : <UserPlus size={30} />}
         <div>
-          <span>Acesso seguro</span>
-          <strong>{mode === "login" ? "Entrar no LeitorBI" : "Criar conta"}</strong>
+          <span>{t("auth.secureAccess")}</span>
+          <strong>{mode === "login" ? t("auth.signInTitle") : t("auth.createAccount")}</strong>
         </div>
       </div>
 
       <form className="login-form" onSubmit={handleSubmit}>
         {mode === "register" ? (
           <label>
-            <span>Nome</span>
+            <span>{t("common.name")}</span>
             <div>
               <UserPlus size={17} />
               <input
@@ -79,7 +81,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
         ) : null}
 
         <label>
-          <span>E-mail</span>
+          <span>{t("common.email")}</span>
           <div>
             <Mail size={17} />
             <input
@@ -94,7 +96,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
         </label>
 
         <label>
-          <span>Senha</span>
+          <span>{t("common.password")}</span>
           <div>
             <KeyRound size={17} />
             <input
@@ -110,7 +112,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
 
         {mode === "register" ? (
           <label>
-            <span>Confirmar senha</span>
+            <span>{t("common.confirmPassword")}</span>
             <div>
               <KeyRound size={17} />
               <input
@@ -130,7 +132,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
         {success ? <div className="status">{success}</div> : null}
 
         <button className="primary-action" type="submit" disabled={loading}>
-          {loading ? "Processando..." : mode === "login" ? "Entrar" : "Criar conta"}
+          {loading ? t("common.processing") : mode === "login" ? t("auth.signIn") : t("auth.createAccount")}
         </button>
       </form>
       <button
@@ -139,7 +141,7 @@ export function LoginPopover({ loading, error, onLogin, onRegister }: LoginPopov
         onClick={() => switchMode(mode === "login" ? "register" : "login")}
         disabled={loading}
       >
-        {mode === "login" ? "Criar conta" : "Já tenho conta"}
+        {mode === "login" ? t("auth.createAccount") : t("auth.alreadyHaveAccount")}
       </button>
     </aside>
   );

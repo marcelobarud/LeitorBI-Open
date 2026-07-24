@@ -195,7 +195,7 @@ describe("App", () => {
 
     await userEvent.setup({ applyAccept: false }).upload(input!, file);
 
-    expect(await screen.findByText(/selecione um arquivo \.json/i)).toBeInTheDocument();
+    expect(await screen.findByText(/arquivo json válido/i)).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/api/models/analyze"), expect.anything());
   });
 
