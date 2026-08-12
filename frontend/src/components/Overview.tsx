@@ -77,7 +77,6 @@ export function Overview({
     <div className="overview">
       <section className="model-hero">
         <div>
-          <span className="eyebrow">{isDemo ? t("workspace.exampleModel") : t("workspace.modelLoaded")}</span>
           <h1>{formatValue(summary["Dashboard"])}</h1>
           <p>
             {formatValue(summary["Modelo"])} | {formatValue(summary["Modo padrao"])} | {formatValue(summary["Data de exportacao"])}

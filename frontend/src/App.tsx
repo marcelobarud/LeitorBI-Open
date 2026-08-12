@@ -151,7 +151,6 @@ function TutorialView() {
 
       <section className="tutorial-hero">
         <div>
-          <span className="eyebrow">{t("tutorial.eyebrow")}</span>
           <h1>{t("tutorial.heading")}</h1>
           <p>{t("tutorial.intro")}</p>
         </div>
@@ -305,7 +304,6 @@ function UploadPanel({
   return (
     <section className="upload-panel">
       <div className="upload-copy">
-        <span className="eyebrow">{t("common.productName")}</span>
         <h1>{t("upload.title")}</h1>
         <p>{t("demo.description")}</p>
         <div className="hero-actions">

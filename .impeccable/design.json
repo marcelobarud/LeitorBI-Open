@@ -1,0 +1,23 @@
+{
+  "product": "LeitorBI Open",
+  "direction": "Caderno de evidências",
+  "seedKey": "c659c7dc",
+  "mode": "persuade",
+  "tone": "Contidos e confiáveis",
+  "palette": {
+    "paper": "#f4f0e8",
+    "ink": "#101820",
+    "rust": "#d95f39",
+    "slate": "#315c72",
+    "rule": "#d7cec0"
+  },
+  "metaphor": "technical audit notebook",
+  "surfaces": ["cover sheet", "index rail", "ruled evidence rows", "folio metadata"],
+  "validation": {
+    "frontendTests": "18/18",
+    "frontendBuild": "passed",
+    "backendHealth": "200",
+    "impeccableDetector": "no findings",
+    "viewports": ["desktop", "390x844"]
+  }
+}

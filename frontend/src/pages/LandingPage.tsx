@@ -16,7 +16,11 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
   return (
     <main className="landing-page">
       <header className="landing-topbar">
-        <div className="brand"><Database size={24} /><span>{t("common.productName")}</span></div>
+        <div className="brand">
+          <span className="brand-mark">LB</span>
+          <span>{t("common.productName")}</span>
+          <small>OPEN / JSON</small>
+        </div>
         <div className="landing-access">
           <button className="ghost-action" type="button" onClick={onStart}>
             <PlayCircle size={18} />
@@ -26,10 +30,23 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
       </header>
 
       <section className="landing-hero">
+        <aside className="landing-index" aria-label="Índice do LeitorBI Open">
+          <div className="index-kicker">ÍNDICE · 01</div>
+          <strong>{t("common.productName")}</strong>
+          <ol>
+            <li className="active"><span>01</span>{t("landing.objectiveAudit")}</li>
+            <li><span>02</span>{t("landing.visualComparison")}</li>
+            <li><span>03</span>{t("landing.sharedDelivery")}</li>
+          </ol>
+          <div className="index-stamp">CADERNO<br />ABERTO</div>
+        </aside>
         <div className="landing-copy">
-          <span className="eyebrow">{t("common.productName")}</span>
           <h1>{t("landing.hero")}</h1>
           <p>{t("landing.heroDescription")}</p>
+          <div className="cover-record">
+            <span>FOLHA DE ABERTURA</span>
+            <strong>Modelo Power BI · leitura técnica e rastreável</strong>
+          </div>
           <div className="hero-actions">
             <button className="primary-action" type="button" onClick={onStart}>
               <PlayCircle size={18} />
@@ -47,6 +64,7 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
         </div>
 
         <div className="landing-preview" aria-hidden="true">
+          <div className="preview-folio">FOLHA 01 / 04</div>
           <div className="preview-sidebar"><span /><span /><span /><span /></div>
           <div>
             <div className="preview-header"><span>{t("landing.previewModelLoaded")}</span><strong>Comercial Executivo</strong></div>
@@ -60,7 +78,7 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
         </div>
       </section>
 
-      <section className="landing-insights" aria-label={t("landing.highlights")}>
+      <section className="landing-insights landing-ledger" aria-label={t("landing.highlights")}>
         <article className="insight-card good"><ShieldCheck size={22} /><div><span>{t("landing.objectiveAudit")}</span><strong>{t("landing.inventoryMinutes")}</strong><p>{t("landing.auditDescription")}</p></div></article>
         <article className="insight-card"><GitCompareArrows size={22} /><div><span>{t("landing.visualComparison")}</span><strong>{t("landing.changesBetween")}</strong><p>{t("landing.changesDescription")}</p></div></article>
         <article className="insight-card warn"><Download size={22} /><div><span>{t("landing.sharedDelivery")}</span><strong>{t("landing.excelReady")}</strong><p>{t("landing.excelDescription")}</p></div></article>

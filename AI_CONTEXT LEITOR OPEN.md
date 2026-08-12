@@ -69,3 +69,26 @@ cd backend; pytest
 ## Fora do escopo
 
 Completar o catálogo inglês, adicionar persistência/histórico, criar contas ou controles administrativos, introduzir rate limiting geral da API pública e alterar os algoritmos de análise/comparação não fazem parte desta transformação.
+
+## Historico consolidado
+
+### 2026-08-12 - Identidade, navegacao e direcao visual
+
+- O trabalho atual esta no branch `test`; nenhuma alteracao foi feita no repositorio original `LeitorBI-Web`.
+- A identidade visivel passou a usar **LeitorBI Open**, incluindo o titulo da aba do navegador, a Landing e o workspace.
+- O nome no canto superior esquerdo do workspace e da demonstracao funciona como retorno para a Landing Page.
+- A Landing possui `Iniciar` no canto superior direito e preserva as acoes `Como usar`, `Ver demonstracao` e o `Iniciar` principal.
+- O Impeccable foi instalado no escopo do projeto em `.agents/skills/impeccable`; os hooks de projeto estao em `.codex/hooks.json`.
+- A direcao visual aprovada e **Caderno de evidencias**, com metafora de caderno tecnico de auditoria, abertura a mudancas marcantes e componentes contidos/confiaveis.
+- A Landing foi redesenhada como capa de evidencia, com indice, folha de abertura, folio e previa do modelo. O workspace recebeu trilho de indice escuro, superficies de papel, divisores pautados, acentos ferrugem e azul ardósia.
+- Estados vazios, tutorial, comparacao, resumo e tabelas receberam a mesma gramatica visual sem alterar os algoritmos ou contratos da API.
+- Foram criados `PRODUCT.md`, `DESIGN.md` e `.impeccable/design.json`. `PRODUCT.md` descreve o produto; `DESIGN.md` registra a linguagem visual; este arquivo registra o conjunto da evolucao.
+- Validacoes realizadas: 18/18 testes frontend, build frontend, API de saude HTTP 200, detector Impeccable sem achados e inspecao visual em desktop e viewport mobile 390x844.
+- Frontend local: `http://localhost:5174/`. Backend local: `http://127.0.0.1:8001/`.
+- As alteracoes permanecem locais; ainda nao houve commit ou push.
+
+## Regra de manutencao de contexto
+
+- `PRODUCT.md` registra proposito, usuarios, capacidades, restricoes e principios atuais do produto, sem virar um diario de implementacao.
+- `DESIGN.md` registra direcao visual, tokens, componentes, interacoes, acessibilidade e validacoes visuais.
+- Este `AI_CONTEXT LEITOR OPEN.md` registra o estado geral e o historico consolidado de mudancas relevantes, incluindo decisoes arquiteturais, identidade, validacoes e pendencias.
