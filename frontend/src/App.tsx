@@ -4,21 +4,12 @@ import {
   ClipboardList,
   Database,
   Download,
-  LogOut,
-  Maximize2,
-  Minimize2,
   FileJson,
   GitCompareArrows,
   PlayCircle,
-  Plus,
-  RotateCcw,
   ShieldCheck,
   Table2,
-  Trash2,
-  UserPlus,
-  Users,
   WandSparkles,
-  X,
 } from "lucide-react";
 import {
   type ChangeEvent,
@@ -31,40 +22,27 @@ import {
   analyzeModel,
   analyzePublicDemoModel,
   compareModels,
-  createUser,
-  deleteUser,
   exportModelExcel,
-  getCurrentUser,
-  listUsers,
-  login as loginUser,
-  logout as logoutUser,
-  registerUser,
-  updateUser,
 } from "./api";
-import { LoginPopover } from "./components/LoginPopover";
-import { LocaleToggle } from "./components/LocaleToggle";
-import { translateApiError, useLocale } from "./i18n/LocaleProvider";
+import { useLocale } from "./i18n/LocaleProvider";
 import type { TranslationKey } from "./i18n/types";
 import { CompareFileInput } from "./components/CompareFileInput";
 import { DataTable } from "./components/DataTable";
 import { CompareView } from "./components/CompareView";
 import { CompareErrorBoundary } from "./components/CompareErrorBoundary";
 import { HomeEmptyState } from "./components/HomeEmptyState";
-import { UsersAdminView } from "./components/UsersAdminView";
 import { Overview } from "./components/Overview";
 import { LandingPage } from "./pages/LandingPage";
 import { ROUTES, routeFromPath, type AppRoute } from "./routes";
-import type { AuthUser, CompareEntry, CompareResult, ManagedUser, Report, Row, TabKey } from "./types";
+import type { CompareResult, Report, Row, TabKey } from "./types";
 
-type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare" | "users">;
+type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
 
 const tabs: Array<{ key: TabKey; label: TranslationKey }> = [
   { key: "overview", label: "nav.home" }, { key: "tutorial", label: "nav.tutorial" }, { key: "tables", label: "nav.tables" }, { key: "columns", label: "nav.columns" }, { key: "measures", label: "nav.measures" }, { key: "sources", label: "nav.sources" }, { key: "relationships", label: "nav.relationships" }, { key: "compare", label: "nav.compare" },
 ];
 
-const adminTabs: Array<{ key: TabKey; label: TranslationKey }> = [{ key: "users", label: "nav.users" }];
-
-const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare" | "users">; label: TranslationKey }> = [
+const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare">; label: TranslationKey }> = [
   { key: "overview", label: "nav.overview" }, { key: "tables", label: "nav.tables" }, { key: "columns", label: "nav.columns" }, { key: "measures", label: "nav.measures" }, { key: "sources", label: "nav.sources" }, { key: "relationships", label: "nav.relationships" },
 ];
 
@@ -215,21 +193,10 @@ function TutorialView() {
   );
 }
 
-function DemoPage({
-  loading,
-  error,
-  onLogin,
-  onRegister,
-}: {
-  loading: boolean;
-  error: string;
-  onLogin: (email: string, password: string) => Promise<void>;
-  onRegister: (name: string, email: string, password: string) => Promise<void>;
-}) {
+function DemoPage() {
   const { t } = useLocale();
-  const [showLogin, setShowLogin] = useState(false);
   const [demoReport, setDemoReport] = useState<Report | null>(null);
-  const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare" | "users">>("overview");
+  const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare">>("overview");
   const [demoLoading, setDemoLoading] = useState(true);
   const [demoError, setDemoError] = useState("");
 
@@ -241,7 +208,7 @@ function DemoPage({
         if (active) setDemoReport(result);
       })
       .catch((err) => {
-        if (active) setDemoError(err instanceof Error ? translateApiError(err.message, t) : t("demo.loadError"));
+        if (active) setDemoError(err instanceof Error ? err.message : t("demo.loadError"));
       })
       .finally(() => {
         if (active) setDemoLoading(false);
@@ -267,7 +234,7 @@ function DemoPage({
       <aside className="sidebar">
         <a className="brand demo-brand-link" href={ROUTES.landing}>
           <Database size={24} />
-          <span>LeitorBI</span>
+          <span>LeitorBI-Web Open</span>
         </a>
         <nav>
           {demoTabs.map((tab) => (
@@ -294,14 +261,6 @@ function DemoPage({
             <strong>{demoReport ? demoReport.raw.dashboardName : t("common.loading")}</strong>
           </div>
           <div className="landing-access">
-            <LocaleToggle />
-            <button className="ghost-action" type="button" onClick={() => setShowLogin((current) => !current)}>
-              <ShieldCheck size={18} />
-              {t("auth.signIn")}
-            </button>
-            {showLogin ? (
-              <LoginPopover loading={loading} error={error} onLogin={onLogin} onRegister={onRegister} />
-            ) : null}
           </div>
         </header>
 
@@ -395,11 +354,7 @@ function UploadPanel({
 export function App() {
   const { t } = useLocale();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
   const [currentPath, setCurrentPath] = useState<AppRoute>(() => routeFromPath(window.location.pathname));
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState("");
   const [report, setReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [loading, setLoading] = useState(false);
@@ -414,25 +369,6 @@ export function App() {
   const [compareError, setCompareError] = useState("");
 
   useEffect(() => {
-    let active = true;
-
-    getCurrentUser()
-      .then((currentUser) => {
-        if (active) setUser(currentUser);
-      })
-      .catch((err) => {
-        if (active) setLoginError(err instanceof Error ? translateApiError(err.message, t) : t("api.session"));
-      })
-      .finally(() => {
-        if (active) setCheckingSession(false);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
     function handlePopState() {
       setCurrentPath(routeFromPath(window.location.pathname));
     }
@@ -440,21 +376,6 @@ export function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-
-  useEffect(() => {
-    if (checkingSession) {
-      return;
-    }
-
-    if (user && currentPath !== ROUTES.app) {
-      navigateTo(ROUTES.app, { replace: true });
-      return;
-    }
-
-    if (!user && currentPath === ROUTES.app) {
-      navigateTo(ROUTES.landing, { replace: true });
-    }
-  }, [checkingSession, currentPath, user]);
 
   function navigateTo(path: AppRoute, options: { replace?: boolean } = {}) {
     if (window.location.pathname !== path) {
@@ -464,61 +385,8 @@ export function App() {
     setCurrentPath(path);
   }
 
-  function clearWorkspaceState() {
-    setReport(null);
-    setCurrentFile(null);
-    setPendingFileLabel("");
-    setError("");
-    setActiveTab("overview");
-    handleClearComparison();
-  }
-
-  async function handleLogin(email: string, password: string) {
-    setLoginLoading(true);
-    setLoginError("");
-    try {
-      const authenticatedUser = await loginUser(email, password);
-      setUser(authenticatedUser);
-      clearWorkspaceState();
-      navigateTo(ROUTES.app);
-    } catch (err) {
-      setLoginError(err instanceof Error ? translateApiError(err.message, t) : t("auth.invalidCredentials"));
-    } finally {
-      setLoginLoading(false);
-    }
-  }
-
-  async function handleRegister(name: string, email: string, password: string) {
-    setLoginLoading(true);
-    setLoginError("");
-    try {
-      await registerUser(name, email, password);
-    } finally {
-      setLoginLoading(false);
-    }
-  }
-
-  async function handleLogout() {
-    try {
-      await logoutUser();
-    } finally {
-      setUser(null);
-      setLoginError("");
-      clearWorkspaceState();
-      navigateTo(ROUTES.landing);
-    }
-  }
-
-  function handleAuthenticatedError(err: unknown, fallback: string, onErrorChange = setError) {
-    const message = err instanceof Error ? err.message : fallback;
-    if (message.includes("Sessão expirada")) {
-      setUser(null);
-      setLoginError(message);
-      clearWorkspaceState();
-      navigateTo(ROUTES.landing, { replace: true });
-      return;
-    }
-    onErrorChange(message);
+  function handleApiError(err: unknown, fallback: string, onErrorChange = setError) {
+    onErrorChange(err instanceof Error ? err.message : fallback);
   }
 
   async function handleAnalyze(file: File) {
@@ -538,7 +406,7 @@ export function App() {
       setCurrentFile(file);
       setActiveTab("overview");
     } catch (err) {
-      handleAuthenticatedError(err, t("api.unknown"));
+      handleApiError(err, t("api.unknown"));
     } finally {
       setLoading(false);
     }
@@ -565,7 +433,7 @@ export function App() {
       const dashboardName = report?.raw.dashboardName || "leitorbi";
       downloadBlob(blob, `${dashboardName}_analise.xlsx`);
     } catch (err) {
-      handleAuthenticatedError(err, t("api.unknown"));
+      handleApiError(err, t("api.unknown"));
     } finally {
       setExporting(false);
     }
@@ -595,56 +463,32 @@ export function App() {
     relationships: report?.relationships ?? [],
   };
 
-  const visibleTabs = user?.is_admin ? [...tabs, ...adminTabs] : tabs;
-  const isDataTab = !["overview", "tutorial", "compare", "users"].includes(activeTab);
+  const visibleTabs = tabs;
+  const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);
   const activeRows = isDataTab ? rowsByTab[activeTab as DataTabKey] : [];
 
-  if (checkingSession) {
-    return (
-      <main className="login-shell">
-        <section className="login-panel compact">
-          <div className="status">{t("auth.checkingSession")}</div>
-        </section>
-      </main>
-    );
-  }
-
-  if (!user) {
-    if (currentPath === ROUTES.demo) {
-      return <DemoPage loading={loginLoading} error={loginError} onLogin={handleLogin} onRegister={handleRegister} />;
-    }
-
-    return <LandingPage loading={loginLoading} error={loginError} onLogin={handleLogin} onRegister={handleRegister} />;
-  }
+  if (currentPath === ROUTES.demo) return <DemoPage />;
+  if (currentPath === ROUTES.landing) return <LandingPage onStart={() => navigateTo(ROUTES.app)} />;
 
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
           <Database size={24} />
-          <span>LeitorBI</span>
+            <span>LeitorBI-Web Open</span>
         </div>
         <nav>
           {visibleTabs.map((tab) => (
             <button
               key={tab.key}
               className={activeTab === tab.key ? "active" : ""}
-              disabled={!report && !["overview", "tutorial", "compare", "users"].includes(tab.key)}
+              disabled={!report && !["overview", "tutorial", "compare"].includes(tab.key)}
               onClick={() => setActiveTab(tab.key)}
             >
               {t(tab.label)}
             </button>
           ))}
         </nav>
-        <div className="user-panel">
-          <div>
-            <span>{t("auth.signedInAs")}</span>
-            <strong>{user.name || user.email}</strong>
-          </div>
-          <button type="button" onClick={handleLogout} title={t("auth.logout")} aria-label={t("auth.logout")}>
-            <LogOut size={18} />
-          </button>
-        </div>
         <div className="compare-teaser">
           <GitCompareArrows size={18} />
           <span>{t("workspace.compareHint")}</span>
@@ -709,7 +553,6 @@ export function App() {
             />
           </CompareErrorBoundary>
         ) : null}
-        {activeTab === "users" && user.is_admin ? <UsersAdminView currentUser={user} /> : null}
         {report && isDataTab ? (
           <>
             <header className="page-header">

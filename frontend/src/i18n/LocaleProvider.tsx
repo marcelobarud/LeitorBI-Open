@@ -29,28 +29,8 @@ function translate(locale: SupportedLocale, key: TranslationKey, params?: Transl
   return formatMessage(message, params);
 }
 
-const knownApiMessages: Record<string, TranslationKey> = {
-  "Sessão expirada. Entre novamente.": "auth.sessionExpired",
-  "E-mail ou senha inválidos.": "auth.invalidCredentials",
-  "Não foi possível conectar à API. Verifique se o backend está rodando e se VITE_API_URL está correto.": "api.connection",
-  "Não foi possível concluir o cadastro. Revise os dados e tente novamente.": "api.register",
-  "Erro ao verificar sessão.": "api.session",
-  "Erro ao carregar usuários.": "api.usersLoad",
-  "Erro ao criar usuário.": "api.userCreate",
-  "Erro ao remover usuário.": "api.userDelete",
-  "Erro ao atualizar usuário.": "api.userUpdate",
-  "Erro ao carregar demonstração.": "api.demoLoad",
-};
-
-export function translateApiError(message: string, t: LocaleContextValue["t"]) {
-  return knownApiMessages[message] ? t(knownApiMessages[message]) : message;
-}
-
 export function detectLocale(): SupportedLocale {
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (saved === "pt-BR" || saved === "en-US") return saved;
-  const languages = navigator.languages?.length ? navigator.languages : [navigator.language];
-  return languages.some((language) => language?.toLowerCase().startsWith("pt")) ? "pt-BR" : "en-US";
+  return "pt-BR";
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {

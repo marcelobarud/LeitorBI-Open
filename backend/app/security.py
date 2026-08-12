@@ -4,7 +4,12 @@ from urllib.parse import urlsplit
 from fastapi import HTTPException, Request, status
 
 
-DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+]
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 TRUE_VALUES = {"1", "true", "yes", "on"}
 
@@ -30,8 +35,10 @@ def cors_origins() -> list[str]:
     origins = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
     if not origins:
         raise RuntimeError("LEITORBI_CORS_ORIGINS deve conter ao menos uma origem válida.")
-    if "*" in origins:
-        raise RuntimeError("LEITORBI_CORS_ORIGINS não pode usar '*' quando cookies de sessão estão habilitados.")
+    if "*" in origins and len(origins) > 1:
+        raise RuntimeError("LEITORBI_CORS_ORIGINS não pode combinar '*' com outras origens.")
+    if origins == ["*"]:
+        return origins
     if any(origin != origin_from_url(origin) or not origin.startswith(("http://", "https://")) for origin in origins):
         raise RuntimeError("LEITORBI_CORS_ORIGINS deve conter apenas origens HTTP(S), sem caminho.")
     return origins
@@ -55,8 +62,6 @@ def require_request_origin() -> bool:
 
 def validate_security_config() -> None:
     cors_origins()
-    if is_production() and environment_flag("LEITORBI_SESSION_SECURE") is not True:
-        raise RuntimeError("LEITORBI_SESSION_SECURE=true é obrigatório em produção.")
 
 
 def assert_safe_origin(request: Request) -> None:

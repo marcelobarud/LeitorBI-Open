@@ -1,10 +1,9 @@
 from typing import Any
 
-from fastapi import Depends, FastAPI, File, Request, UploadFile
+from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from app.auth import AuthenticatedUser, admin_router, current_user, init_auth, router as auth_router
 from app.demo_data import DEMO_MODEL
 from app.observability import log_http_request
 from app.schemas import CompareResponse, ReportResponse
@@ -14,21 +13,17 @@ from app.services.compare import compare_models
 from app.services.excel_export import build_excel
 from app.upload_validation import read_json_upload, validate_model_export
 
-app = FastAPI(title="LeitorBI Web API", version="0.1.0")
-app.include_router(auth_router)
-app.include_router(admin_router)
+app = FastAPI(title="LeitorBI-Web Open API", version="0.1.0")
 
 
 @app.on_event("startup")
 def startup() -> None:
     validate_security_config()
-    init_auth()
 
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins(),
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -48,7 +43,6 @@ def health() -> dict[str, str]:
 @app.post("/api/models/analyze", response_model=ReportResponse)
 async def analyze_model(
     file: UploadFile = File(...),
-    _user: AuthenticatedUser = Depends(current_user),
 ) -> ReportResponse:
     data = await read_json_upload(file)
     return ReportResponse.model_validate(PowerBIAnalyzer(data).full_report())
@@ -58,7 +52,6 @@ async def analyze_model(
 async def compare_model_exports(
     base: UploadFile = File(...),
     novo: UploadFile = File(...),
-    _user: AuthenticatedUser = Depends(current_user),
 ) -> CompareResponse:
     base_data = await read_json_upload(base)
     new_data = await read_json_upload(novo)
@@ -68,27 +61,15 @@ async def compare_model_exports(
 @app.post("/api/models/export-excel")
 async def export_excel(
     file: UploadFile = File(...),
-    _user: AuthenticatedUser = Depends(current_user),
 ) -> StreamingResponse:
     data = await read_json_upload(file)
     report = PowerBIAnalyzer(data).full_report()
     return excel_response(report)
 
 
-@app.get("/api/demo/analyze", response_model=ReportResponse)
-def analyze_demo_model(_user: AuthenticatedUser = Depends(current_user)) -> ReportResponse:
-    return ReportResponse.model_validate(PowerBIAnalyzer(validate_model_export(DEMO_MODEL)).full_report())
-
-
 @app.get("/api/public/demo/analyze", response_model=ReportResponse)
 def analyze_public_demo_model() -> ReportResponse:
     return ReportResponse.model_validate(PowerBIAnalyzer(validate_model_export(DEMO_MODEL)).full_report())
-
-
-@app.get("/api/demo/export-excel")
-def export_demo_excel(_user: AuthenticatedUser = Depends(current_user)) -> StreamingResponse:
-    report = PowerBIAnalyzer(DEMO_MODEL).full_report()
-    return excel_response(report)
 
 
 def excel_response(report: dict[str, Any]) -> StreamingResponse:

@@ -1,76 +1,90 @@
-# LeitorBI Web
+# LeitorBI-Web Open
 
-Versao web experimental do LeitorBI.
+Versão web pública e independente do LeitorBI para leitura de modelos Power BI. O produto funciona sem login, cadastro, conta, sessão ou administração de usuários.
+
+## O que está disponível
+
+- Landing Page com **Iniciar**, **Como usar** e **Ver Demonstração**.
+- Workspace público em `/app` para upload e análise de JSON Power BI.
+- Tutorial, resumo, Tabelas, Colunas, Medidas, Fontes e Relacionamentos.
+- Filtros, buscas, paginação, expansão de conteúdo e análise de DAX.
+- Comparação de dois modelos em `/api/models/compare`.
+- Exportação Excel em `/api/models/export-excel`.
+- Demonstração pública em `/demo`.
+- Interface inicial em PT-BR. O catálogo `en-US` e a infraestrutura de internacionalização permanecem disponíveis para evolução futura.
 
 ## Estrutura
 
-- `backend/`: API em FastAPI para analisar exports JSON do Power BI, comparar modelos e gerar Excel.
-- `frontend/`: interface React + TypeScript para upload, leitura e exploracao do modelo.
+- `backend/`: API FastAPI para validação, análise, comparação e Excel.
+- `frontend/`: interface React + TypeScript.
 
-## Como rodar
+## Como executar
 
 Backend:
 
 ```powershell
-cd leitorbi_web/backend
+cd backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-Autenticacao:
-
-- `LEITORBI_AUTH_DB`: caminho do SQLite de autenticacao. Padrao: `backend/.data/auth.sqlite3`.
-- `LEITORBI_ADMIN_EMAIL`: e-mail do primeiro administrador. Usado apenas para criar o usuario se ele ainda nao existir.
-- `LEITORBI_ADMIN_PASSWORD`: senha do primeiro administrador. Nunca salve esse valor no codigo.
-- `LEITORBI_SESSION_SECURE`: use `true` em producao HTTPS para marcar o cookie de sessao como seguro. Padrao local: `false`.
-
 Frontend:
 
 ```powershell
-cd leitorbi_web/frontend
+cd frontend
 npm install
 npm run dev
 ```
 
-Por padrao, o frontend chama a API em `http://localhost:8000`.
+Por padrão, o frontend chama a API em `http://localhost:8000`. Para outra API, defina `VITE_API_URL`.
 
-## Configuração
+## Configuração e segurança
 
-Backend:
+- `LEITORBI_CORS_ORIGINS`: origens permitidas separadas por vírgula. Em produção, deve ser explícito; `*` pode ser usado sozinho quando a implantação realmente exigir acesso aberto.
+- `LEITORBI_REQUIRE_ORIGIN`: quando `true`, exige `Origin` ou `Referer` permitido nas operações mutáveis também fora de produção.
+- `LEITORBI_MAX_UPLOAD_MB`: limite de upload. Padrão: `10`.
+- `VITE_API_URL`: URL base da API no frontend.
 
-- `LEITORBI_CORS_ORIGINS`: origens permitidas separadas por vírgula. Padrão: `http://localhost:5173,http://127.0.0.1:5173`. Não use `*`, pois o app usa cookies de sessão.
-- `LEITORBI_MAX_UPLOAD_MB`: tamanho máximo do JSON enviado. Padrão: `10`.
+A API mantém validação estrutural do JSON, limite de tamanho, leitura segura de arquivos, CORS, Request ID, observabilidade, tratamento de erros e validação de origem. Não há banco SQLite de usuários/sessões nem cookies de sessão.
+
+## Endpoints públicos
+
+- `GET /api/health`
+- `GET /api/public/demo/analyze`
+- `POST /api/models/analyze` — campo multipart `file`
+- `POST /api/models/compare` — campos multipart `base` e `novo`
+- `POST /api/models/export-excel` — campo multipart `file`
+
+## Testes e build
 
 Frontend:
 
-- `VITE_API_URL`: URL base da API. Exemplo para `.env.local`: `VITE_API_URL=http://localhost:8000`.
-
-### Producao
-
-Configure `LEITORBI_ENV=production`, `LEITORBI_CORS_ORIGINS` com as URLs exatas do frontend e `LEITORBI_SESSION_SECURE=true`. Nesse modo, a API nao inicia sem CORS explicito e cookie de sessao seguro, e exige `Origin` ou `Referer` permitido nas operacoes mutaveis. Para aplicar a mesma exigencia fora de producao, use `LEITORBI_REQUIRE_ORIGIN=true`.
-
-Para publicar em rede ou produção, configure `LEITORBI_CORS_ORIGINS` com a URL do frontend e `VITE_API_URL` com a URL da API.
-
-Todos os endpoints de analise, comparacao, demo e exportacao exigem login; apenas `/api/health` e `/api/auth/*` ficam publicos.
-Requisicoes mutaveis (`POST`, `PUT`, `PATCH`, `DELETE`) validam `Origin` ou `Referer` contra `LEITORBI_CORS_ORIGINS`.
-
-Exemplo local antes de iniciar o backend:
-
 ```powershell
-$env:LEITORBI_ADMIN_EMAIL="admin@leitorbi.local"
-$env:LEITORBI_ADMIN_PASSWORD="troque-esta-senha"
-uvicorn app.main:app --reload --port 8000
+cd frontend
+npm test
+npm run build
 ```
 
-Nao versione arquivos `.env`, senhas, tokens, codigos secretos ou bancos SQLite locais. O `.gitignore` ja cobre `.env`, `backend/.data/` e arquivos `*.sqlite3`.
-
-## Testes
-
-O backend tem testes com `pytest` para análise, comparação, exportação Excel e validação de uploads:
+Backend:
 
 ```powershell
-cd leitorbi_web/backend
+cd backend
 pytest
 ```
+
+Os testes cobrem análise, comparação, exportação, upload, segurança/origem, observabilidade e fluxo público do frontend.
+
+## Decisões desta versão Open
+
+- Removidos login, cadastro, logout, sessão, cookies de sessão, administração, endpoints de usuários, criação automática de administrador, SQLite de autenticação, rate limit de login e componentes/testes exclusivos desses fluxos.
+- Preservados os contratos de análise, comparação e exportação; a dependência de sessão foi retirada.
+- O rótulo visual **Relações** foi corrigido para **Relacionamentos** sem alterar o contrato interno `relationships`.
+- O fluxo principal passou a ser `Landing → Iniciar → /app`.
+
+## Pendências fora do escopo
+
+- Tradução completa da interface para inglês.
+- Persistência de relatórios, uploads, filtros ou histórico.
+- Estratégia de escala horizontal e rate limiting geral da API pública.

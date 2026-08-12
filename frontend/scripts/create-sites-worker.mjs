@@ -60,7 +60,7 @@ async function proxyApi(request, env) {
     return Response.json(
       {
         detail:
-          "API de producao nao configurada. Defina LEITORBI_API_URL no Sites para habilitar login, demo e analises.",
+          "API de producao nao configurada. Defina LEITORBI_API_URL no Sites para habilitar a análise pública.",
       },
       { status: 503 },
     );

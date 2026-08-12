@@ -1,6 +1,5 @@
 import { AlertTriangle, Database, Download, FileJson, ShieldCheck, X } from "lucide-react";
 import type { Report, Row } from "../types";
-import { LocaleToggle } from "./LocaleToggle";
 import { useLocale } from "../i18n/LocaleProvider";
 
 function formatValue(value: Row[string]) {
@@ -103,7 +102,6 @@ export function Overview({
             <Download size={18} />
             {exporting ? t("workspace.exporting") : t("workspace.exportExcel")}
           </button>
-          <LocaleToggle />
           <button className="ghost-action" type="button" onClick={onClose}>
             <X size={18} />
             {t("workspace.closeAnalysis")}
