@@ -45,3 +45,7 @@ Fonte da direcao: Impeccable, escolha do usuario.
 ## Context maintenance
 
 Este arquivo registra apenas a linguagem visual e suas decisoes de implementacao. O historico geral do produto fica em `AI_CONTEXT LEITOR OPEN.md`; proposito, usuarios e restricoes ficam em `PRODUCT.md`.
+
+## Landing copy refinement
+
+The approved visual structure remains unchanged. The current cover copy uses “Análise Técnica” with “Tenha controle do seu modelo · leitura técnica e rastreável.”, the side stamp reads “LeitorBI Open”, and the header/index no longer show “Open / JSON” or “Índice 01”.

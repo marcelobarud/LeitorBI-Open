@@ -27,7 +27,7 @@ cd backend
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 Frontend:
@@ -38,7 +38,7 @@ npm install
 npm run dev
 ```
 
-Por padrão, o frontend chama a API em `http://localhost:8000`. Para outra API, defina `VITE_API_URL`.
+Por padrão, o frontend chama a API em `http://127.0.0.1:8001`. Para outra API, defina `VITE_API_URL`.
 
 ## Configuração e segurança
 

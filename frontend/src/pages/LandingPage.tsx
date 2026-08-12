@@ -19,7 +19,6 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
         <div className="brand">
           <span className="brand-mark">LB</span>
           <span>{t("common.productName")}</span>
-          <small>OPEN / JSON</small>
         </div>
         <div className="landing-access">
           <button className="ghost-action" type="button" onClick={onStart}>
@@ -31,21 +30,20 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
 
       <section className="landing-hero">
         <aside className="landing-index" aria-label="Índice do LeitorBI Open">
-          <div className="index-kicker">ÍNDICE · 01</div>
           <strong>{t("common.productName")}</strong>
           <ol>
             <li className="active"><span>01</span>{t("landing.objectiveAudit")}</li>
             <li><span>02</span>{t("landing.visualComparison")}</li>
             <li><span>03</span>{t("landing.sharedDelivery")}</li>
           </ol>
-          <div className="index-stamp">CADERNO<br />ABERTO</div>
+          <div className="index-stamp">LeitorBI<br />Open</div>
         </aside>
         <div className="landing-copy">
           <h1>{t("landing.hero")}</h1>
           <p>{t("landing.heroDescription")}</p>
           <div className="cover-record">
-            <span>FOLHA DE ABERTURA</span>
-            <strong>Modelo Power BI · leitura técnica e rastreável</strong>
+            <span>Análise Técnica</span>
+            <strong>Tenha controle do seu modelo · leitura técnica e rastreável.</strong>
           </div>
           <div className="hero-actions">
             <button className="primary-action" type="button" onClick={onStart}>

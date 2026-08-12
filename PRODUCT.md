@@ -69,4 +69,11 @@ A interface deve permanecer navegável por teclado, usar nomes acessíveis para 
 - A Landing oferece `Iniciar` no canto superior direito e no conteudo principal; ambos abrem o workspace publico.
 - Direcao visual atual: **Caderno de evidencias**, com capa tecnica, indice, folios, papel pautado e marcacoes de auditoria.
 - Componentes contidos e confiaveis usam tinta escura, papel aquecido, ferrugem para acoes e azul ardósia para informacao tecnica.
-- Ambiente de desenvolvimento: frontend em `5174` e backend em `8001`.
+- Ambiente de desenvolvimento: frontend em `5174` e backend em `8001`; o frontend usa `8001` como fallback local da API.
+
+### Landing copy atual
+
+- O cabecalho mantem apenas a identidade principal `LeitorBI Open`, sem `Open / JSON`.
+- O indice lateral nao exibe mais `Indice 01`.
+- O carimbo lateral exibe `LeitorBI Open`.
+- A folha de abertura usa `Análise Técnica` e `Tenha controle do seu modelo · leitura técnica e rastreável.`.

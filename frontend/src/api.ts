@@ -2,7 +2,7 @@ import type { CompareResult, Report } from "./types";
 
 const configuredApiUrl = import.meta.env.VITE_API_URL;
 const isLocalHost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const API_URL = configuredApiUrl ?? (isLocalHost ? `${window.location.protocol}//${window.location.hostname}:8000` : "");
+const API_URL = configuredApiUrl ?? (isLocalHost ? `${window.location.protocol}//${window.location.hostname}:8001` : "");
 
 async function readError(response: Response, fallback: string) {
   const error = await response.json().catch(() => ({ detail: fallback }));

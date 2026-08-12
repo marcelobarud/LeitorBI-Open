@@ -34,6 +34,13 @@ describe("LeitorBI Open", () => {
     expect(screen.getByRole("heading", { name: /leia modelos power bi/i })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /iniciar/i })).toHaveLength(2);
     expect(screen.getAllByText("LeitorBI Open")).not.toHaveLength(0);
+    expect(screen.queryByText("OPEN / JSON")).not.toBeInTheDocument();
+    expect(screen.queryByText("ÍNDICE · 01")).not.toBeInTheDocument();
+    expect(document.querySelector(".index-stamp")?.textContent).toContain("LeitorBI");
+    expect(document.querySelector(".index-stamp")?.textContent).toContain("Open");
+    expect(screen.getByText("Análise Técnica")).toBeInTheDocument();
+    expect(screen.getByText("Tenha controle do seu modelo · leitura técnica e rastreável.")).toBeInTheDocument();
+    expect(screen.queryByText("CADERNO")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /como usar/i })).toHaveAttribute("href", "#como-usar");
     expect(screen.getByRole("link", { name: /ver demonstração/i })).toHaveAttribute("href", "/demo");
   });

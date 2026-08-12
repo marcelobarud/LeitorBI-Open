@@ -84,7 +84,7 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - Estados vazios, tutorial, comparacao, resumo e tabelas receberam a mesma gramatica visual sem alterar os algoritmos ou contratos da API.
 - Foram criados `PRODUCT.md`, `DESIGN.md` e `.impeccable/design.json`. `PRODUCT.md` descreve o produto; `DESIGN.md` registra a linguagem visual; este arquivo registra o conjunto da evolucao.
 - Validacoes realizadas: 18/18 testes frontend, build frontend, API de saude HTTP 200, detector Impeccable sem achados e inspecao visual em desktop e viewport mobile 390x844.
-- Frontend local: `http://localhost:5174/`. Backend local: `http://127.0.0.1:8001/`.
+- Frontend local: `http://localhost:5174/`. Backend local: `http://127.0.0.1:8001/`. O fallback local de `frontend/src/api.ts` aponta para a porta `8001`; `VITE_API_URL` continua podendo substituir essa URL.
 - As alteracoes permanecem locais; ainda nao houve commit ou push.
 
 ## Regra de manutencao de contexto
@@ -92,3 +92,12 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - `PRODUCT.md` registra proposito, usuarios, capacidades, restricoes e principios atuais do produto, sem virar um diario de implementacao.
 - `DESIGN.md` registra direcao visual, tokens, componentes, interacoes, acessibilidade e validacoes visuais.
 - Este `AI_CONTEXT LEITOR OPEN.md` registra o estado geral e o historico consolidado de mudancas relevantes, incluindo decisoes arquiteturais, identidade, validacoes e pendencias.
+
+### 2026-08-12 - Ajustes pontuais de texto na Landing
+
+- Removido o complemento `Open / JSON` do cabecalho da Landing.
+- Removido o elemento `Indice 01`, sem substituicao.
+- O carimbo visual `Caderno Aberto` passou a exibir `LeitorBI Open`.
+- O bloco `Folha de abertura` passou a exibir `Análise Técnica` e `Tenha controle do seu modelo · leitura técnica e rastreável.`.
+- Nenhuma estrutura visual geral, tela do workspace, navegacao, animacao, responsividade, backend ou contrato da API foi alterado.
+- Testes e build frontend foram executados apos a alteracao.
