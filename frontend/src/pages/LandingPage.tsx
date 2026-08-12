@@ -16,12 +16,18 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
   return (
     <main className="landing-page">
       <header className="landing-topbar">
-        <div className="brand"><Database size={24} /><span>LeitorBI-Web Open</span></div>
+        <div className="brand"><Database size={24} /><span>{t("common.productName")}</span></div>
+        <div className="landing-access">
+          <button className="ghost-action" type="button" onClick={onStart}>
+            <PlayCircle size={18} />
+            {t("landing.startNow")}
+          </button>
+        </div>
       </header>
 
       <section className="landing-hero">
         <div className="landing-copy">
-          <span className="eyebrow">{t("landing.product")}</span>
+          <span className="eyebrow">{t("common.productName")}</span>
           <h1>{t("landing.hero")}</h1>
           <p>{t("landing.heroDescription")}</p>
           <div className="hero-actions">

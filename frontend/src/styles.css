@@ -302,6 +302,21 @@ button:disabled {
   letter-spacing: 0;
 }
 
+.brand-button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.brand-button:focus-visible {
+  border-radius: 6px;
+  outline: 3px solid rgba(147, 197, 253, 0.9);
+  outline-offset: 4px;
+}
+
 nav {
   display: grid;
   gap: 8px;

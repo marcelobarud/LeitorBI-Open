@@ -1,4 +1,4 @@
-# LeitorBI-Web Open
+# LeitorBI Open
 
 Versão web pública e independente do LeitorBI para leitura de modelos Power BI. O produto funciona sem login, cadastro, conta, sessão ou administração de usuários.
 

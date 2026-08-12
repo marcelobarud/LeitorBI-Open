@@ -28,11 +28,12 @@ function mockFetch(handler: (url: string, init?: RequestInit) => Response | Prom
 beforeEach(() => window.history.pushState(null, "", "/"));
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-describe("LeitorBI-Web Open", () => {
+describe("LeitorBI Open", () => {
   it("exibe a landing pública com as ações principais", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: /leia modelos power bi/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /iniciar/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /iniciar/i })).toHaveLength(2);
+    expect(screen.getAllByText("LeitorBI Open")).not.toHaveLength(0);
     expect(screen.getByRole("link", { name: /como usar/i })).toHaveAttribute("href", "#como-usar");
     expect(screen.getByRole("link", { name: /ver demonstração/i })).toHaveAttribute("href", "/demo");
   });
@@ -41,10 +42,18 @@ describe("LeitorBI-Web Open", () => {
     const fetchMock = vi.fn(() => jsonResponse({ detail: "unexpected" }, { status: 404 }));
     vi.stubGlobal("fetch", fetchMock);
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: /iniciar/i }));
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
     expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
     expect(window.location.pathname).toBe("/app");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("retorna à landing pelo nome do produto no workspace", async () => {
+    window.history.pushState(null, "", "/app");
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /voltar para a landing page/i }));
+    expect(window.location.pathname).toBe("/");
+    expect(screen.getAllByRole("button", { name: /iniciar/i })).toHaveLength(2);
   });
 
   it("carrega a demonstração pública", async () => {
@@ -56,10 +65,20 @@ describe("LeitorBI-Web Open", () => {
     expect(screen.queryByRole("button", { name: /entrar/i })).not.toBeInTheDocument();
   });
 
+  it("retorna à landing pelo nome do produto na demonstração", async () => {
+    window.history.pushState(null, "", "/demo");
+    mockFetch((url) => url.includes("/api/public/demo/analyze") ? jsonResponse(sampleReport) : jsonResponse({ detail: "Not found" }, { status: 404 }));
+    render(<App />);
+    await screen.findByRole("button", { name: /voltar para a landing page/i });
+    await userEvent.click(screen.getByRole("button", { name: /voltar para a landing page/i }));
+    expect(window.location.pathname).toBe("/");
+    expect(screen.getAllByRole("button", { name: /iniciar/i })).toHaveLength(2);
+  });
+
   it("analisa um JSON sem sessão e mantém a navegação do workspace", async () => {
     mockFetch((url) => url.includes("/api/models/analyze") ? jsonResponse(sampleReport) : jsonResponse({ detail: "Not found" }, { status: 404 }));
     const { container } = render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: /iniciar/i }));
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
     const input = await waitFor(() => container.querySelector<HTMLInputElement>('input[type="file"]'));
     const file = new File([JSON.stringify({ tables: [] })], "modelo.json", { type: "application/json" });
     await userEvent.upload(input!, file);
@@ -72,7 +91,7 @@ describe("LeitorBI-Web Open", () => {
     const fetchMock = vi.fn(() => jsonResponse({ detail: "Not found" }, { status: 404 }));
     vi.stubGlobal("fetch", fetchMock);
     const { container } = render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: /iniciar/i }));
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
     const input = await waitFor(() => container.querySelector<HTMLInputElement>('input[type="file"]'));
     await userEvent.setup({ applyAccept: false }).upload(input!, new File(["not json"], "modelo.txt", { type: "text/plain" }));
     expect(await screen.findByText(/arquivo json válido/i)).toBeInTheDocument();

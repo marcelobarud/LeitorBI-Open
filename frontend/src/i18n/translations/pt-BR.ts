@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "../types";
 
 export const ptBR = {
+  "common.productName": "LeitorBI Open", "common.backToLanding": "Voltar para a Landing Page",
   "language.switch": "Alterar idioma para inglês",
   "common.back": "Voltar", "common.close": "Fechar", "common.clear": "Limpar", "common.refresh": "Atualizar", "common.loading": "Carregando...", "common.processing": "Processando...", "common.email": "E-mail", "common.name": "Nome", "common.password": "Senha", "common.confirmPassword": "Confirmar senha", "common.details": "Detalhes", "common.previous": "Anterior", "common.next": "Próxima", "common.search": "Buscar", "common.noResults": "Nenhum resultado encontrado.", "common.noValues": "Nenhum valor encontrado.",
   "nav.home": "Início", "nav.overview": "Resumo", "nav.tutorial": "Tutorial", "nav.tables": "Tabelas", "nav.columns": "Colunas", "nav.measures": "Medidas", "nav.sources": "Fontes", "nav.relationships": "Relacionamentos", "nav.compare": "Comparar",

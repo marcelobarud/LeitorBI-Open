@@ -193,7 +193,7 @@ function TutorialView() {
   );
 }
 
-function DemoPage() {
+function DemoPage({ onBackToLanding }: { onBackToLanding: () => void }) {
   const { t } = useLocale();
   const [demoReport, setDemoReport] = useState<Report | null>(null);
   const [activeTab, setActiveTab] = useState<Exclude<TabKey, "tutorial" | "compare">>("overview");
@@ -232,10 +232,10 @@ function DemoPage() {
   return (
     <main className="app-shell demo-shell">
       <aside className="sidebar">
-        <a className="brand demo-brand-link" href={ROUTES.landing}>
+        <button className="brand brand-button demo-brand-link" type="button" onClick={onBackToLanding} aria-label={t("common.backToLanding")}>
           <Database size={24} />
-          <span>LeitorBI-Web Open</span>
-        </a>
+          <span>{t("common.productName")}</span>
+        </button>
         <nav>
           {demoTabs.map((tab) => (
             <button
@@ -305,7 +305,7 @@ function UploadPanel({
   return (
     <section className="upload-panel">
       <div className="upload-copy">
-        <span className="eyebrow">{t("landing.product")}</span>
+        <span className="eyebrow">{t("common.productName")}</span>
         <h1>{t("upload.title")}</h1>
         <p>{t("demo.description")}</p>
         <div className="hero-actions">
@@ -467,16 +467,16 @@ export function App() {
   const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);
   const activeRows = isDataTab ? rowsByTab[activeTab as DataTabKey] : [];
 
-  if (currentPath === ROUTES.demo) return <DemoPage />;
+  if (currentPath === ROUTES.demo) return <DemoPage onBackToLanding={() => navigateTo(ROUTES.landing)} />;
   if (currentPath === ROUTES.landing) return <LandingPage onStart={() => navigateTo(ROUTES.app)} />;
 
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <div className="brand">
+        <button className="brand brand-button" type="button" onClick={() => navigateTo(ROUTES.landing)} aria-label={t("common.backToLanding")}>
           <Database size={24} />
-            <span>LeitorBI-Web Open</span>
-        </div>
+          <span>{t("common.productName")}</span>
+        </button>
         <nav>
           {visibleTabs.map((tab) => (
             <button
