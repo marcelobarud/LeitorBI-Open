@@ -6,8 +6,8 @@ import { App } from "./App";
 const sampleReport = {
   summary: {
     Dashboard: "Demo Publica Comercial", Modelo: "Modelo Demo", "Modo padrao": "Import",
-    "Data de exportacao": "2026-07-09", "Tabelas totais": 1, "Colunas totais": 2,
-    "Colunas utilizadas": 2, Medidas: 1, "Fontes de dados": 1, "Tipos de fontes": "SQL", Relacionamentos: 0,
+    "Data de exportacao": "2026-07-09", Cultura: "pt-BR", "Tabelas totais": 1, "Colunas totais": 2,
+    "Colunas utilizadas": 2, "Colunas utilizadas em medidas": 1, Medidas: 1, "Fontes de dados": 1, "Tipos de fontes": "SQL", Relacionamentos: 0,
   },
   tables: [{ Tabela: "Fato Vendas Demo", Tipo: "Regular", Oculta: "Não" }],
   columns: [{ Tabela: "Fato Vendas Demo", Coluna: "Receita", Oculto: "Não" }],
@@ -121,6 +121,13 @@ describe("LeitorBI Open", () => {
     const file = new File([JSON.stringify({ tables: [] })], "modelo.json", { type: "application/json" });
     await userEvent.upload(input!, file);
     expect(await screen.findByRole("heading", { name: "Demo Publica Comercial" })).toBeInTheDocument();
+    expect(Array.from(document.querySelectorAll(".summary-list span"), (node) => node.textContent)).toEqual([
+      "Dashboard", "Tabelas totais", "Modelo", "Colunas totais", "Data de exportação", "Colunas utilizadas em medidas",
+      "Cultura", "Medidas", "Modo padrão", "Relacionamentos", "Tipos de fontes", "Fontes de Dados",
+    ]);
+    expect(screen.getByText("Colunas utilizadas em medidas", { exact: true })).toBeInTheDocument();
+    expect(screen.queryByText("Colunas utilizadas", { exact: true })).not.toBeInTheDocument();
+    expect(document.querySelector(".summary-columns")).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /relacionamentos/i }));
     expect(screen.getByRole("heading", { name: /relacionamentos/i })).toBeInTheDocument();
   });

@@ -57,3 +57,7 @@ Technical resources share the `TechnicalLink` component: `Tabular Editor` and `P
 ## Brand system
 
 The `Brand` component is the shared identity implementation for the Landing, Workspace, and Demo. It keeps the Landing mark as the visual source of truth and exposes a `sidebar` variant for dark rails: the mark block is paper white and the `LB` monogram is deep ink black. Workspace and Demo use the same sidebar variant and preserve the existing keyboard-accessible return-to-Landing button behavior.
+
+## Dashboard summary layout
+
+The Overview preserves the existing `metric-grid`, `insight-grid`, and `summary-list` composition. The existing two-column summary list now receives its items in visual left/right order: six model metadata fields on the left and six indicators on the right. The backend-only `Colunas utilizadas` field is omitted from this list while `Colunas utilizadas em medidas` remains visible from the report value.

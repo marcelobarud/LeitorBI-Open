@@ -1,6 +1,7 @@
 import type { TranslationCatalog } from "../types";
 
 export const ptBR = {
+  "overview.summaryDashboard": "Dashboard", "overview.summaryModel": "Modelo", "overview.summaryExportDate": "Data de exportação", "overview.summaryCulture": "Cultura", "overview.summaryDefaultMode": "Modo padrão", "overview.summarySourceTypes": "Tipos de fontes", "overview.summaryTotalTables": "Tabelas totais", "overview.summaryTotalColumns": "Colunas totais", "overview.summaryUsedColumnsInMeasures": "Colunas utilizadas em medidas", "overview.summaryMeasures": "Medidas", "overview.summaryRelationships": "Relacionamentos", "overview.summaryDataSources": "Fontes de Dados",
   "common.productName": "LeitorBI Open", "common.backToLanding": "Voltar para a Landing Page",
   "language.switch": "Alterar idioma para inglês",
   "common.back": "Voltar", "common.close": "Fechar", "common.clear": "Limpar", "common.refresh": "Atualizar", "common.loading": "Carregando...", "common.processing": "Processando...", "common.email": "E-mail", "common.name": "Nome", "common.password": "Senha", "common.confirmPassword": "Confirmar senha", "common.details": "Detalhes", "common.previous": "Anterior", "common.next": "Próxima", "common.search": "Buscar", "common.noResults": "Nenhum resultado encontrado.", "common.noValues": "Nenhum valor encontrado.",

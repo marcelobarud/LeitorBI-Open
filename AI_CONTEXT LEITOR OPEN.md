@@ -128,3 +128,15 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - O comportamento existente de retorno para a Landing pelo nome do produto foi preservado, agora dentro do componente compartilhado e com o mesmo nome acessivel do botao.
 - O icone `Database` deixou de ser usado como substituto de logo nas barras laterais; nao houve alteracao de layout geral, navegacao, backend, contratos da API ou fluxos de analise.
 - Validacao: 19/19 testes frontend, build frontend, detector Impeccable sem achados e revisao visual da Landing, Workspace e Demo em desktop; as regras responsivas existentes foram preservadas para mobile.
+
+### 2026-08-13 - Reorganizacao e correcao do resumo do Dashboard
+
+- A primeira implementacao dessa reorganizacao criou indevidamente `summary-columns`, alterou o `metric-grid` e removeu o `summary-list` original.
+- Essa estrutura foi restaurada: o `metric-grid`, o `insight-grid`, o `summary-list`, containers, estilos e responsividade anteriores voltaram a ser usados.
+- A mudanca visual ficou limitada ao `summary-list` existente: `Colunas utilizadas` foi omitido e os campos foram ordenados visualmente em duas colunas, com metadados a esquerda e indicadores a direita.
+- `Colunas utilizadas em medidas` permanece visivel com o valor original do relatorio. Nenhuma logica, API, dado de backend ou componente estrutural novo foi introduzido.
+
+- O resumo do Dashboard agora apresenta metadados no lado esquerdo na ordem `Dashboard`, `Modelo`, `Data de exportação`, `Cultura`, `Modo padrão` e `Tipos de fontes`.
+- Os indicadores do lado direito seguem a ordem `Tabelas totais`, `Colunas totais`, `Colunas utilizadas em medidas`, `Medidas`, `Relacionamentos` e `Fontes de Dados`.
+- A informação `Colunas utilizadas` deixou de ser exibida como bloco visual, mas continua preservada no relatório e no backend; `Colunas utilizadas em medidas` usa o valor original de `summary`.
+- A reorganização ficou restrita ao componente `Overview`, traduções, estilos responsivos e testes; algoritmos, contratos, upload, análise, comparação e exportação não foram alterados.

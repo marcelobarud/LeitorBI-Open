@@ -49,6 +49,20 @@ export function Overview({
     [t("nav.sources"), sources, summary["Tipos de fontes"]],
     [t("nav.relationships"), relationships, t("overview.relationshipMap")],
   ];
+  const summaryEntries: Array<[string, Row[string]]> = [
+    [t("overview.summaryDashboard"), summary["Dashboard"]],
+    [t("overview.summaryTotalTables"), summary["Tabelas totais"]],
+    [t("overview.summaryModel"), summary["Modelo"]],
+    [t("overview.summaryTotalColumns"), summary["Colunas totais"]],
+    [t("overview.summaryExportDate"), summary["Data de exportacao"]],
+    [t("overview.summaryUsedColumnsInMeasures"), summary["Colunas utilizadas em medidas"]],
+    [t("overview.summaryCulture"), summary["Cultura"]],
+    [t("overview.summaryMeasures"), summary["Medidas"]],
+    [t("overview.summaryDefaultMode"), summary["Modo padrao"]],
+    [t("overview.summaryRelationships"), summary["Relacionamentos"]],
+    [t("overview.summarySourceTypes"), summary["Tipos de fontes"]],
+    [t("overview.summaryDataSources"), summary["Fontes de dados"]],
+  ];
   const insightCards = [
     {
       icon: ShieldCheck,
@@ -135,9 +149,9 @@ export function Overview({
       </section>
 
       <section className="summary-list">
-        {Object.entries(summary).map(([key, value]) => (
-          <div key={key}>
-            <span>{key}</span>
+        {summaryEntries.map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
             <strong>{formatValue(value)}</strong>
           </div>
         ))}

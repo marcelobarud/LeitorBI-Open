@@ -3,6 +3,7 @@ import { ptBR } from "./pt-BR";
 
 // Keeping this object typed against ptBR makes a missing English key a TypeScript error.
 export const enUS: Record<keyof typeof ptBR, string> = {
+  "overview.summaryDashboard": "Dashboard", "overview.summaryModel": "Model", "overview.summaryExportDate": "Export date", "overview.summaryCulture": "Culture", "overview.summaryDefaultMode": "Default mode", "overview.summarySourceTypes": "Source types", "overview.summaryTotalTables": "Total tables", "overview.summaryTotalColumns": "Total columns", "overview.summaryUsedColumnsInMeasures": "Columns used in measures", "overview.summaryMeasures": "Measures", "overview.summaryRelationships": "Relationships", "overview.summaryDataSources": "Data Sources",
   "common.productName": "LeitorBI Open", "common.backToLanding": "Back to the Landing Page",
   "language.switch": "Switch language to Portuguese",
   "common.back": "Back", "common.close": "Close", "common.clear": "Clear", "common.refresh": "Refresh", "common.loading": "Loading...", "common.processing": "Processing...", "common.email": "Email", "common.name": "Name", "common.password": "Password", "common.confirmPassword": "Confirm password", "common.details": "Details", "common.previous": "Previous", "common.next": "Next", "common.search": "Search", "common.noResults": "No results found.", "common.noValues": "No values found.",
