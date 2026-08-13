@@ -101,3 +101,12 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - O bloco `Folha de abertura` passou a exibir `Análise Técnica` e `Tenha controle do seu modelo · leitura técnica e rastreável.`.
 - Nenhuma estrutura visual geral, tela do workspace, navegacao, animacao, responsividade, backend ou contrato da API foi alterado.
 - Testes e build frontend foram executados apos a alteracao.
+
+### 2026-08-12 - Beneficios e etapa de exportacao da Landing
+
+- A lista lateral de beneficios da Landing deixou de usar `01`, `02` e `03`; cada item agora usa um marcador circular ferrugem e o mesmo peso visual.
+- O elemento `FOLHA 01 / 04` foi removido do painel tecnico, com reducao apenas do espaco residual.
+- A etapa 1 de `Como comecar` passou a exibir exatamente `Abra o PBIX no Power BI, conecte o Tabular Editor e gere o JSON do modelo com o Script PBIExportModel.`.
+- `Tabular Editor` na Landing reutiliza o destino do Tutorial (`https://github.com/TabularEditor/TabularEditor/releases/latest`), com nova aba e `rel="noreferrer"`.
+- A infraestrutura de internacionalizacao foi preservada e atualizada nos catalogos PT-BR e en-US.
+- Workspace, Tutorial, backend, contratos da API, algoritmos, paleta geral, animacoes e responsividade fora da Landing permaneceram sem alteracoes.

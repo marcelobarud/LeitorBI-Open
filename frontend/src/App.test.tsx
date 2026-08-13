@@ -41,6 +41,18 @@ describe("LeitorBI Open", () => {
     expect(screen.getByText("Análise Técnica")).toBeInTheDocument();
     expect(screen.getByText("Tenha controle do seu modelo · leitura técnica e rastreável.")).toBeInTheDocument();
     expect(screen.queryByText("CADERNO")).not.toBeInTheDocument();
+    expect(screen.queryByText("FOLHA 01 / 04")).not.toBeInTheDocument();
+    expect(screen.queryByText("01")).not.toBeInTheDocument();
+    expect(screen.queryByText("02")).not.toBeInTheDocument();
+    expect(screen.queryByText("03")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".landing-index .benefit-marker")).toHaveLength(3);
+    expect(document.querySelectorAll(".landing-index li")).toHaveLength(3);
+    const tabularEditorLink = screen.getByRole("link", { name: "Tabular Editor" });
+    expect(tabularEditorLink).toHaveAttribute("href", "https://github.com/TabularEditor/TabularEditor/releases/latest");
+    expect(tabularEditorLink).toHaveAttribute("target", "_blank");
+    expect(tabularEditorLink).toHaveAttribute("rel", "noreferrer");
+    expect(screen.getByText("Abra o PBIX no Power BI, conecte", { exact: false })).toBeInTheDocument();
+    expect(screen.getByText("e gere o JSON do modelo com o Script PBIExportModel.", { exact: false })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /como usar/i })).toHaveAttribute("href", "#como-usar");
     expect(screen.getByRole("link", { name: /ver demonstração/i })).toHaveAttribute("href", "/demo");
   });

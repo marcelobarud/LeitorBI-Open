@@ -77,3 +77,9 @@ A interface deve permanecer navegável por teclado, usar nomes acessíveis para 
 - O indice lateral nao exibe mais `Indice 01`.
 - O carimbo lateral exibe `LeitorBI Open`.
 - A folha de abertura usa `Análise Técnica` e `Tenha controle do seu modelo · leitura técnica e rastreável.`.
+
+### Landing benefits and export step
+
+- Os beneficios laterais usam marcadores ferrugem sem numeracao e com peso uniforme.
+- O painel tecnico nao exibe mais o folio `FOLHA 01 / 04`.
+- A etapa inicial informa a geracao com o Script PBIExportModel e destaca `Tabular Editor` como link para a pagina de releases do Tutorial.

@@ -3144,3 +3144,40 @@ tr:hover td {
     padding: 34px 20px 22px;
   }
 }
+
+/* Landing-only refinements: benefit markers, folio removal, and shared tutorial link treatment. */
+.landing-index li span.benefit-marker {
+  align-self: center;
+  background: var(--rust);
+  border-radius: 50%;
+  display: block;
+  height: 5px;
+  width: 5px;
+}
+
+.landing-index li,
+.landing-index li.active {
+  color: var(--ink);
+  font-weight: 800;
+  grid-template-columns: 23px minmax(0, 1fr);
+}
+
+.landing-preview {
+  padding-top: 28px;
+}
+
+.tutorial-step-link {
+  color: var(--rust-dark);
+  text-decoration: none;
+}
+
+.tutorial-step-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .landing-preview {
+    padding-top: 28px;
+  }
+}

@@ -49,3 +49,5 @@ Este arquivo registra apenas a linguagem visual e suas decisoes de implementacao
 ## Landing copy refinement
 
 The approved visual structure remains unchanged. The current cover copy uses “Análise Técnica” with “Tenha controle do seu modelo · leitura técnica e rastreável.”, the side stamp reads “LeitorBI Open”, and the header/index no longer show “Open / JSON” or “Índice 01”.
+
+The Landing benefit rail now uses three equal-weight rust dots instead of numbered labels. The technical preview keeps its panel treatment without the `FOLHA 01 / 04` folio, and the first “Como começar” step uses the Tutorial's `Tabular Editor` release link and external-link behavior.
