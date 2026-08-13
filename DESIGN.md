@@ -61,3 +61,7 @@ The `Brand` component is the shared identity implementation for the Landing, Wor
 ## Dashboard summary layout
 
 The Overview preserves the existing `metric-grid`, `insight-grid`, and `summary-list` composition. The existing two-column summary list now receives its items in visual left/right order: six model metadata fields on the left and six indicators on the right. The backend-only `Colunas utilizadas` field is omitted from this list while `Colunas utilizadas em medidas` remains visible from the report value.
+
+## Data row expansion
+
+`DataTable` is the shared interaction for Tabelas, Colunas, Medidas, Fontes, and Relacionamentos. Every row exposes the incumbent details action and opens the same ruled detail block, including rows whose values are short. Expansion state is local to visible row indexes and resets with filtering/search data changes; the action exposes `aria-expanded` and `aria-controls`.

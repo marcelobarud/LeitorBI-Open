@@ -136,6 +136,14 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - A mudanca visual ficou limitada ao `summary-list` existente: `Colunas utilizadas` foi omitido e os campos foram ordenados visualmente em duas colunas, com metadados a esquerda e indicadores a direita.
 - `Colunas utilizadas em medidas` permanece visivel com o valor original do relatorio. Nenhuma logica, API, dado de backend ou componente estrutural novo foi introduzido.
 
+### 2026-08-13 - Expansao padronizada das linhas de dados
+
+- O componente compartilhado `frontend/src/components/DataTable.tsx` agora torna toda linha expansivel, independentemente do tamanho ou do tipo de conteúdo das células.
+- Tabelas, Colunas, Medidas, Fontes e Relacionamentos continuam usando o mesmo botão, bloco expandido, espaçamento e estilo existentes.
+- O botão de detalhes passou a estar presente em todas as linhas e expõe `aria-expanded`/`aria-controls`, preservando acionamento por teclado e foco acessível.
+- A expansão continua exibindo somente os campos já presentes no payload; filtros, busca, paginação, layout, backend e contratos não foram alterados.
+- Validação: 20/20 testes frontend, build frontend e detector Impeccable.
+
 - O resumo do Dashboard agora apresenta metadados no lado esquerdo na ordem `Dashboard`, `Modelo`, `Data de exportação`, `Cultura`, `Modo padrão` e `Tipos de fontes`.
 - Os indicadores do lado direito seguem a ordem `Tabelas totais`, `Colunas totais`, `Colunas utilizadas em medidas`, `Medidas`, `Relacionamentos` e `Fontes de Dados`.
 - A informação `Colunas utilizadas` deixou de ser exibida como bloco visual, mas continua preservada no relatório e no backend; `Colunas utilizadas em medidas` usa o valor original de `summary`.

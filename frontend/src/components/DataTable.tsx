@@ -12,12 +12,6 @@ function formatValue(value: Row[string]) {
   return String(value);
 }
 
-function hasExpandableContent(row: Row) {
-  return Object.values(row).some((value) => {
-    const text = formatValue(value);
-    return text.length > 120 || text.includes("\n") || text.includes("#(lf)");
-  });
-}
 function useDebouncedValue<T>(value: T, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -73,8 +67,6 @@ export function DataTable({ rows }: { rows: Row[] }) {
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const endIndex = Math.min(startIndex + PAGE_SIZE, visibleRows.length);
   const pageRows = visibleRows.slice(startIndex, endIndex);
-  const hasExpandableRows = useMemo(() => visibleRows.some(hasExpandableContent), [visibleRows]);
-
   useEffect(() => {
     setPage(1);
     setExpandedRows(new Set());
@@ -196,7 +188,7 @@ export function DataTable({ rows }: { rows: Row[] }) {
         <table>
           <thead>
             <tr>
-              {hasExpandableRows ? <th className="row-action-header">{t("common.details")}</th> : null}
+              <th className="row-action-header">{t("common.details")}</th>
               {columns.map((column) => {
                 const selectedFilterValues = columnFilters[column] ?? [];
                 const optionSearchValue = columnOptionSearches[column] ?? "";
@@ -294,33 +286,30 @@ export function DataTable({ rows }: { rows: Row[] }) {
           <tbody>
             {pageRows.map((row, index) => {
               const rowIndex = startIndex + index;
-              const isExpandable = hasExpandableContent(row);
               const isExpanded = expandedRows.has(rowIndex);
               return (
                 <Fragment key={`row-group-${rowIndex}`}>
                   <tr key={`row-${rowIndex}`}>
-                    {hasExpandableRows ? (
-                      <td className="row-action-cell">
-                        {isExpandable ? (
-                          <button
-                            className="icon-action"
-                            type="button"
-                            title={t(isExpanded ? "table.collapseRow" : "table.expandRow")}
-                            aria-label={t(isExpanded ? "table.collapseRow" : "table.expandRow")}
-                            onClick={() => toggleRow(rowIndex)}
-                          >
-                            {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                          </button>
-                        ) : null}
-                      </td>
-                    ) : null}
+                    <td className="row-action-cell">
+                      <button
+                        className="icon-action"
+                        type="button"
+                        title={t(isExpanded ? "table.collapseRow" : "table.expandRow")}
+                        aria-label={t(isExpanded ? "table.collapseRow" : "table.expandRow")}
+                        aria-expanded={isExpanded}
+                        aria-controls={`expanded-${rowIndex}`}
+                        onClick={() => toggleRow(rowIndex)}
+                      >
+                        {isExpanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                      </button>
+                    </td>
                     {columns.map((column) => (
                       <td key={column}>{formatValue(row[column])}</td>
                     ))}
                   </tr>
                   {isExpanded ? (
-                    <tr className="expanded-row" key={`expanded-${rowIndex}`}>
-                      <td colSpan={columns.length + (hasExpandableRows ? 1 : 0)}>
+                    <tr className="expanded-row" id={`expanded-${rowIndex}`} key={`expanded-${rowIndex}`}>
+                      <td colSpan={columns.length + 1}>
                         <div className="expanded-content">
                           {columns.map((column) => (
                             <section key={column}>
