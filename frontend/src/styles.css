@@ -3166,14 +3166,20 @@ tr:hover td {
   padding-top: 28px;
 }
 
-.tutorial-step-link {
+.technical-link {
   color: var(--rust-dark);
   text-decoration: none;
 }
 
-.tutorial-step-link:hover {
+.technical-link:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.technical-link:focus-visible {
+  border-radius: 2px;
+  outline: 3px solid rgba(217, 95, 57, 0.42);
+  outline-offset: 3px;
 }
 
 @media (max-width: 760px) {

@@ -110,3 +110,12 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - `Tabular Editor` na Landing reutiliza o destino do Tutorial (`https://github.com/TabularEditor/TabularEditor/releases/latest`), com nova aba e `rel="noreferrer"`.
 - A infraestrutura de internacionalizacao foi preservada e atualizada nos catalogos PT-BR e en-US.
 - Workspace, Tutorial, backend, contratos da API, algoritmos, paleta geral, animacoes e responsividade fora da Landing permaneceram sem alteracoes.
+
+### 2026-08-13 - Padronizacao do script PBIModelExport
+
+- A grafia visivel do script foi corrigida de `PBIExportModel`/`PBIXExportModel` para `PBIModelExport` na Landing e no Tutorial.
+- Foi criado `frontend/src/components/TechnicalLink.tsx`, que centraliza os links tecnicos, seus destinos, abertura em nova aba, `noopener noreferrer` e a aparencia/foco compartilhados.
+- `Tabular Editor` e `PBIModelExport` agora usam o mesmo padrao visual tecnico ferrugem, sem aparência de botao grande.
+- `PBIModelExport` aponta nas duas telas para `https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx`.
+- O restante da Landing, o Tutorial fora dessa referencia, o workspace, backend, contratos da API e fluxo de analise permaneceram inalterados.
+- Validacao: 19/19 testes frontend, build frontend, verificacao de links no navegador em desktop/mobile e sem overflow horizontal.

@@ -14,6 +14,7 @@ import {
 import {
   type ChangeEvent,
   type FormEvent,
+  type ReactNode,
   useEffect,
   useRef,
   useState,
@@ -30,6 +31,7 @@ import { CompareFileInput } from "./components/CompareFileInput";
 import { DataTable } from "./components/DataTable";
 import { CompareView } from "./components/CompareView";
 import { CompareErrorBoundary } from "./components/CompareErrorBoundary";
+import { PBI_MODEL_EXPORT_URL, TABULAR_EDITOR_URL, TechnicalLink } from "./components/TechnicalLink";
 import { HomeEmptyState } from "./components/HomeEmptyState";
 import { Overview } from "./components/Overview";
 import { LandingPage } from "./pages/LandingPage";
@@ -103,16 +105,22 @@ function validateJsonFile(file: File, t: (key: TranslationKey, params?: Record<s
 
 function TutorialView() {
   const { t } = useLocale();
-  const steps = [
+  type TutorialStep = {
+    label: string;
+    title: string;
+    detail: ReactNode;
+    script?: string;
+    scriptHref?: string;
+    suffix?: string;
+  };
+  const steps: TutorialStep[] = [
     {
       label: "1",
       title: t("tutorial.step1"),
       detail: (
         <>
           {t("tutorial.step1Detail").replace("Tabular Editor", "")}{" "}
-          <a href="https://github.com/TabularEditor/TabularEditor/releases/latest" target="_blank" rel="noreferrer">
-            <strong>Tabular Editor</strong>
-          </a>{" "}
+          <TechnicalLink href={TABULAR_EDITOR_URL}>Tabular Editor</TechnicalLink>{" "}
         </>
       ),
     },
@@ -124,7 +132,8 @@ function TutorialView() {
     },
     {
       label: "4", title: t("tutorial.step4"), detail: t("tutorial.step1Title"),
-      script: "PBIXExportModel",
+      script: "PBIModelExport",
+      scriptHref: PBI_MODEL_EXPORT_URL,
       suffix: t("tutorial.step1Suffix"),
     },
     {
@@ -168,7 +177,7 @@ function TutorialView() {
                 {step.script ? (
                   <>
                     {" "}
-                    <code>{step.script}</code>{" "}
+                    <TechnicalLink href={step.scriptHref ?? PBI_MODEL_EXPORT_URL}>{step.script}</TechnicalLink>{" "}
                   </>
                 ) : (
                   " "

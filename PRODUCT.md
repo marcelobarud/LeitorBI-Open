@@ -82,4 +82,9 @@ A interface deve permanecer navegável por teclado, usar nomes acessíveis para 
 
 - Os beneficios laterais usam marcadores ferrugem sem numeracao e com peso uniforme.
 - O painel tecnico nao exibe mais o folio `FOLHA 01 / 04`.
-- A etapa inicial informa a geracao com o Script PBIExportModel e destaca `Tabular Editor` como link para a pagina de releases do Tutorial.
+- A etapa inicial informa a geracao com o Script PBIModelExport e destaca `Tabular Editor` como link para a pagina de releases do Tutorial.
+
+### Technical references
+
+- `Tabular Editor` e `PBIModelExport` sao links tecnicos com o mesmo tratamento visual e comportamento de nova aba.
+- `PBIModelExport` usa o recurso oficial `https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx` na Landing e no Tutorial.

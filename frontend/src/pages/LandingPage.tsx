@@ -9,13 +9,13 @@ import {
 } from "lucide-react";
 import { useLocale } from "../i18n/LocaleProvider";
 import { ROUTES } from "../routes";
-
-const TABULAR_EDITOR_URL = "https://github.com/TabularEditor/TabularEditor/releases/latest";
+import { PBI_MODEL_EXPORT_URL, TABULAR_EDITOR_URL, TechnicalLink } from "../components/TechnicalLink";
 
 export function LandingPage({ onStart }: { onStart: () => void }) {
   const { t } = useLocale();
   const exportDescription = t("landing.exportModelDescription");
-  const [exportDescriptionBeforeLink, exportDescriptionAfterLink] = exportDescription.split("Tabular Editor");
+  const [exportDescriptionBeforeTabular, exportDescriptionAfterTabular] = exportDescription.split("Tabular Editor");
+  const [exportDescriptionBeforeScript, exportDescriptionAfterScript] = exportDescriptionAfterTabular.split("PBIModelExport");
 
   return (
     <main className="landing-page">
@@ -88,7 +88,7 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
       <section className="landing-steps" id="como-usar">
         <header className="page-header"><ClipboardList size={22} /><div><h2>{t("landing.howToStart")}</h2><p>{t("landing.workflowDescription")}</p></div></header>
         <div>
-          <article><span>1</span><strong>{t("landing.exportModel")}</strong><p>{exportDescriptionBeforeLink}<a className="tutorial-step-link" href={TABULAR_EDITOR_URL} target="_blank" rel="noreferrer"><strong>Tabular Editor</strong></a>{exportDescriptionAfterLink}</p></article>
+          <article><span>1</span><strong>{t("landing.exportModel")}</strong><p>{exportDescriptionBeforeTabular}<TechnicalLink href={TABULAR_EDITOR_URL}>Tabular Editor</TechnicalLink>{exportDescriptionBeforeScript}<TechnicalLink href={PBI_MODEL_EXPORT_URL}>PBIModelExport</TechnicalLink>{exportDescriptionAfterScript}</p></article>
           <article><span>2</span><strong>{t("landing.startLeitorBI")}</strong><p>{t("landing.startDescription")}</p></article>
           <article><span>3</span><strong>{t("landing.uploadFilterShare")}</strong><p>{t("landing.uploadFilterShareDescription")}</p></article>
         </div>

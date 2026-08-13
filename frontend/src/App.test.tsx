@@ -50,11 +50,28 @@ describe("LeitorBI Open", () => {
     const tabularEditorLink = screen.getByRole("link", { name: "Tabular Editor" });
     expect(tabularEditorLink).toHaveAttribute("href", "https://github.com/TabularEditor/TabularEditor/releases/latest");
     expect(tabularEditorLink).toHaveAttribute("target", "_blank");
-    expect(tabularEditorLink).toHaveAttribute("rel", "noreferrer");
-    expect(screen.getByText("Abra o PBIX no Power BI, conecte", { exact: false })).toBeInTheDocument();
-    expect(screen.getByText("e gere o JSON do modelo com o Script PBIExportModel.", { exact: false })).toBeInTheDocument();
+    expect(tabularEditorLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(document.querySelector(".landing-steps article p")?.textContent).toBe("Abra o PBIX no Power BI, conecte o Tabular Editor e gere o JSON do modelo com o Script PBIModelExport.");
     expect(screen.getByRole("link", { name: /como usar/i })).toHaveAttribute("href", "#como-usar");
     expect(screen.getByRole("link", { name: /ver demonstração/i })).toHaveAttribute("href", "/demo");
+  });
+
+  it("padroniza o link técnico PBIModelExport na Landing e no Tutorial", async () => {
+    const { unmount } = render(<App />);
+    const landingScriptLink = screen.getByRole("link", { name: "PBIModelExport" });
+    expect(landingScriptLink).toHaveAttribute("href", "https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx");
+    expect(landingScriptLink).toHaveAttribute("target", "_blank");
+    expect(landingScriptLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.queryByText("PBIExportModel")).not.toBeInTheDocument();
+
+    unmount();
+    window.history.pushState(null, "", "/app");
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Tutorial" }));
+    const tutorialScriptLink = screen.getByRole("link", { name: "PBIModelExport" });
+    expect(tutorialScriptLink).toHaveAttribute("href", "https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx");
+    expect(tutorialScriptLink).toHaveAttribute("target", "_blank");
+    expect(tutorialScriptLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("abre o workspace diretamente ao iniciar, sem consultar autenticação", async () => {
