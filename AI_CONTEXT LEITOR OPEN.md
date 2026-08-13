@@ -119,3 +119,12 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - `PBIModelExport` aponta nas duas telas para `https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx`.
 - O restante da Landing, o Tutorial fora dessa referencia, o workspace, backend, contratos da API e fluxo de analise permaneceram inalterados.
 - Validacao: 19/19 testes frontend, build frontend, verificacao de links no navegador em desktop/mobile e sem overflow horizontal.
+
+### 2026-08-13 - Padronizacao da marca entre Landing, Workspace e Demo
+
+- O componente compartilhado `frontend/src/components/Brand.tsx` passou a concentrar a identidade `LB` + `LeitorBI Open`.
+- A Landing continua usando a marca de referencia com bloco em tinta escura e monograma claro.
+- Workspace e Demo agora reutilizam a mesma composicao na variante `sidebar`, com bloco branco e monograma preto para contraste com a barra lateral escura.
+- O comportamento existente de retorno para a Landing pelo nome do produto foi preservado, agora dentro do componente compartilhado e com o mesmo nome acessivel do botao.
+- O icone `Database` deixou de ser usado como substituto de logo nas barras laterais; nao houve alteracao de layout geral, navegacao, backend, contratos da API ou fluxos de analise.
+- Validacao: 19/19 testes frontend, build frontend, detector Impeccable sem achados e revisao visual da Landing, Workspace e Demo em desktop; as regras responsivas existentes foram preservadas para mobile.

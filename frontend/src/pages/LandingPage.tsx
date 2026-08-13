@@ -1,7 +1,6 @@
 import {
   BookOpenCheck,
   ClipboardList,
-  Database,
   Download,
   GitCompareArrows,
   PlayCircle,
@@ -9,6 +8,7 @@ import {
 } from "lucide-react";
 import { useLocale } from "../i18n/LocaleProvider";
 import { ROUTES } from "../routes";
+import { Brand } from "../components/Brand";
 import { PBI_MODEL_EXPORT_URL, TABULAR_EDITOR_URL, TechnicalLink } from "../components/TechnicalLink";
 
 export function LandingPage({ onStart }: { onStart: () => void }) {
@@ -20,10 +20,7 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
   return (
     <main className="landing-page">
       <header className="landing-topbar">
-        <div className="brand">
-          <span className="brand-mark">LB</span>
-          <span>{t("common.productName")}</span>
-        </div>
+        <Brand />
         <div className="landing-access">
           <button className="ghost-action" type="button" onClick={onStart}>
             <PlayCircle size={18} />

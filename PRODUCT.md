@@ -66,6 +66,7 @@ A interface deve permanecer navegável por teclado, usar nomes acessíveis para 
 
 - Nome visivel ao usuario: **LeitorBI Open**, inclusive no titulo da aba do navegador.
 - A marca no topo do workspace e da demonstracao retorna a Landing Page.
+- A marca usa o componente compartilhado `Brand`: a Landing usa a variante de referencia escura, enquanto Workspace e Demo usam a mesma composicao com bloco branco e monograma preto para contraste no trilho escuro.
 - A Landing oferece `Iniciar` no canto superior direito e no conteudo principal; ambos abrem o workspace publico.
 - Direcao visual atual: **Caderno de evidencias**, com capa tecnica, indice, folios, papel pautado e marcacoes de auditoria.
 - Componentes contidos e confiaveis usam tinta escura, papel aquecido, ferrugem para acoes e azul ardósia para informacao tecnica.

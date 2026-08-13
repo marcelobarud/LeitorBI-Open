@@ -1976,6 +1976,11 @@ input:focus-visible {
   width: 34px;
 }
 
+.brand--sidebar .brand-mark {
+  background: var(--paper);
+  color: var(--ink);
+}
+
 .landing-access .ghost-action {
   background: transparent;
   border: 1px solid var(--ink);
@@ -2384,10 +2389,6 @@ input:focus-visible {
   font-size: 18px;
   letter-spacing: -0.03em;
   padding: 0 8px 20px;
-}
-
-.sidebar .brand svg {
-  color: var(--rust);
 }
 
 .sidebar nav {

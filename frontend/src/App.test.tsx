@@ -34,6 +34,7 @@ describe("LeitorBI Open", () => {
     expect(screen.getByRole("heading", { name: /leia modelos power bi/i })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /iniciar/i })).toHaveLength(2);
     expect(screen.getAllByText("LeitorBI Open")).not.toHaveLength(0);
+    expect(document.querySelector(".brand--landing .brand-mark")).toHaveTextContent("LB");
     expect(screen.queryByText("OPEN / JSON")).not.toBeInTheDocument();
     expect(screen.queryByText("ÍNDICE · 01")).not.toBeInTheDocument();
     expect(document.querySelector(".index-stamp")?.textContent).toContain("LeitorBI");
@@ -87,6 +88,7 @@ describe("LeitorBI Open", () => {
   it("retorna à landing pelo nome do produto no workspace", async () => {
     window.history.pushState(null, "", "/app");
     render(<App />);
+    expect(document.querySelector(".brand--sidebar .brand-mark")).toHaveTextContent("LB");
     await userEvent.click(screen.getByRole("button", { name: /voltar para a landing page/i }));
     expect(window.location.pathname).toBe("/");
     expect(screen.getAllByRole("button", { name: /iniciar/i })).toHaveLength(2);

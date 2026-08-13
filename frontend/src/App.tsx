@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   BookOpenCheck,
   ClipboardList,
-  Database,
   Download,
   FileJson,
   GitCompareArrows,
@@ -28,6 +27,7 @@ import {
 import { useLocale } from "./i18n/LocaleProvider";
 import type { TranslationKey } from "./i18n/types";
 import { CompareFileInput } from "./components/CompareFileInput";
+import { Brand } from "./components/Brand";
 import { DataTable } from "./components/DataTable";
 import { CompareView } from "./components/CompareView";
 import { CompareErrorBoundary } from "./components/CompareErrorBoundary";
@@ -240,10 +240,7 @@ function DemoPage({ onBackToLanding }: { onBackToLanding: () => void }) {
   return (
     <main className="app-shell demo-shell">
       <aside className="sidebar">
-        <button className="brand brand-button demo-brand-link" type="button" onClick={onBackToLanding} aria-label={t("common.backToLanding")}>
-          <Database size={24} />
-          <span>{t("common.productName")}</span>
-        </button>
+        <Brand variant="sidebar" className="demo-brand-link" onClick={onBackToLanding} />
         <nav>
           {demoTabs.map((tab) => (
             <button
@@ -480,10 +477,7 @@ export function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <button className="brand brand-button" type="button" onClick={() => navigateTo(ROUTES.landing)} aria-label={t("common.backToLanding")}>
-          <Database size={24} />
-          <span>{t("common.productName")}</span>
-        </button>
+        <Brand variant="sidebar" onClick={() => navigateTo(ROUTES.landing)} />
         <nav>
           {visibleTabs.map((tab) => (
             <button

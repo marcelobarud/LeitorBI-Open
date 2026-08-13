@@ -33,7 +33,7 @@ Component tone: restrained and reliable
 
 ## Validation record
 
-- Frontend tests: 18/18 passing.
+- Frontend tests: 19/19 passing.
 - Frontend production build: passing.
 - Backend health endpoint: HTTP 200.
 - Impeccable detector: no findings.
@@ -53,3 +53,7 @@ The approved visual structure remains unchanged. The current cover copy uses “
 The Landing benefit rail now uses three equal-weight rust dots instead of numbered labels. The technical preview keeps its panel treatment without the `FOLHA 01 / 04` folio, and the first “Como começar” step uses the Tutorial's `Tabular Editor` release link and external-link behavior.
 
 Technical resources share the `TechnicalLink` component: `Tabular Editor` and `PBIModelExport` use the same rust technical-link treatment, visible hover/focus, new-tab behavior, and `noopener noreferrer`. The official PBIModelExport destination is `https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx`.
+
+## Brand system
+
+The `Brand` component is the shared identity implementation for the Landing, Workspace, and Demo. It keeps the Landing mark as the visual source of truth and exposes a `sidebar` variant for dark rails: the mark block is paper white and the `LB` monogram is deep ink black. Workspace and Demo use the same sidebar variant and preserve the existing keyboard-accessible return-to-Landing button behavior.
