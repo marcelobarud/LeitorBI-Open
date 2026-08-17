@@ -144,6 +144,12 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - A expansão continua exibindo somente os campos já presentes no payload; filtros, busca, paginação, layout, backend e contratos não foram alterados.
 - Validação: 20/20 testes frontend, build frontend e detector Impeccable.
 
+### 2026-08-17 - Correcao do primeiro step do Tutorial
+
+- O primeiro step do Tutorial agora compoe corretamente a frase "Baixe e instale o Tabular Editor antes de iniciar a extração.".
+- "Tabular Editor" continua usando o componente "TechnicalLink", a URL de releases existente, abertura em nova aba e "noopener noreferrer".
+- Nenhum outro step, layout, estilo, Landing, backend ou navegacao foi alterado.
+
 - O resumo do Dashboard agora apresenta metadados no lado esquerdo na ordem `Dashboard`, `Modelo`, `Data de exportação`, `Cultura`, `Modo padrão` e `Tipos de fontes`.
 - Os indicadores do lado direito seguem a ordem `Tabelas totais`, `Colunas totais`, `Colunas utilizadas em medidas`, `Medidas`, `Relacionamentos` e `Fontes de Dados`.
 - A informação `Colunas utilizadas` deixou de ser exibida como bloco visual, mas continua preservada no relatório e no backend; `Colunas utilizadas em medidas` usa o valor original de `summary`.

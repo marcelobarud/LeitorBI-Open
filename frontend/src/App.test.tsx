@@ -73,6 +73,11 @@ describe("LeitorBI Open", () => {
     expect(tutorialScriptLink).toHaveAttribute("href", "https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx");
     expect(tutorialScriptLink).toHaveAttribute("target", "_blank");
     expect(tutorialScriptLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(document.querySelector(".tutorial-step p")?.textContent).toBe("Baixe e instale o Tabular Editor antes de iniciar a extração.");
+    const tutorialTabularEditorLink = screen.getByRole("link", { name: "Tabular Editor" });
+    expect(tutorialTabularEditorLink).toHaveAttribute("href", "https://github.com/TabularEditor/TabularEditor/releases/latest");
+    expect(tutorialTabularEditorLink).toHaveAttribute("target", "_blank");
+    expect(tutorialTabularEditorLink).toHaveAttribute("rel", "noopener noreferrer");
   });
 
   it("abre o workspace diretamente ao iniciar, sem consultar autenticação", async () => {

@@ -105,6 +105,8 @@ function validateJsonFile(file: File, t: (key: TranslationKey, params?: Record<s
 
 function TutorialView() {
   const { t } = useLocale();
+  const tutorialStep1Detail = t("tutorial.step1Detail");
+  const [step1BeforeTabularEditor, step1AfterTabularEditor] = tutorialStep1Detail.split("Tabular Editor");
   type TutorialStep = {
     label: string;
     title: string;
@@ -119,8 +121,9 @@ function TutorialView() {
       title: t("tutorial.step1"),
       detail: (
         <>
-          {t("tutorial.step1Detail").replace("Tabular Editor", "")}{" "}
-          <TechnicalLink href={TABULAR_EDITOR_URL}>Tabular Editor</TechnicalLink>{" "}
+          {step1BeforeTabularEditor}
+          <TechnicalLink href={TABULAR_EDITOR_URL}>Tabular Editor</TechnicalLink>
+          {step1AfterTabularEditor}
         </>
       ),
     },
@@ -179,9 +182,7 @@ function TutorialView() {
                     {" "}
                     <TechnicalLink href={step.scriptHref ?? PBI_MODEL_EXPORT_URL}>{step.script}</TechnicalLink>{" "}
                   </>
-                ) : (
-                  " "
-                )}
+                ) : null}
                 {step.suffix ?? ""}
               </p>
             </div>
