@@ -1,5 +1,16 @@
 import type { CompareResult, Report } from "./types";
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly retryAfter: string | null = null,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 const configuredApiUrl = import.meta.env.VITE_API_URL;
 const isLocalHost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 const API_URL = configuredApiUrl ?? (isLocalHost ? `${window.location.protocol}//${window.location.hostname}:8001` : "");
@@ -17,11 +28,19 @@ async function fetchApi(input: RequestInfo | URL, init?: RequestInit) {
   }
 }
 
+async function throwApiError(response: Response, fallback: string): Promise<never> {
+  throw new ApiError(
+    await readError(response, fallback),
+    response.status,
+    response.headers.get("Retry-After"),
+  );
+}
+
 export async function analyzeModel(file: File): Promise<Report> {
   const form = new FormData();
   form.append("file", file);
   const response = await fetchApi(`${API_URL}/api/models/analyze`, { method: "POST", body: form });
-  if (!response.ok) throw new Error(await readError(response, "Erro ao analisar arquivo."));
+  if (!response.ok) await throwApiError(response, "Erro ao analisar arquivo.");
   return response.json();
 }
 
@@ -30,13 +49,13 @@ export async function compareModels(base: File, novo: File): Promise<CompareResu
   form.append("base", base);
   form.append("novo", novo);
   const response = await fetchApi(`${API_URL}/api/models/compare`, { method: "POST", body: form });
-  if (!response.ok) throw new Error(await readError(response, "Erro ao comparar arquivos."));
+  if (!response.ok) await throwApiError(response, "Erro ao comparar arquivos.");
   return response.json();
 }
 
 export async function analyzePublicDemoModel(): Promise<Report> {
   const response = await fetchApi(`${API_URL}/api/public/demo/analyze`);
-  if (!response.ok) throw new Error(await readError(response, "Erro ao carregar demonstração."));
+  if (!response.ok) await throwApiError(response, "Erro ao carregar demonstração.");
   return response.json();
 }
 
@@ -44,6 +63,6 @@ export async function exportModelExcel(file: File): Promise<Blob> {
   const form = new FormData();
   form.append("file", file);
   const response = await fetchApi(`${API_URL}/api/models/export-excel`, { method: "POST", body: form });
-  if (!response.ok) throw new Error(await readError(response, "Erro ao exportar Excel."));
+  if (!response.ok) await throwApiError(response, "Erro ao exportar Excel.");
   return response.blob();
 }

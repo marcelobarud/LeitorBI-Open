@@ -45,9 +45,11 @@ Por padrão, o frontend chama a API em `http://127.0.0.1:8001`. Para outra API, 
 - `LEITORBI_CORS_ORIGINS`: origens permitidas separadas por vírgula. Em produção, deve ser explícito; `*` pode ser usado sozinho quando a implantação realmente exigir acesso aberto.
 - `LEITORBI_REQUIRE_ORIGIN`: quando `true`, exige `Origin` ou `Referer` permitido nas operações mutáveis também fora de produção.
 - `LEITORBI_MAX_UPLOAD_MB`: limite de upload. Padrão: `10`.
+- `LEITORBI_ENABLE_DOCS`: habilita Swagger/ReDoc; em produção, manter `false`.
+- `LEITORBI_TRUST_PROXY_HEADERS`: usa o primeiro endereço de `X-Forwarded-For` para identificar o cliente atrás de um proxy confiável.
 - `VITE_API_URL`: URL base da API no frontend.
 
-A API mantém validação estrutural do JSON, limite de tamanho, leitura segura de arquivos, CORS, Request ID, observabilidade, tratamento de erros e validação de origem. Não há banco SQLite de usuários/sessões nem cookies de sessão.
+A API mantém validação estrutural do JSON, limite de tamanho, leitura segura de arquivos, CORS, Request ID, observabilidade, tratamento de erros, validação de origem, headers básicos de segurança e rate limiting público por rota. Não há banco SQLite de usuários/sessões nem cookies de sessão.
 
 ## Endpoints públicos
 
@@ -87,4 +89,4 @@ Os testes cobrem análise, comparação, exportação, upload, segurança/origem
 
 - Tradução completa da interface para inglês.
 - Persistência de relatórios, uploads, filtros ou histórico.
-- Estratégia de escala horizontal e rate limiting geral da API pública.
+- Estratégia de escala horizontal e rate limiting distribuído entre múltiplas instâncias.

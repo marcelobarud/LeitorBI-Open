@@ -10,7 +10,8 @@ from starlette.requests import Request
 from app.demo_data import DEMO_MODEL, DEMO_MODEL_PATH
 from app.main import analyze_model, compare_model_exports, export_excel
 from app.observability import log_http_request
-from app.security import assert_safe_origin, cors_origins, validate_security_config
+from app.rate_limit import InMemoryRateLimiter, RateLimitRule
+from app.security import assert_safe_origin, cors_origins, docs_enabled, validate_security_config
 from app.schemas import CompareResponse
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
@@ -43,6 +44,10 @@ def make_request(method: str = "GET", origin: str | None = None, referer: str | 
     if request_id:
         headers.append((b"x-request-id", request_id.encode()))
     return Request({"type": "http", "method": method, "path": "/", "headers": headers, "client": ("127.0.0.1", 50000)})
+
+
+def make_path_request(path: str, method: str = "POST", client: str = "127.0.0.1") -> Request:
+    return Request({"type": "http", "method": method, "path": path, "headers": [], "client": (client, 50000)})
 
 
 def test_analyzer_demo_report_has_expected_sections():
@@ -136,6 +141,21 @@ def test_request_observability_adds_request_id_and_logs(caplog):
     assert records[-1].status_code == 204
 
 
+def test_rate_limiter_is_per_client_and_expires(monkeypatch):
+    monkeypatch.delenv("LEITORBI_RATE_LIMIT_ANALYZE", raising=False)
+    limiter = InMemoryRateLimiter({"/api/models/analyze": RateLimitRule(2, window_seconds=60)})
+    request = make_path_request("/api/models/analyze")
+    other_client = make_path_request("/api/models/analyze", client="192.0.2.10")
+
+    assert limiter.check(request, now=0) == (True, 0)
+    assert limiter.check(request, now=1) == (True, 0)
+    allowed, retry_after = limiter.check(request, now=2)
+    assert allowed is False
+    assert 57 <= retry_after <= 60
+    assert limiter.check(other_client, now=2) == (True, 0)
+    assert limiter.check(request, now=61) == (True, 0)
+
+
 def test_public_mutations_still_validate_origin(monkeypatch):
     monkeypatch.setenv("LEITORBI_CORS_ORIGINS", "http://localhost:5173")
     assert_safe_origin(make_request(method="POST", origin="http://localhost:5173"))
@@ -155,6 +175,14 @@ def test_origin_requirement_and_cors_configuration(monkeypatch):
     monkeypatch.setenv("LEITORBI_CORS_ORIGINS", "*,http://localhost:5173")
     with pytest.raises(RuntimeError):
         cors_origins()
+
+
+def test_production_disables_api_docs_by_default(monkeypatch):
+    monkeypatch.setenv("LEITORBI_ENV", "production")
+    monkeypatch.delenv("LEITORBI_ENABLE_DOCS", raising=False)
+    assert docs_enabled() is False
+    monkeypatch.setenv("LEITORBI_ENABLE_DOCS", "true")
+    assert docs_enabled() is True
 
 
 def test_production_security_requires_explicit_cors_but_not_session_settings(monkeypatch):

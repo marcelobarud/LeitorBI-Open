@@ -2,18 +2,25 @@ from typing import Any
 
 from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.demo_data import DEMO_MODEL
 from app.observability import log_http_request
 from app.schemas import CompareResponse, ReportResponse
-from app.security import assert_safe_origin, cors_origins, validate_security_config
+from app.rate_limit import rate_limiter
+from app.security import assert_safe_origin, cors_origins, docs_enabled, is_production, validate_security_config
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
 from app.upload_validation import read_json_upload, validate_model_export
 
-app = FastAPI(title="LeitorBI-Web Open API", version="0.1.0")
+app = FastAPI(
+    title="LeitorBI-Web Open API",
+    version="0.1.0",
+    docs_url="/docs" if docs_enabled() else None,
+    redoc_url="/redoc" if docs_enabled() else None,
+    openapi_url="/openapi.json" if docs_enabled() else None,
+)
 
 
 @app.on_event("startup")
@@ -24,15 +31,36 @@ def startup() -> None:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins(),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Request-ID"],
+    expose_headers=["Retry-After", "X-Request-ID"],
+    allow_credentials=False,
+    max_age=600,
 )
 
 
 @app.middleware("http")
 async def reject_unsafe_cross_origin_requests(request: Request, call_next):
     assert_safe_origin(request)
-    return await log_http_request(request, call_next)
+
+    async def rate_limited_call(next_request: Request):
+        allowed, retry_after = rate_limiter.check(next_request)
+        if not allowed:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Limite de requisições atingido. Tente novamente em instantes."},
+                headers={"Retry-After": str(retry_after)},
+            )
+        return await call_next(next_request)
+
+    response = await log_http_request(request, rate_limited_call)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    if is_production():
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
 
 
 @app.get("/api/health")

@@ -18,6 +18,11 @@ def is_production() -> bool:
     return os.getenv("LEITORBI_ENV", "development").strip().lower() == "production"
 
 
+def docs_enabled() -> bool:
+    configured = environment_flag("LEITORBI_ENABLE_DOCS")
+    return not is_production() if configured is None else configured
+
+
 def environment_flag(name: str) -> bool | None:
     value = os.getenv(name)
     if value is None or not value.strip():

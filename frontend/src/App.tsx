@@ -23,6 +23,7 @@ import {
   analyzePublicDemoModel,
   compareModels,
   exportModelExcel,
+  ApiError,
 } from "./api";
 import { useLocale } from "./i18n/LocaleProvider";
 import type { TranslationKey } from "./i18n/types";
@@ -391,6 +392,10 @@ export function App() {
   }
 
   function handleApiError(err: unknown, fallback: string, onErrorChange = setError) {
+    if (err instanceof ApiError && err.status === 429) {
+      onErrorChange(t("api.rateLimited"));
+      return;
+    }
     onErrorChange(err instanceof Error ? err.message : fallback);
   }
 

@@ -1,5 +1,5 @@
-fastapi
-uvicorn[standard]
-python-multipart
-openpyxl
-pytest
+fastapi==0.141.1
+uvicorn[standard]==0.52.1
+python-multipart==0.0.32
+openpyxl==3.1.5
+pytest==9.1.1

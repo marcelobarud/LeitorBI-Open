@@ -39,6 +39,7 @@ export function HomeEmptyState({ onOpenFilePicker, disabled, selectedFileLabel }
           <span>{t("workspace.acceptedFormat")}</span>
           <span>{t("workspace.fileSizeLimit")}</span>
           <span>{t("workspace.realDataNotice")}</span>
+          <span>{t("workspace.coldStartNotice")}</span>
         </div>
       </section>
     </div>

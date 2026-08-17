@@ -90,6 +90,20 @@ describe("LeitorBI Open", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("informa quando a API aplica rate limiting", async () => {
+    mockFetch((url) => url.includes("/api/models/analyze")
+      ? new Response(JSON.stringify({ detail: "Limite de requisições atingido." }), {
+          status: 429,
+          headers: { "Content-Type": "application/json", "Retry-After": "30" },
+        })
+      : jsonResponse({ detail: "Not found" }, { status: 404 }));
+    const { container } = render(<App />);
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
+    const input = await waitFor(() => container.querySelector<HTMLInputElement>('input[type="file"]'));
+    await userEvent.upload(input!, new File([JSON.stringify({ tables: [] })], "modelo.json", { type: "application/json" }));
+    expect(await screen.findByText(/muitas solicitações em sequência/i)).toBeInTheDocument();
+  });
+
   it("retorna à landing pelo nome do produto no workspace", async () => {
     window.history.pushState(null, "", "/app");
     render(<App />);
