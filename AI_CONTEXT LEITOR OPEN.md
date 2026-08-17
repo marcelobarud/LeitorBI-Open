@@ -154,3 +154,19 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - Os indicadores do lado direito seguem a ordem `Tabelas totais`, `Colunas totais`, `Colunas utilizadas em medidas`, `Medidas`, `Relacionamentos` e `Fontes de Dados`.
 - A informação `Colunas utilizadas` deixou de ser exibida como bloco visual, mas continua preservada no relatório e no backend; `Colunas utilizadas em medidas` usa o valor original de `summary`.
 - A reorganização ficou restrita ao componente `Overview`, traduções, estilos responsivos e testes; algoritmos, contratos, upload, análise, comparação e exportação não foram alterados.
+
+### 2026-08-17 - Portal para filtros das tabelas
+
+- Os filtros de coluna do `DataTable`, usados em Tabelas, Colunas, Medidas, Fontes e Relacionamentos, passaram a ser renderizados via `createPortal(..., document.body)`.
+- O menu usa coordenadas relativas à viewport, `position: fixed`, proteção contra saída da tela e abertura acima/abaixo conforme o espaço disponível; por isso permanece estático durante o scroll.
+- O estado funcional foi preservado no `DataTable`: `openFilterColumn`, `columnFilters`, `columnOptionSearches`, busca interna, seleção, limpeza, limite de 120 opções e filtros independentes por coluna.
+- O ciclo de vida de clique externo, `Escape` e resize foi alinhado ao padrão existente no `CompareView`; a comparação não foi alterada e nenhum helper genérico ou estado compartilhado foi criado.
+- Validação: 22/22 testes frontend, build frontend, teste manual nas cinco telas da demonstração e confirmação de portal em `BODY`/`position: fixed` com estabilidade da coordenada durante scroll.
+
+### 2026-08-17 - Congelamento explícito da posição dos filtros
+
+- A auditoria confirmou que não havia listener de `scroll`, nem uso de `window.scrollX`/`window.scrollY` no `DataTable`; a posição já era calculada apenas na abertura.
+- Para tornar essa garantia explícita, as coordenadas capturadas por `getBoundingClientRect()` agora são armazenadas também em uma `ref` congelada e só são limpas quando o menu fecha, por `Escape`, clique externo, resize, limpeza ou troca dos dados.
+- Foi adicionado teste de regressão que dispara `scroll` e confirma que `left` e `top` permanecem iguais; a seleção do filtro segue funcionando após a rolagem.
+- Validação manual: em `Colunas`, a rolagem interna mudou `tableScrollTop` de 0 para 500 sem alterar a posição visual do menu. O mesmo teste foi repetido em Tabelas, Medidas, Fontes e Relacionamentos, todos com coordenadas invariáveis.
+- Validação automatizada: 23/23 testes frontend, build frontend e detector Impeccable sem achados.

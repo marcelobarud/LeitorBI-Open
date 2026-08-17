@@ -65,3 +65,7 @@ The Overview preserves the existing `metric-grid`, `insight-grid`, and `summary-
 ## Data row expansion
 
 `DataTable` is the shared interaction for Tabelas, Colunas, Medidas, Fontes, and Relacionamentos. Every row exposes the incumbent details action and opens the same ruled detail block, including rows whose values are short. Expansion state is local to visible row indexes and resets with filtering/search data changes; the action exposes `aria-expanded` and `aria-controls`.
+
+## DataTable filter menus
+
+Column filter menus in `DataTable` preserve the table's independent filter state and option-search behavior, but render through a portal attached to `document.body`. Their viewport-relative `position: fixed` coordinates are clamped to the viewport and chosen above or below the trigger, so an open menu remains visually static while the page scrolls. The outside-click, `Escape`, and viewport-change lifecycle follows the existing `CompareView` pattern; no shared generic dropdown or comparison state was introduced.

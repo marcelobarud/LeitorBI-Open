@@ -1,11 +1,13 @@
 import { ChevronLeft, ChevronRight, Filter, Maximize2, Minimize2, Search, X } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Row } from "../types";
 import { useLocale } from "../i18n/LocaleProvider";
 
 const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
 const TABLE_SEARCH_DEBOUNCE_MS = 180;
+type FilterMenuPosition = { left: number; top: number };
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -30,7 +32,10 @@ export function DataTable({ rows }: { rows: Row[] }) {
   const [columnFilters, setColumnFilters] = useState<Record<string, string[]>>({});
   const [columnOptionSearches, setColumnOptionSearches] = useState<Record<string, string>>({});
   const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
-  const [filterMenuPosition, setFilterMenuPosition] = useState<{ left: number; top: number } | null>(null);
+  const [filterMenuPosition, setFilterMenuPosition] = useState<FilterMenuPosition | null>(null);
+  const filterMenuPositionRef = useRef<FilterMenuPosition | null>(null);
+  const filterButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const filterMenuRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
@@ -77,7 +82,45 @@ export function DataTable({ rows }: { rows: Row[] }) {
     setColumnOptionSearches({});
     setOpenFilterColumn(null);
     setFilterMenuPosition(null);
+    filterMenuPositionRef.current = null;
   }, [rows]);
+
+  useEffect(() => {
+    if (!openFilterColumn) return;
+
+    const openColumn = openFilterColumn;
+    function closeOnOutsideClick(event: MouseEvent) {
+      const target = event.target as Node;
+      if (!filterButtonRefs.current[openColumn]?.contains(target) && !filterMenuRef.current?.contains(target)) {
+        setOpenFilterColumn(null);
+        setFilterMenuPosition(null);
+        filterMenuPositionRef.current = null;
+        filterButtonRefs.current[openColumn]?.focus();
+      }
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpenFilterColumn(null);
+        setFilterMenuPosition(null);
+        filterMenuPositionRef.current = null;
+        filterButtonRefs.current[openColumn]?.focus();
+      }
+    }
+    function closeOnViewportChange() {
+      setOpenFilterColumn(null);
+      setFilterMenuPosition(null);
+      filterMenuPositionRef.current = null;
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("resize", closeOnViewportChange);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("resize", closeOnViewportChange);
+    };
+  }, [openFilterColumn]);
 
   function toggleRow(index: number) {
     setExpandedRows((current) => {
@@ -127,6 +170,7 @@ export function DataTable({ rows }: { rows: Row[] }) {
     });
     setOpenFilterColumn(null);
     setFilterMenuPosition(null);
+    filterMenuPositionRef.current = null;
   }
 
   function clearAllColumnFilters() {
@@ -134,21 +178,33 @@ export function DataTable({ rows }: { rows: Row[] }) {
     setColumnOptionSearches({});
     setOpenFilterColumn(null);
     setFilterMenuPosition(null);
+    filterMenuPositionRef.current = null;
   }
 
   function toggleColumnFilterMenu(column: string, target: HTMLButtonElement) {
     if (openFilterColumn === column) {
       setOpenFilterColumn(null);
       setFilterMenuPosition(null);
+      filterMenuPositionRef.current = null;
       return;
     }
 
     const rect = target.getBoundingClientRect();
+    const margin = 12;
+    const menuWidth = 288;
+    const estimatedMenuHeight = 360;
+    const left = Math.max(margin, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - margin));
+    const top = window.innerHeight - rect.bottom >= estimatedMenuHeight
+      ? rect.bottom + 8
+      : Math.max(margin, rect.top - estimatedMenuHeight - 8);
+
+    const nextPosition = {
+      left,
+      top,
+    };
+    filterMenuPositionRef.current = nextPosition;
+    setFilterMenuPosition(nextPosition);
     setOpenFilterColumn(column);
-    setFilterMenuPosition({
-      left: Math.max(12, Math.min(rect.left, window.innerWidth - 300)),
-      top: rect.bottom + 8,
-    });
   }
 
   if (!rows.length) {
@@ -204,22 +260,23 @@ export function DataTable({ rows }: { rows: Row[] }) {
                     <div className="column-header">
                       <span>{column}</span>
                       <button
+                        ref={(element) => {
+                          filterButtonRefs.current[column] = element;
+                        }}
                         className={hasFilter ? "column-filter-button active" : "column-filter-button"}
                         type="button"
                         title={t("table.filterColumn", { column })}
                         aria-label={t("table.filterColumn", { column })}
+                        aria-expanded={isOpen}
                         onClick={(event) => toggleColumnFilterMenu(column, event.currentTarget)}
                       >
                         <Filter size={14} />
                       </button>
                       {isOpen ? (
-                        <div
+                        createPortal(<div
+                          ref={filterMenuRef}
                           className="column-filter-menu"
-                          style={
-                            filterMenuPosition
-                              ? { left: filterMenuPosition.left, top: filterMenuPosition.top }
-                              : undefined
-                          }
+                          style={filterMenuPosition ? { left: filterMenuPosition.left, top: filterMenuPosition.top, position: "fixed" } : undefined}
                         >
                           <label>
                             <span>{t("table.searchOptions")}</span>
@@ -270,12 +327,13 @@ export function DataTable({ rows }: { rows: Row[] }) {
                               onClick={() => {
                                 setOpenFilterColumn(null);
                                 setFilterMenuPosition(null);
+                                filterMenuPositionRef.current = null;
                               }}
                             >
                               {t("common.close")}
                             </button>
                           </div>
-                        </div>
+                        </div>, document.body)
                       ) : null}
                     </div>
                   </th>
