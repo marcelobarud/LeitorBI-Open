@@ -50,7 +50,7 @@ Por padrão, o frontend chama a API em `http://127.0.0.1:8001`. Para outra API, 
 - `LEITORBI_TRUST_PROXY_HEADERS`: usa o primeiro endereço de `X-Forwarded-For` para identificar o cliente atrás de um proxy confiável.
 - `VITE_API_URL`: URL base da API no frontend.
 
-A API mantém validação estrutural do JSON, validação de ZIP PBIP contra traversal, arquivos aninhados e descompactação abusiva, limite de tamanho, leitura incremental do upload, leitura segura de arquivos, CORS, Request ID, observabilidade, tratamento de erros, validação de origem, headers básicos de segurança e rate limiting público por rota. O PBIP detecta automaticamente `model.bim`/TMSL ou `definition/`/TMDL e normaliza ambos para o mesmo relatório lógico. `cache.abf`, a pasta `.Report`, layouts, visuais e demais artefatos sem equivalente na análise atual são ignorados. Não há banco SQLite de usuários/sessões nem cookies de sessão.
+A API mantém validação estrutural do JSON, validação de ZIP PBIP contra traversal, arquivos aninhados e descompactação abusiva, limite de tamanho, leitura incremental do upload, leitura segura de arquivos, CORS, Request ID, observabilidade, tratamento de erros, validação de origem, headers básicos de segurança e rate limiting público por rota. O PBIP detecta automaticamente `model.bim`/TMSL ou `definition/`/TMDL e normaliza ambos para o mesmo relatório lógico. `cache.abf`, a pasta `.Report`, `definition/cultures`, `definition/database.tmdl`, layouts, visuais e demais artefatos sem equivalente na análise atual são ignorados. Não há banco SQLite de usuários/sessões nem cookies de sessão.
 
 ## Endpoints públicos
 

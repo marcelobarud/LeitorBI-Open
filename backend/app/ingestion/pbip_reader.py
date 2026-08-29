@@ -116,6 +116,11 @@ def _read_member(archive: ZipFile, info: ZipInfo) -> bytes:
         raise HTTPException(status_code=422, detail="ZIP PBIP corrompido ou protegido contra leitura.") from exc
 
 
+def _is_supported_tmdl_path(path: str, definition_root: str) -> bool:
+    relative = path[len(definition_root) + 1 :].casefold()
+    return relative in {"model.tmdl", "relationships.tmdl"} or relative.startswith("tables/")
+
+
 def _archive_source(content: bytes | BinaryIO) -> BinaryIO:
     if isinstance(content, (bytes, bytearray)):
         return io.BytesIO(content)
@@ -169,6 +174,7 @@ def read_pbip_archive(content: bytes | BinaryIO, filename: str = "modelo.zip") -
                 for path, info in entries.items()
                 if path.casefold().startswith(f"{definition_root.casefold()}/")
                 and path.casefold().endswith(".tmdl")
+                and _is_supported_tmdl_path(path, definition_root)
             }
             if not tmdl_files:
                 raise HTTPException(status_code=422, detail="A definição TMDL está vazia ou incompleta.")

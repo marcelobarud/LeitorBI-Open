@@ -248,6 +248,24 @@ def test_read_pbip_upload_normalizes_tmdl_model():
     assert report["columnsUsedInMeasures"] == [{"Tabela": "Vendas", "Coluna": "Receita"}]
 
 
+def test_tmdl_ignores_cultures_and_database_definition_files(monkeypatch):
+    payload = make_tmdl_zip(
+        ("Demo.SemanticModel/definition/cultures/pt-BR.tmdl", b"cultureInfo pt-BR\n\tlinguisticMetadata =\n"),
+        ("Demo.SemanticModel/definition/database.tmdl", b"database\n\tcompatibilityLevel: 1601\n"),
+    )
+    original_read = ZipFile.read
+
+    def guarded_read(self, member, *args, **kwargs):
+        name = getattr(member, "filename", str(member)).replace("\\", "/").casefold()
+        if "/definition/cultures/" in name or name.endswith("/definition/database.tmdl"):
+            pytest.fail(f"Arquivo TMDL fora do escopo foi lido: {name}")
+        return original_read(self, member, *args, **kwargs)
+
+    monkeypatch.setattr(ZipFile, "read", guarded_read)
+    data = read_pbip_archive(payload, "tmdl-with-ignored-files.zip")
+    assert len(data["tables"]) == 2
+
+
 def test_tmdl_matches_tmsl_and_json_logical_analysis():
     json_model = json.loads(JSON_EQUIVALENT_PATH.read_text(encoding="utf-8"))
     tmsl_model = asyncio.run(read_model_upload(FakeUpload("tmsl.zip", make_pbip_zip())))

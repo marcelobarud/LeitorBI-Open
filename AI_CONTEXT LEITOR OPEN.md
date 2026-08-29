@@ -76,7 +76,7 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - O backend passou a aceitar `.zip` de projeto PBIP completo ou da pasta `.SemanticModel`.
 - O PBIP detecta automaticamente `model.bim`/TMSL ou `definition/`/TMDL e normaliza o conteúdo para o mesmo formato lógico usado pelo `PowerBIAnalyzer`.
 - O `.pbip` isolado não é considerado suficiente para análise; projetos sem modelo semântico local recebem mensagem específica. Estruturas TMSL e TMDL simultâneas são rejeitadas como ambíguas.
-- A pasta `.Report`, `cache.abf`, `DAXQueries`, `TMDLScripts`, layouts, visuais e demais artefatos sem equivalente no JSON atual são ignorados.
+- A pasta `.Report`, `cache.abf`, `definition/cultures`, `definition/database.tmdl`, `DAXQueries`, `TMDLScripts`, layouts, visuais e demais artefatos sem equivalente no JSON atual são ignorados.
 - A leitura de ZIP valida tamanho comprimido, tamanho descompactado, quantidade e profundidade de arquivos, caminhos inseguros, links simbólicos, arquivos compactados aninhados e duplicidade de nomes.
 - O limite padrão do JSON permanece em 10 MB; o limite padrão de ZIP PBIP é separado em 100 MB e pode ser configurado por `LEITORBI_MAX_PBIP_UPLOAD_MB`. O teto descompactado também permanece explícito em 100 MB.
 - Análise, comparação e exportação Excel continuam usando os contratos existentes (`ReportResponse`, `CompareResponse` e `build_excel`).
