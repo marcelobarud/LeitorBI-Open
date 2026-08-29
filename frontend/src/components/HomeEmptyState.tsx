@@ -15,29 +15,29 @@ export function HomeEmptyState({ onOpenFilePicker, disabled, selectedFileLabel }
         <FileJson size={22} />
         <div>
           <h2>{t("nav.home")}</h2>
-          <p>{t("workspace.homeDescription")}</p>
+          <p>{t("workspace.homeDescriptionModels")}</p>
         </div>
       </header>
 
       <section className="empty-workspace">
         <h1>{t("workspace.noFile")}</h1>
-        <p>{t("workspace.noFileDescription")}</p>
+        <p>{t("workspace.noFileDescriptionModels")}</p>
 
         <button
           className="empty-drop-hint"
           type="button"
           onClick={onOpenFilePicker}
           disabled={disabled}
-          aria-label={t("workspace.uploadAria")}
+          aria-label={t("workspace.uploadAriaModel")}
         >
           <FileJson size={34} />
-          <strong>{disabled ? t("workspace.analyzingFile") : t("workspace.selectModelJson")}</strong>
-          <span>{selectedFileLabel || t("workspace.fileLimit")}</span>
+          <strong>{disabled ? t("workspace.analyzingFile") : t("workspace.selectModelFile")}</strong>
+          <span>{selectedFileLabel || t("workspace.fileLimitModels")}</span>
         </button>
 
         <div className="upload-rules">
-          <span>{t("workspace.acceptedFormat")}</span>
-          <span>{t("workspace.fileSizeLimit")}</span>
+          <span>{t("workspace.acceptedFormatsModels")}</span>
+          <span>{t("workspace.fileSizeLimitModels")}</span>
           <span>{t("workspace.realDataNotice")}</span>
           <span>{t("workspace.coldStartNotice")}</span>
         </div>

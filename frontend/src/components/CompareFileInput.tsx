@@ -13,10 +13,10 @@ export function CompareFileInput({ label, file, onChange }: CompareFileInputProp
     <label className="compare-file">
       <FileJson size={28} />
       <span>{label}</span>
-      <strong>{file ? file.name : t("comparison.selectJson")}</strong>
+      <strong>{file ? file.name : t("comparison.selectFile")}</strong>
       <input
         type="file"
-        accept=".json,application/json"
+        accept=".json,.zip,application/json,application/zip,application/x-zip-compressed"
         onChange={(event) => {
           const selected = event.target.files?.[0];
           event.target.value = "";

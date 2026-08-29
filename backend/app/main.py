@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.demo_data import DEMO_MODEL
+from app.diagnostics.events import record_event
 from app.observability import log_http_request
 from app.schemas import CompareResponse, ReportResponse
 from app.rate_limit import rate_limiter
@@ -12,7 +13,8 @@ from app.security import assert_safe_origin, cors_origins, docs_enabled, is_prod
 from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
-from app.upload_validation import read_json_upload, validate_model_export
+from app.ingestion.loader import read_model_upload
+from app.upload_validation import validate_model_export
 
 app = FastAPI(
     title="LeitorBI-Web Open API",
@@ -72,8 +74,11 @@ def health() -> dict[str, str]:
 async def analyze_model(
     file: UploadFile = File(...),
 ) -> ReportResponse:
-    data = await read_json_upload(file)
-    return ReportResponse.model_validate(PowerBIAnalyzer(data).full_report())
+    record_event("analysis_started")
+    data = await read_model_upload(file)
+    report = ReportResponse.model_validate(PowerBIAnalyzer(data).full_report())
+    record_event("analysis_completed", tables=len(report.tables), measures=len(report.measures))
+    return report
 
 
 @app.post("/api/models/compare", response_model=CompareResponse)
@@ -81,17 +86,22 @@ async def compare_model_exports(
     base: UploadFile = File(...),
     novo: UploadFile = File(...),
 ) -> CompareResponse:
-    base_data = await read_json_upload(base)
-    new_data = await read_json_upload(novo)
-    return CompareResponse.model_validate(compare_models(base_data, new_data))
+    record_event("comparison_started")
+    base_data = await read_model_upload(base)
+    new_data = await read_model_upload(novo)
+    result = CompareResponse.model_validate(compare_models(base_data, new_data))
+    record_event("comparison_completed")
+    return result
 
 
 @app.post("/api/models/export-excel")
 async def export_excel(
     file: UploadFile = File(...),
 ) -> StreamingResponse:
-    data = await read_json_upload(file)
+    record_event("excel_export_started")
+    data = await read_model_upload(file)
     report = PowerBIAnalyzer(data).full_report()
+    record_event("excel_export_completed", tables=len(report.get("tables", [])), measures=len(report.get("measures", [])))
     return excel_response(report)
 
 

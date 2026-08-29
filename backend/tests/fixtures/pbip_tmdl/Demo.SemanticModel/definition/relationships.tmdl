@@ -1,0 +1,15 @@
+relationship 'Vendas Calendario'
+    fromColumn: 'Vendas'.'Data'
+    toColumn: 'Calendario'.'Data'
+    fromCardinality: many
+    toCardinality: one
+    crossFilteringBehavior: oneDirection
+    isActive: true
+
+relationship 'Vendas Calendario Inativo'
+    fromColumn: 'Vendas'.'Data'
+    toColumn: 'Calendario'.'Data'
+    fromCardinality: many
+    toCardinality: one
+    crossFilteringBehavior: oneDirection
+    isActive: false

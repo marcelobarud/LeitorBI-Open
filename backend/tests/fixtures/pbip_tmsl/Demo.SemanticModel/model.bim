@@ -1,0 +1,95 @@
+{
+  "name": "Modelo TMSL Demo",
+  "compatibilityLevel": 1567,
+  "model": {
+    "culture": "pt-BR",
+    "tables": [
+      {
+        "name": "Vendas",
+        "description": "Tabela de vendas para teste PBIP.",
+        "columns": [
+          {
+            "name": "Id Venda",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "id_venda"
+          },
+          {
+            "name": "Receita",
+            "dataType": "decimal",
+            "formatString": "R$ #,##0.00",
+            "displayFolder": "Valores",
+            "sourceColumn": "receita"
+          },
+          {
+            "name": "Data",
+            "dataType": "dateTime",
+            "sourceColumn": "data"
+          }
+        ],
+        "measures": [
+          {
+            "name": "Receita Total",
+            "expression": "SUM('Vendas'[Receita])",
+            "formatString": "R$ #,##0.00",
+            "description": "Receita consolidada."
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Vendas",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let Source = Sql.Database(\"demo-server\", \"DemoDW\", [Query=\"select id_venda, receita from dbo.vendas\"]) in Source"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Calendario",
+        "columns": [
+          {
+            "name": "Data",
+            "dataType": "dateTime",
+            "sourceColumn": "data"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Calendario",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": "let Source = Excel.Workbook(Web.Contents(\"https://demo.example/calendario.xlsx\"), null, true) in Source"
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "Vendas Calendario",
+        "fromTable": "Vendas",
+        "fromColumn": "Data",
+        "toTable": "Calendario",
+        "toColumn": "Data",
+        "fromCardinality": "Many",
+        "toCardinality": "One",
+        "crossFilteringBehavior": "OneDirection",
+        "isActive": true
+      },
+      {
+        "name": "Vendas Calendario Inativo",
+        "fromTable": "Vendas",
+        "fromColumn": "Data",
+        "toTable": "Calendario",
+        "toColumn": "Data",
+        "fromCardinality": "Many",
+        "toCardinality": "One",
+        "crossFilteringBehavior": "OneDirection",
+        "isActive": false
+      }
+    ]
+  }
+}

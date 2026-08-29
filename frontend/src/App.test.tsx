@@ -151,6 +151,60 @@ describe("LeitorBI Open", () => {
     expect(screen.getByRole("heading", { name: /relacionamentos/i })).toBeInTheDocument();
   });
 
+  it("analisa um ZIP PBIP pelo mesmo fluxo do JSON", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => input.toString().includes("/api/models/analyze")
+      ? jsonResponse(sampleReport)
+      : jsonResponse({ detail: "Not found" }, { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<App />);
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
+    const input = await waitFor(() => container.querySelector<HTMLInputElement>('input[type="file"]'));
+    await userEvent.upload(input!, new File(["PK"], "modelo.pbip.zip", { type: "application/zip" }));
+    expect(await screen.findByRole("heading", { name: "Demo Publica Comercial" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/models/analyze"), expect.objectContaining({
+      method: "POST",
+      body: expect.any(FormData),
+    }));
+  });
+
+  it("compara dois ZIPs PBIP pelo seletor único de arquivos", async () => {
+    const comparison = {
+      dashboard_base: "Demo base",
+      dashboard_novo: "Demo novo",
+      tabelas: { adicionadas: [], removidas: [], modificadas: [] },
+      colunas: { adicionadas: [], removidas: [], modificadas: [] },
+      medidas: { adicionadas: [], removidas: [], modificadas: [] },
+      relacionamentos: { adicionados: [], removidos: [], modificados: [] },
+    };
+    const fetchMock = vi.fn((input: RequestInfo | URL) => input.toString().includes("/api/models/compare")
+      ? jsonResponse(comparison)
+      : jsonResponse({ detail: "Not found" }, { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<App />);
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Comparar" }));
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>(".compare-file input"));
+    await userEvent.upload(inputs[0], new File(["PK"], "base.zip", { type: "application/zip" }));
+    await userEvent.upload(inputs[1], new File(["PK"], "novo.zip", { type: "application/zip" }));
+    await userEvent.click(screen.getByRole("button", { name: /comparar modelos/i }));
+    expect(await screen.findByText(/demo base para demo novo/i)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining("/api/models/compare"), expect.objectContaining({
+      method: "POST",
+      body: expect.any(FormData),
+    }));
+  });
+
+  it("envia projetos PBIP TMDL pelo mesmo fluxo do ZIP", async () => {
+    mockFetch((url) => url.includes("/api/models/analyze")
+      ? jsonResponse(sampleReport)
+      : jsonResponse({ detail: "Not found" }, { status: 404 }));
+    const { container } = render(<App />);
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
+    const input = await waitFor(() => container.querySelector<HTMLInputElement>('input[type="file"]'));
+    await userEvent.upload(input!, new File(["PK"], "tmdl.zip", { type: "application/zip" }));
+    expect(await screen.findByRole("heading", { name: "Demo Publica Comercial" })).toBeInTheDocument();
+  });
+
   it("bloqueia upload inválido antes de enviar para a API", async () => {
     const fetchMock = vi.fn(() => jsonResponse({ detail: "Not found" }, { status: 404 }));
     vi.stubGlobal("fetch", fetchMock);

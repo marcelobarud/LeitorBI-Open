@@ -1,11 +1,15 @@
 import json
 import os
+import tempfile
 from typing import Any
 
 from fastapi import HTTPException, UploadFile
 
+from app.ingestion.pbip_reader import read_pbip_archive
+
 
 DEFAULT_MAX_UPLOAD_MB = 10
+DEFAULT_MAX_PBIP_UPLOAD_MB = 100
 UPLOAD_READ_CHUNK_BYTES = 64 * 1024
 
 
@@ -15,6 +19,15 @@ def max_upload_bytes() -> int:
         megabytes = int(raw_value)
     except ValueError:
         megabytes = DEFAULT_MAX_UPLOAD_MB
+    return max(1, megabytes) * 1024 * 1024
+
+
+def max_pbip_upload_bytes() -> int:
+    raw_value = os.getenv("LEITORBI_MAX_PBIP_UPLOAD_MB", str(DEFAULT_MAX_PBIP_UPLOAD_MB))
+    try:
+        megabytes = int(raw_value)
+    except ValueError:
+        megabytes = DEFAULT_MAX_PBIP_UPLOAD_MB
     return max(1, megabytes) * 1024 * 1024
 
 
@@ -72,6 +85,26 @@ async def read_upload_content(file: UploadFile, limit: int) -> bytes:
             raise HTTPException(status_code=413, detail=f"Arquivo muito grande. O limite atual é {max_mb} MB.")
 
 
+async def read_upload_spooled(file: UploadFile, limit: int) -> tempfile.SpooledTemporaryFile[bytes]:
+    """Recebe o upload em chunks, mantendo somente um buffer pequeno em RAM."""
+    temporary = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024, mode="w+b")
+    total = 0
+    try:
+        while True:
+            chunk = await file.read(min(UPLOAD_READ_CHUNK_BYTES, limit + 1 - total))
+            if not chunk:
+                temporary.seek(0)
+                return temporary
+            total += len(chunk)
+            if total > limit:
+                max_mb = limit // (1024 * 1024)
+                raise HTTPException(status_code=413, detail=f"Arquivo muito grande. O limite atual é {max_mb} MB.")
+            temporary.write(chunk)
+    except Exception:
+        temporary.close()
+        raise
+
+
 async def read_json_upload(file: UploadFile) -> dict[str, Any]:
     filename = file.filename or ""
     if not filename.lower().endswith(".json"):
@@ -93,3 +126,20 @@ async def read_json_upload(file: UploadFile) -> dict[str, Any]:
         ) from exc
 
     return validate_model_export(data)
+
+
+async def read_pbip_upload(file: UploadFile) -> dict[str, Any]:
+    filename = file.filename or ""
+    if not filename.lower().endswith(".zip"):
+        raise HTTPException(status_code=400, detail="Envie um arquivo ZIP de projeto PBIP.")
+
+    upload = await read_upload_spooled(file, max_pbip_upload_bytes())
+    try:
+        upload.seek(0, 2)
+        empty = upload.tell() == 0
+        upload.seek(0)
+        if empty:
+            raise HTTPException(status_code=400, detail="Arquivo vazio. Envie um ZIP de projeto PBIP.")
+        return validate_model_export(read_pbip_archive(upload, filename))
+    finally:
+        upload.close()

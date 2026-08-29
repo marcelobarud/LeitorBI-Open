@@ -99,10 +99,10 @@ export function Overview({
         {!readOnly ? <div className="model-actions">
           <label className="secondary-action file-action">
             <FileJson size={18} />
-            {loading ? t("workspace.analyzing") : t("workspace.replaceJson")}
+            {loading ? t("workspace.analyzing") : t("workspace.replaceModel")}
             <input
               type="file"
-              accept=".json,application/json"
+              accept=".json,.zip,application/json,application/zip,application/x-zip-compressed"
               disabled={loading}
               onChange={(event) => {
                 const file = event.target.files?.[0];

@@ -1,0 +1,3 @@
+model 'Modelo TMSL Demo'
+    culture: pt-BR
+    defaultMode: import

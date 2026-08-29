@@ -12,7 +12,7 @@ Profissionais de BI, analistas e auditores que precisam revisar modelos do Power
 
 ## Product Purpose
 
-O LeitorBI Open transforma exports JSON de modelos Power BI em uma leitura navegável do modelo. Ele permite analisar um modelo, comparar duas versões e exportar a análise para Excel sem exigir login, cadastro, sessão ou conta. O sucesso é o usuário conseguir sair do export do Power BI para uma compreensão técnica clara do modelo com pouco atrito.
+O LeitorBI Open transforma exports JSON e projetos PBIP em uma leitura navegável do modelo semântico. Ele permite analisar um modelo, comparar duas versões e exportar a análise para Excel sem exigir login, cadastro, sessão ou conta. O sucesso é o usuário conseguir sair do Power BI para uma compreensão técnica clara do modelo com pouco atrito.
 
 ## Positioning
 
@@ -20,13 +20,14 @@ Um workspace público e direto para leitura técnica de modelos Power BI, reunin
 
 ## Operating Context
 
-O usuário exporta o modelo a partir do Power BI, normalmente usando o Tabular Editor, e envia o JSON ao LeitorBI Open. A interface é usada para revisar tabelas, colunas, medidas, fontes e relacionamentos, navegar por filtros e buscas, comparar exports entre versões e compartilhar a saída em Excel.
+O usuário pode exportar o modelo a partir do Power BI usando o Tabular Editor e enviar o JSON ao LeitorBI Open, ou salvar o modelo como projeto PBIP e enviar um ZIP com modelo TMSL (`model.bim`) ou TMDL (`definition/`). A interface é usada para revisar tabelas, colunas, medidas, fontes e relacionamentos, navegar por filtros e buscas, comparar versões e compartilhar a saída em Excel.
 
 ## Capabilities and Constraints
 
 - Landing Page com entrada direta no workspace público.
 - Análise de um export JSON de modelo Power BI.
-- Comparação entre dois exports JSON.
+- Análise de um ZIP de projeto PBIP com modelo semântico em TMSL/`model.bim` ou TMDL/`definition/`.
+- Comparação entre dois exports JSON ou dois ZIPs PBIP.
 - Exportação da análise para Excel.
 - Demonstração pública com dados de exemplo.
 - Áreas do workspace: Início, Tutorial, Tabelas, Colunas, Medidas, Fontes, Relacionamentos e Comparar.
@@ -34,6 +35,9 @@ O usuário exporta o modelo a partir do Power BI, normalmente usando o Tabular E
 - O rótulo visível da área de relacionamentos é `Relacionamentos`; contratos internos podem continuar usando nomes técnicos como `relationships`.
 - O fluxo não depende de login, cadastro, sessão, cookies de autenticação, administração ou permissões de usuário.
 - Os arquivos enviados são processados pela API e não são persistidos como modelos do usuário.
+- O PBIP detecta automaticamente TMSL ou TMDL e converte ambos para o mesmo modelo canônico da análise JSON.
+- A ingestão ignora a pasta `.Report`, `cache.abf` e outros artefatos sem equivalente na análise JSON.
+- O limite padrão do JSON é 10 MB; o limite do ZIP PBIP é 100 MB compactados, com teto descompactado explícito de 100 MB e proteções contra abuso de ZIP.
 - O repositório original `LeitorBI-Web` deve permanecer separado e intocado; este contexto vale somente para `LeitorBI-Web Open`.
 - O frontend local usa a porta 5174 e a API local usa a porta 8001 durante o desenvolvimento atual.
 

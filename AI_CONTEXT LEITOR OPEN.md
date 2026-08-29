@@ -70,6 +70,25 @@ cd backend; pytest
 
 Completar o catálogo inglês, adicionar persistência/histórico, criar contas ou controles administrativos, introduzir rate limiting geral da API pública e alterar os algoritmos de análise/comparação não fazem parte desta transformação.
 
+### 2026-08-29 - Suporte a projetos PBIP com TMSL e TMDL
+
+- O fluxo JSON existente foi preservado e continua sendo a referência funcional da análise.
+- O backend passou a aceitar `.zip` de projeto PBIP completo ou da pasta `.SemanticModel`.
+- O PBIP detecta automaticamente `model.bim`/TMSL ou `definition/`/TMDL e normaliza o conteúdo para o mesmo formato lógico usado pelo `PowerBIAnalyzer`.
+- O `.pbip` isolado não é considerado suficiente para análise; projetos sem modelo semântico local recebem mensagem específica. Estruturas TMSL e TMDL simultâneas são rejeitadas como ambíguas.
+- A pasta `.Report`, `cache.abf`, `DAXQueries`, `TMDLScripts`, layouts, visuais e demais artefatos sem equivalente no JSON atual são ignorados.
+- A leitura de ZIP valida tamanho comprimido, tamanho descompactado, quantidade e profundidade de arquivos, caminhos inseguros, links simbólicos, arquivos compactados aninhados e duplicidade de nomes.
+- O limite padrão do JSON permanece em 10 MB; o limite padrão de ZIP PBIP é separado em 100 MB e pode ser configurado por `LEITORBI_MAX_PBIP_UPLOAD_MB`. O teto descompactado também permanece explícito em 100 MB.
+- Análise, comparação e exportação Excel continuam usando os contratos existentes (`ReportResponse`, `CompareResponse` e `build_excel`).
+- O frontend aceita JSON e ZIP PBIP nos fluxos de análise, troca de modelo e comparação, mantendo a direção visual Caderno de evidências.
+- Foi criada fixture controlada de PBIP/TMSL e fixture TMDL com duas tabelas, colunas, medida DAX multilinha, partições M multilinha, relacionamento, cultura, coluna oculta e display folder.
+- O parser TMDL é um componente isolado com tokenização de linhas, indentação, blocos fenced, árvore estrutural e normalização posterior; não usa regex gigante para construir o payload.
+- São rejeitados TMDL incompleto, bloco multilinha não fechado, entidade sem nome, referências de relacionamento inexistentes e projetos com TMSL/TMDL conflitantes.
+- São validados os cruzamentos TMDL × TMDL, TMSL × TMDL e JSON × TMDL, além da exportação Excel pelo fluxo existente.
+- O upload PBIP é recebido incrementalmente em `SpooledTemporaryFile`, mantendo o JSON em seu limite separado e evitando carregar 100 MB compactados integralmente em memória.
+- A aplicação valida limites comprimido/descompactado, quantidade e profundidade de arquivos, caminhos inseguros, links simbólicos, arquivos aninhados e duplicidade; Render/proxy externo não possui limite declarado neste repositório e deve ser validado na implantação.
+- Validação final desta etapa: backend `45 passed`, frontend `27 passed`, build frontend concluído, compilação Python e `git diff --check` concluídos sem erros; permanecem apenas os avisos de depreciação do `on_event` do FastAPI.
+
 ## Historico consolidado
 
 ### 2026-08-12 - Identidade, navegacao e direcao visual

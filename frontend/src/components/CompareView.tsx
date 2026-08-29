@@ -352,7 +352,7 @@ export function CompareView({
 
   async function handleCompare() {
     if (!baseFile || !newFile) {
-      onErrorChange(t("comparison.selectBoth"));
+      onErrorChange(t("comparison.selectBothFiles"));
       return;
     }
 
@@ -376,7 +376,7 @@ export function CompareView({
         <GitCompareArrows size={22} />
         <div>
           <h2>{t("comparison.title")}</h2>
-          <p>{t("comparison.description")}</p>
+          <p>{t("comparison.descriptionModels")}</p>
         </div>
       </header>
 

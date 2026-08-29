@@ -1,0 +1,11 @@
+table 'Calendario'
+    column 'Data'
+        dataType: dateTime
+    partition 'Calendario' = m
+        mode: import
+        source = ```
+            let
+                Source = Excel.Workbook(Web.Contents("https://demo.example/calendario.xlsx"), null, true)
+            in
+                Source
+            ```

@@ -53,6 +53,8 @@ const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
 const MAX_JSON_UPLOAD_MB = 10;
 const MAX_JSON_UPLOAD_BYTES = MAX_JSON_UPLOAD_MB * 1024 * 1024;
+const MAX_PBIP_UPLOAD_MB = 100;
+const MAX_PBIP_UPLOAD_BYTES = MAX_PBIP_UPLOAD_MB * 1024 * 1024;
 const TABLE_SEARCH_DEBOUNCE_MS = 180;
 
 function formatValue(value: Row[string]) {
@@ -92,14 +94,20 @@ function formatFileSize(size: number) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function validateJsonFile(file: File, t: (key: TranslationKey, params?: Record<string, string | number>) => string): string | null {
-  const isJsonName = file.name.toLowerCase().endsWith(".json");
+function validateModelFile(file: File, t: (key: TranslationKey, params?: Record<string, string | number>) => string): string | null {
+  const filename = file.name.toLowerCase();
+  const isJson = filename.endsWith(".json");
+  const isZip = filename.endsWith(".zip");
   const isJsonType = !file.type || file.type === "application/json";
-  if (!isJsonName || !isJsonType) {
-    return t("workspace.invalidFile");
+  const isZipType = !file.type || ["application/zip", "application/x-zip-compressed"].includes(file.type);
+  if ((!isJson || !isJsonType) && (!isZip || !isZipType)) {
+    return t("workspace.invalidModelFile");
   }
-  if (file.size > MAX_JSON_UPLOAD_BYTES) {
+  if (isJson && file.size > MAX_JSON_UPLOAD_BYTES) {
     return t("workspace.uploadTooLarge", { count: MAX_JSON_UPLOAD_MB });
+  }
+  if (isZip && file.size > MAX_PBIP_UPLOAD_BYTES) {
+    return t("workspace.uploadTooLarge", { count: MAX_PBIP_UPLOAD_MB });
   }
   return null;
 }
@@ -319,7 +327,7 @@ function UploadPanel({
             <PlayCircle size={18} />
             {loadingDemo ? t("common.loading") : t("upload.loadExample")}
           </button>
-          <span>{t("upload.realJson")}</span>
+          <span>{t("upload.realModel")}</span>
         </div>
         <div className="hero-proof">
           <div>
@@ -342,11 +350,11 @@ function UploadPanel({
 
       <label className="drop-zone">
         <FileJson size={42} />
-        <strong>{t("workspace.selectModelJson")}</strong>
+        <strong>{t("workspace.selectModelFile")}</strong>
         <span>{t("upload.apiOnly")}</span>
         <input
           type="file"
-          accept=".json,application/json"
+          accept=".json,.zip,application/json,application/zip,application/x-zip-compressed"
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) onAnalyze(file);
@@ -400,7 +408,7 @@ export function App() {
   }
 
   async function handleAnalyze(file: File) {
-    const validationError = validateJsonFile(file, t);
+    const validationError = validateModelFile(file, t);
     if (validationError) {
       setError(validationError);
       setPendingFileLabel(`${file.name} (${formatFileSize(file.size)})`);
@@ -498,7 +506,7 @@ export function App() {
         </nav>
         <div className="compare-teaser">
           <GitCompareArrows size={18} />
-          <span>{t("workspace.compareHint")}</span>
+          <span>{t("workspace.compareHintModels")}</span>
         </div>
       </aside>
 
@@ -507,7 +515,7 @@ export function App() {
           ref={fileInputRef}
           className="workspace-file-input"
           type="file"
-          accept=".json,application/json"
+          accept=".json,.zip,application/json,application/zip,application/x-zip-compressed"
           onChange={handleFileInputChange}
         />
         <header className="workspace-topbar">
@@ -518,7 +526,7 @@ export function App() {
           {!report ? (
             <button className="secondary-action" type="button" onClick={openFilePicker} disabled={loading}>
               <FileJson size={18} />
-              {loading ? t("workspace.analyzing") : t("workspace.uploadJson")}
+              {loading ? t("workspace.analyzing") : t("workspace.uploadModel")}
             </button>
           ) : null}
         </header>

@@ -1,0 +1,27 @@
+table 'Vendas'
+    description: 'Tabela de vendas para teste PBIP.'
+    column 'Id Venda'
+        dataType: int64
+        isHidden: true
+    column 'Receita'
+        dataType: decimal
+        formatString: 'R$ #,##0.00'
+        displayFolder: 'Valores'
+    column 'Data'
+        dataType: dateTime
+    measure 'Receita Total' = ```
+        VAR Total =
+            SUM('Vendas'[Receita])
+        RETURN
+            Total
+        ```
+        formatString: 'R$ #,##0.00'
+        description: 'Receita consolidada.'
+    partition 'Vendas' = m
+        mode: import
+        source = ```
+            let
+                Source = Sql.Database("demo-server", "DemoDW", [Query="select id_venda, receita from dbo.vendas"])
+            in
+                Source
+            ```

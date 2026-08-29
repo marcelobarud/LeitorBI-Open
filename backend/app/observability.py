@@ -7,6 +7,8 @@ from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 
+from app.diagnostics.context import reset_request_id, set_request_id
+
 
 logger = logging.getLogger("leitorbi.api")
 
@@ -16,6 +18,7 @@ async def log_http_request(
     call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     request_id = request.headers.get("x-request-id") or uuid.uuid4().hex
+    request_token = set_request_id(request_id)
     started_at = time.perf_counter()
     status_code = 500
 
@@ -51,3 +54,4 @@ async def log_http_request(
         )
         if "response" in locals():
             response.headers["X-Request-ID"] = request_id
+        reset_request_id(request_token)
