@@ -38,6 +38,20 @@ def normalize_text(value: Any) -> str:
     return safe_text(value).strip().lower()
 
 
+SENSITIVE_QUERY_PARAMETER_RE = re.compile(
+    r"(?i)([?&](?:sig|se|sp|sr|skoid|sktid|skt|ske|sks|skv|token|key|access_token|refresh_token|api[_-]?key)=)[^&#\"'\s]+"
+)
+SENSITIVE_ASSIGNMENT_RE = re.compile(
+    r"(?i)(\b(?:password|passwd|pwd|token|key|access[_-]?token|refresh[_-]?token|client[_-]?secret|api[_-]?key|secret|credential|authorization)\b\s*[:=]\s*)(\"[^\"]*\"|'[^']*'|[^,\]\)\r\n]+)"
+)
+
+
+def redact_sensitive_text(value: Any) -> str:
+    text = safe_text(value)
+    text = SENSITIVE_QUERY_PARAMETER_RE.sub(r"\1[REDACTED]", text)
+    return SENSITIVE_ASSIGNMENT_RE.sub(r"\1[REDACTED]", text)
+
+
 def translate_model_type(value: Any) -> str:
     mapping = {
         "calculatedtable": "Tabela calculada",
@@ -94,6 +108,7 @@ SOURCE_RULES = [
         "all": ["sql.database"],
         "any": ["database.windows.net", ".sql.azuresynapse.net", ".sqlanalytics.net", "synapse"],
     },
+    {"label": "SQL", "any": ["sql.database", "sql.databases"]},
     {"label": "Databricks", "any": ["databricks.catalogs", "databricks.contents"]},
     {"label": "Snowflake", "any": ["snowflake.databases"]},
     {"label": "BigQuery", "any": ["googlebigquery.database"]},
@@ -126,6 +141,7 @@ SOURCE_RULES = [
     {"label": "Analysis Services", "any": ["analysisservices.database"]},
     {"label": "Dataflow", "any": ["powerbi.dataflows"]},
     {"label": "Pasta", "any": ["folder.files", "folder.contents"]},
+    {"label": "Arquivo", "any": ["file.contents"]},
 ]
 
 
@@ -334,6 +350,7 @@ class PowerBIAnalyzer:
             for partition in safe_list(table, "partitions"):
                 expression = safe_value(partition, "expression", "")
                 server, database = detect_database_server(expression)
+                sql = detect_sql_in_m_expression(expression)
                 detected_source_type = display_source_type(self.detect_source_type(
                     expression,
                     safe_value(partition, "sourceType", ""),
@@ -344,10 +361,10 @@ class PowerBIAnalyzer:
                     "Fonte detectada": detected_source_type,
                     "Tipo fonte": display_source_type(translate_model_type(safe_value(partition, "sourceType", ""))),
                     "Modo": translate_model_type(safe_value(partition, "mode", "")),
-                    "Servidor": server,
-                    "Banco": database,
-                    "SQL detectado": detect_sql_in_m_expression(expression),
-                    "Expressao M": expression,
+                    "Servidor": redact_sensitive_text(server),
+                    "Banco": redact_sensitive_text(database),
+                    "SQL detectado": redact_sensitive_text(sql),
+                    "Expressao M": redact_sensitive_text(expression),
                 })
         return rows
 

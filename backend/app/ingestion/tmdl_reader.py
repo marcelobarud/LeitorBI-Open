@@ -16,6 +16,7 @@ from typing import Any, Iterable, Mapping
 from fastapi import HTTPException
 
 from app.diagnostics.events import record_event
+from app.ingestion.normalization import normalize_model
 
 
 HEADER_RE = re.compile(r"^(model|table|column|measure|partition|relationship)\b(.*)$", re.IGNORECASE)
@@ -29,7 +30,25 @@ MEASURE_PROPERTIES = {"description", "isHidden", "formatString", "displayFolder"
 PARTITION_PROPERTIES = {"mode", "source", "expression", "query"}
 RELATIONSHIP_PROPERTIES = {
     "fromTable", "fromColumn", "toTable", "toColumn", "fromCardinality",
-    "toCardinality", "crossFilteringBehavior", "isActive",
+    "toCardinality", "crossFilteringBehavior", "securityFilteringBehavior", "isActive",
+}
+STANDALONE_BOOLEAN_PROPERTIES = {
+    "isHidden", "isNameInferred", "isDefault", "showAsVariationsOnly", "isPrivate", "isActive",
+}
+DEFAULT_EXPRESSION_PROPERTY_KEYS = {
+    "measure": {
+        "formatstring", "displayfolder", "description", "ishidden", "datatype",
+        "lineagetag", "changedproperty", "annotation", "isprivate", "kpi",
+    },
+    "column": {
+        "formatstring", "displayfolder", "description", "ishidden", "datatype",
+        "lineagetag", "changedproperty", "annotation", "sourcecolumn",
+        "datacategory", "summarizeby", "sortbycolumn",
+    },
+}
+EXPRESSION_ASSIGNMENT_KEYS = {
+    "mode", "source", "expression", "query", "formatstring", "displayfolder",
+    "description", "lineagetag", "annotation",
 }
 
 
@@ -70,10 +89,7 @@ def _indent_of(raw: str) -> int:
 
 
 def _strip_comment(text: str) -> str:
-    stripped = text.strip()
-    if stripped.startswith("//"):
-        return ""
-    return stripped
+    return text.strip()
 
 
 def _dedent_block(lines: list[str]) -> str:
@@ -106,6 +122,84 @@ def _consume_fenced(raw_text: str, physical_lines: list[str], index: int, line_n
     raise _error("bloco multilinha aberto sem fechamento.", line_number)
 
 
+def _property_key(text: str) -> str | None:
+    match = PROPERTY_RE.match(text) or ASSIGNMENT_RE.match(text)
+    if match:
+        return match.group(1).lower()
+    metadata_match = re.match(r"^(annotation|ref)\b", text, re.IGNORECASE)
+    return metadata_match.group(1).lower() if metadata_match else None
+
+
+def _is_unfenced_block_boundary(raw: str, indent: int, expression_indent: int, property_keys: set[str]) -> bool:
+    stripped = raw.strip()
+    if not stripped:
+        return False
+    if indent <= expression_indent:
+        return True
+    if indent > expression_indent + 4:
+        return False
+    return _property_key(stripped) in property_keys
+
+
+def _consume_unfenced_block(
+    physical_lines: list[str],
+    index: int,
+    expression_indent: int,
+    property_keys: set[str],
+) -> tuple[int, str]:
+    block_lines: list[str] = []
+    cursor = index + 1
+    while cursor < len(physical_lines):
+        current = physical_lines[cursor]
+        current_indent = _indent_of(current)
+        if _is_unfenced_block_boundary(current, current_indent, expression_indent, property_keys):
+            break
+        block_lines.append(current)
+        cursor += 1
+    return max(index, cursor - 1), _dedent_block(block_lines)
+
+
+def _capture_default_expression(
+    logical: str,
+    physical_lines: list[str],
+    index: int,
+    indent: int,
+) -> tuple[str, int, str] | None:
+    if "```" in logical:
+        return None
+    match = re.match(r"^(measure|column)\b.*=\s*$", logical, re.IGNORECASE)
+    if not match:
+        return None
+    kind = match.group(1).lower()
+    consumed_index, block_value = _consume_unfenced_block(
+        physical_lines,
+        index,
+        indent,
+        DEFAULT_EXPRESSION_PROPERTY_KEYS[kind],
+    )
+    return logical, consumed_index, block_value
+
+
+def _capture_expression_assignment(
+    logical: str,
+    physical_lines: list[str],
+    index: int,
+    indent: int,
+) -> tuple[str, int, str] | None:
+    if "```" in logical:
+        return None
+    match = re.match(r"^(source|expression|query)\s*=\s*$", logical, re.IGNORECASE)
+    if not match:
+        return None
+    consumed_index, block_value = _consume_unfenced_block(
+        physical_lines,
+        index,
+        indent,
+        EXPRESSION_ASSIGNMENT_KEYS,
+    )
+    return logical, consumed_index, block_value
+
+
 def _tokenize(content: bytes, path: str) -> list[TmdlLine]:
     try:
         text = content.decode("utf-8-sig")
@@ -127,6 +221,13 @@ def _tokenize(content: bytes, path: str) -> list[TmdlLine]:
         if "```" in logical:
             logical, consumed_index, block_value = _consume_fenced(logical, physical_lines, index, number)
             index = consumed_index
+        else:
+            captured = _capture_default_expression(logical, physical_lines, index, indent)
+            if captured is None:
+                captured = _capture_expression_assignment(logical, physical_lines, index, indent)
+            if captured is not None:
+                logical, consumed_index, block_value = captured
+                index = consumed_index
         logical = logical.strip()
         if not logical:
             raise _error("declaração vazia antes de um bloco multilinha.", number)
@@ -207,6 +308,12 @@ def _parse_property(token: TmdlLine) -> tuple[str, str] | None:
     return match.group(1), _unquote(value)
 
 
+def _parse_standalone_boolean(token: TmdlLine) -> str | None:
+    if token.text in STANDALONE_BOOLEAN_PROPERTIES:
+        return token.text
+    return None
+
+
 def _parse_document(content: bytes, path: str) -> list[TmdlNode]:
     tokens = _tokenize(content, path)
     roots: list[TmdlNode] = []
@@ -220,6 +327,13 @@ def _parse_document(content: bytes, path: str) -> list[TmdlNode]:
                 raise _error("propriedade fora de uma entidade.", token.number)
             key, value = property_item
             stack[-1].properties[key] = value
+            continue
+
+        standalone_boolean = _parse_standalone_boolean(token)
+        if standalone_boolean is not None:
+            if not stack:
+                raise _error("propriedade fora de uma entidade.", token.number)
+            stack[-1].properties[standalone_boolean] = "true"
             continue
 
         node = _parse_header(token)
@@ -258,32 +372,6 @@ def _bool(value: str, default: bool = False) -> bool:
     return value.strip().lower() in {"true", "1", "yes", "sim"}
 
 
-def _enum(value: str) -> str:
-    values = {
-        "many": "Many",
-        "one": "One",
-        "none": "None",
-        "onedirection": "OneDirection",
-        "bothdirections": "BothDirections",
-        "automatic": "Automatic",
-        "import": "import",
-        "directquery": "directQuery",
-        "dual": "dual",
-    }
-    return values.get(value.strip().lower(), value.strip())
-
-
-def _model_type(value: str, default: str) -> str:
-    values = {
-        "regular": "Regular",
-        "calculated": "CalculatedTable",
-        "calculatedtable": "CalculatedTable",
-        "datacolumn": "DataColumn",
-        "calculatedcolumn": "CalculatedColumn",
-    }
-    return values.get(value.strip().lower(), value.strip() or default)
-
-
 def _reference(value: str) -> tuple[str, str]:
     value = value.strip()
     if "." not in value:
@@ -294,16 +382,18 @@ def _reference(value: str) -> tuple[str, str]:
 
 def _canonical_column(node: TmdlNode) -> dict[str, Any]:
     expression = _property(node, "expression", node.header_value)
-    column_type = _model_type(_property(node, "columnType"), "CalculatedColumn" if expression else "DataColumn")
+    column_type = _property(node, "columnType") or ("CalculatedColumn" if expression else "DataColumn")
     return {
         "name": node.name,
         "dataType": _property(node, "dataType"),
         "columnType": column_type,
-        "isHidden": _bool(_property(node, "isHidden")),
+        "isHidden": _bool(_property(node, "isHidden")) if "isHidden" in node.properties else None,
         "formatString": _property(node, "formatString"),
         "dataCategory": _property(node, "dataCategory"),
         "displayFolder": _property(node, "displayFolder"),
         "description": _property(node, "description"),
+        "summarizeBy": _property(node, "summarizeBy"),
+        "sortByColumn": _property(node, "sortByColumn"),
     }
 
 
@@ -312,10 +402,11 @@ def _canonical_measure(node: TmdlNode) -> dict[str, Any]:
     return {
         "name": node.name,
         "expression": expression,
-        "isHidden": _bool(_property(node, "isHidden")),
+        "isHidden": _bool(_property(node, "isHidden")) if "isHidden" in node.properties else None,
         "formatString": _property(node, "formatString"),
         "displayFolder": _property(node, "displayFolder"),
         "description": _property(node, "description"),
+        "dataType": _property(node, "dataType"),
     }
 
 
@@ -323,8 +414,8 @@ def _canonical_partition(node: TmdlNode) -> dict[str, Any]:
     expression = _property(node, "source") or _property(node, "expression") or _property(node, "query")
     return {
         "name": node.name,
-        "sourceType": _enum(node.header_value),
-        "mode": _enum(_property(node, "mode")),
+        "sourceType": node.header_value,
+        "mode": _property(node, "mode"),
         "expression": expression,
     }
 
@@ -335,10 +426,11 @@ def _canonical_table(node: TmdlNode) -> dict[str, Any]:
     partitions = [child for child in node.children if child.kind == "partition"]
     return {
         "name": node.name,
-        "tableType": _model_type(_property(node, "tableType") or _property(node, "type"), "Regular"),
-        "isHidden": _bool(_property(node, "isHidden")),
-        "isAutoGenerated": _bool(_property(node, "isAutoGenerated")),
+        "tableType": _property(node, "tableType") or _property(node, "type"),
+        "isHidden": _bool(_property(node, "isHidden")) if "isHidden" in node.properties else None,
+        "isAutoGenerated": _bool(_property(node, "isAutoGenerated")) if "isAutoGenerated" in node.properties else None,
         "description": _property(node, "description"),
+        "dataCategory": _property(node, "dataCategory"),
         "columns": [_canonical_column(column) for column in columns],
         "measures": [_canonical_measure(measure) for measure in measures],
         "partitions": [_canonical_partition(partition) for partition in partitions],
@@ -360,10 +452,11 @@ def _canonical_relationship(node: TmdlNode) -> dict[str, Any]:
         "fromColumn": from_column,
         "toTable": to_table,
         "toColumn": to_column,
-        "fromCardinality": _enum(_property(node, "fromCardinality")),
-        "toCardinality": _enum(_property(node, "toCardinality")),
-        "crossFilteringBehavior": _enum(_property(node, "crossFilteringBehavior")),
-        "isActive": _bool(_property(node, "isActive"), True),
+        "fromCardinality": _property(node, "fromCardinality"),
+        "toCardinality": _property(node, "toCardinality"),
+        "crossFilteringBehavior": _property(node, "crossFilteringBehavior"),
+        "securityFilteringBehavior": _property(node, "securityFilteringBehavior"),
+        "isActive": _bool(_property(node, "isActive")) if "isActive" in node.properties else None,
     }
 
 
@@ -434,15 +527,16 @@ def read_tmdl_model(files: Mapping[str, bytes], dashboard_name: str = "", model_
         "exportDate": "",
         "modelMetadata": {
             "culture": _property(model, "culture"),
-            "defaultMode": _enum(default_mode),
+            "defaultMode": default_mode,
         },
         "tables": tables,
         "relationships": relationships,
     }
+    normalized = normalize_model(canonical, source_format="tmdl")
     record_event(
         "tmdl_loaded",
-        tables=len(tables),
-        relationships=len(relationships),
-        measures=sum(len(table["measures"]) for table in tables),
+        tables=len(normalized["tables"]),
+        relationships=len(normalized["relationships"]),
+        measures=sum(len(table["measures"]) for table in normalized["tables"]),
     )
-    return canonical
+    return normalized

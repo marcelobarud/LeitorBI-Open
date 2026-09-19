@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import HTTPException, UploadFile
 
+from app.ingestion.json_reader import read_json_model
 from app.ingestion.pbip_reader import read_pbip_archive
 
 
@@ -125,7 +126,7 @@ async def read_json_upload(file: UploadFile) -> dict[str, Any]:
             detail=f"JSON inválido: verifique a sintaxe na linha {exc.lineno}, coluna {exc.colno}.",
         ) from exc
 
-    return validate_model_export(data)
+    return read_json_model(validate_model_export(data))
 
 
 async def read_pbip_upload(file: UploadFile) -> dict[str, Any]:

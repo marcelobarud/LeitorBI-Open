@@ -77,7 +77,7 @@ cd backend
 pytest
 ```
 
-Os testes cobrem análise, comparação, exportação, upload, segurança/origem, observabilidade, TMSL/TMDL e fluxo público do frontend. Na validação desta etapa: backend `45 passed`, frontend `27 passed` e build frontend concluído; a compilação Python e `git diff --check` também passaram.
+Os testes cobrem análise, comparação, exportação, upload, segurança/origem, observabilidade, TMSL/TMDL, normalização canônica e fluxo público do frontend. A matriz técnica está em `backend/docs/CANONICAL_EQUIVALENCE.md`.
 
 ## Decisões desta versão Open
 
@@ -87,6 +87,8 @@ Os testes cobrem análise, comparação, exportação, upload, segurança/origem
 - O fluxo principal passou a ser `Landing → Iniciar → /app`.
 - O fluxo de entrada aceita o JSON atual e ZIPs de projetos PBIP com `model.bim`/TMSL ou `definition/`/TMDL, normalizados para o mesmo relatório lógico.
 - A ingestão TMDL usa tokenização estrutural por linhas, indentação e blocos fenced, seguida de normalização isolada; não usa uma regex única para gerar o payload final.
+- JSON, TMSL e TMDL passam por um normalizador canônico compartilhado, com aliases de tipos/modos, flags TMDL por presença, tabelas calculadas, chaves de relacionamentos e expressões comparáveis sem alterar o texto original exibido.
+- Medidas preservam o DAX original na análise, inclusive expressões TMDL multilinha não fenced; partições preservam o M completo e usam um detector comum de fontes para JSON, TMSL e TMDL, com redaction de valores sensíveis na resposta visual.
 - Análise, comparação TMDL × TMDL, TMSL × TMDL e JSON × TMDL e exportação Excel reutilizam os contratos e serviços existentes.
 - O limite padrão do JSON permanece em 10 MB; o limite do ZIP PBIP é 100 MB compactados e o teto descompactado permanece explícito em 100 MB. Render/proxies externos não são configurados pelo repositório e devem aceitar esse tamanho na implantação.
 

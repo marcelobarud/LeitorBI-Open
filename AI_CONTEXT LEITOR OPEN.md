@@ -87,7 +87,30 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - São validados os cruzamentos TMDL × TMDL, TMSL × TMDL e JSON × TMDL, além da exportação Excel pelo fluxo existente.
 - O upload PBIP é recebido incrementalmente em `SpooledTemporaryFile`, mantendo o JSON em seu limite separado e evitando carregar 100 MB compactados integralmente em memória.
 - A aplicação valida limites comprimido/descompactado, quantidade e profundidade de arquivos, caminhos inseguros, links simbólicos, arquivos aninhados e duplicidade; Render/proxy externo não possui limite declarado neste repositório e deve ser validado na implantação.
-- Validação final desta etapa: backend `45 passed`, frontend `27 passed`, build frontend concluído, compilação Python e `git diff --check` concluídos sem erros; permanecem apenas os avisos de depreciação do `on_event` do FastAPI.
+- Validação final da etapa anterior: backend `51 passed`, frontend `27 passed`, build frontend concluído, compilação Python e `git diff --check` concluídos sem erros; permanecem apenas os avisos de depreciação do `on_event` do FastAPI.
+
+### 2026-09-19 - Normalização canônica entre JSON, TMSL e TMDL
+
+- Foi criada uma camada compartilhada em `backend/app/ingestion/normalization.py`; JSON, TMSL e TMDL agora entregam aliases, tipos, modos, partições, booleanos e expressões para o mesmo contrato canônico antes do `PowerBIAnalyzer`.
+- `backend/app/ingestion/json_reader.py` passou a ser o adapter explícito do JSON, sem criar uma análise separada.
+- O reader TMDL interpreta booleanos por presença, identifica colunas calculadas pela expressão estrutural e classifica tabelas calculadas a partir de partições `calculated`.
+- DAX e M mantêm `expression` original e recebem `normalizedExpression` conservadora para comparação.
+- Relacionamentos preservam valores ausentes como desconhecidos internamente; não são inventados defaults globais de cardinalidade, direção ou atividade. Chaves internas usam endpoints e discriminam duplicidades por nome/ordinal.
+- `compare.py` usa valores canônicos e expressões normalizadas somente para decidir igualdade, mantendo valores originais na resposta.
+- A matriz de equivalência está em `backend/docs/CANONICAL_EQUIVALENCE.md`.
+- Fixtures JSON × TMSL × TMDL e teste local do modelo `Logistica de Patio v33.SemanticModel.zip` foram adicionados à validação. O ZIP real não pertence ao repositório.
+- Nesta etapa, nenhum recurso visual adicional do PBIP foi incluído; o escopo continua restrito às análises já existentes.
+
+### 2026-09-19 - Segunda etapa: preservação de DAX e classificação comum de fontes
+
+- O diagnóstico rastreou a medida desde a origem TMDL até a tela `Medidas`. A perda ocorria no `backend/app/ingestion/tmdl_reader.py`: expressões não fenced escritas após `measure ... =` eram tratadas como linhas soltas e não chegavam ao modelo canônico. O `PowerBIAnalyzer`, o schema de resposta, `api.ts`, `types.ts` e `DataTable` já preservavam/renderizavam o campo recebido.
+- O parser TMDL agora captura expressões simples e multilinha não fenced, sem encerrar a captura em `VAR ... =`, strings, comentários ou indentação interna. Propriedades estruturais como `formatString`, `displayFolder`, `lineageTag` e `annotation` continuam fora da expressão. Expressões fenced existentes permanecem suportadas.
+- A mesma regra foi aplicada às propriedades `source`, `expression` e `query` de partições TMDL. Isso preserva a expressão M completa, inclusive o padrão `let → Source → Navigation → in`.
+- `expression` continua sendo o texto original para análise/exibição; `normalizedExpression` continua separado e conservador para comparação. O `compare.py` não foi usado como ponto de entrada da correção.
+- A classificação de fontes permanece em um único detector comum no `PowerBIAnalyzer`, depois da ingestão canônica. Foram cobertos explicitamente `SQL`, `Azure SQL / Synapse`, `Pasta`, `Arquivo`, `Excel`, `CSV`, `SharePoint`, `OData`, Web e os demais conectores já existentes. A ordem mantém conectores específicos antes do fallback genérico de `File.Contents`.
+- O relatório visual redige valores com aparência de senha, token, credential, Authorization, chave de API e parâmetros SAS; o texto canônico usado pelo detector não é alterado.
+- No arquivo local `Logistica de Patio v33.SemanticModel.zip`, o estado anterior tinha 48 medidas, 9 DAX vazios e 14 M truncadas. O estado corrigido entrega 48/48 medidas com DAX, 14/14 expressões M completas e classifica as fontes como 10 SQL, 2 Excel, 2 JSON e 4 calculadas, sem fonte não identificada. Partições calculadas sem M são esperadas.
+- A matriz detalhada do contrato e da detecção está em `backend/docs/CANONICAL_EQUIVALENCE.md`. O ZIP real continua apenas em `Downloads` e não deve ser versionado.
 
 ## Historico consolidado
 

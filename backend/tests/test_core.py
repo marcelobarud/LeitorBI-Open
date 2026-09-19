@@ -20,6 +20,7 @@ from app.services.analyzer import PowerBIAnalyzer
 from app.services.compare import compare_models
 from app.services.excel_export import build_excel
 from app.ingestion.loader import read_model_upload
+from app.ingestion.json_reader import read_json_model
 from app.ingestion import pbip_reader
 from app.ingestion.pbip_reader import read_pbip_archive
 from app.upload_validation import max_pbip_upload_bytes, read_json_upload, validate_model_export
@@ -179,7 +180,7 @@ def test_read_pbip_upload_normalizes_tmsl_model_bim():
     assert report["raw"]["dashboardName"] == "Demo"
     assert report["raw"]["modelName"] == "Modelo TMSL Demo"
     assert report["summary"]["Cultura"] == "pt-BR"
-    assert report["summary"]["Modo padrao"] == "import"
+    assert report["summary"]["Modo padrao"] == "Import"
     assert report["measures"][0]["Expressao DAX"] == "SUM('Vendas'[Receita])"
     assert report["sources"][0]["Servidor"] == "demo-server"
     assert report["relationships"][0]["Relacionamento"] == "Vendas Calendario"
@@ -212,7 +213,7 @@ def test_pbip_analysis_comparison_and_excel_use_existing_contracts():
 
 
 def test_pbip_and_json_produce_equivalent_logical_analysis():
-    json_model = json.loads(JSON_EQUIVALENT_PATH.read_text(encoding="utf-8"))
+    json_model = read_json_model(json.loads(JSON_EQUIVALENT_PATH.read_text(encoding="utf-8")))
     pbip_model = asyncio.run(read_model_upload(FakeUpload("Demo.zip", make_pbip_zip())))
 
     json_report = PowerBIAnalyzer(json_model).full_report()
@@ -240,7 +241,7 @@ def test_read_pbip_upload_normalizes_tmdl_model():
     assert report["raw"]["dashboardName"] == "Demo"
     assert report["raw"]["modelName"] == "Modelo TMSL Demo"
     assert report["summary"]["Cultura"] == "pt-BR"
-    assert report["summary"]["Modo padrao"] == "import"
+    assert report["summary"]["Modo padrao"] == "Import"
     assert report["measures"][0]["Expressao DAX"].startswith("VAR Total")
     assert "SUM('Vendas'[Receita])" in report["measures"][0]["Expressao DAX"]
     assert report["sources"][0]["Servidor"] == "demo-server"
@@ -267,7 +268,7 @@ def test_tmdl_ignores_cultures_and_database_definition_files(monkeypatch):
 
 
 def test_tmdl_matches_tmsl_and_json_logical_analysis():
-    json_model = json.loads(JSON_EQUIVALENT_PATH.read_text(encoding="utf-8"))
+    json_model = read_json_model(json.loads(JSON_EQUIVALENT_PATH.read_text(encoding="utf-8")))
     tmsl_model = asyncio.run(read_model_upload(FakeUpload("tmsl.zip", make_pbip_zip())))
     tmdl_model = asyncio.run(read_model_upload(FakeUpload("tmdl.zip", make_tmdl_zip())))
 

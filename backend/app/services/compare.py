@@ -1,6 +1,7 @@
 from typing import Any
 
 from app.services.analyzer import PowerBIAnalyzer, safe_bool, safe_list, safe_text, safe_value
+from app.ingestion.normalization import NORMALIZATION_KEY, relationship_endpoint_key
 
 
 COLUMN_COMPARE_FIELDS = {
@@ -24,12 +25,22 @@ def compare_field_changes(
     after_item: dict[str, Any],
     fields: dict[str, str],
 ) -> list[dict[str, str]]:
+    def comparison_value(item: dict[str, Any], field: str) -> Any:
+        metadata = item.get(NORMALIZATION_KEY, {})
+        if isinstance(metadata, dict):
+            normalized = metadata.get("normalized", {})
+            if isinstance(normalized, dict) and field in normalized:
+                return normalized[field]
+        return item.get(field, "")
+
     changes: list[dict[str, str]] = []
     for field, label in fields.items():
-        before = safe_text(before_item.get(field, "")).strip()
-        after = safe_text(after_item.get(field, "")).strip()
+        before_original = safe_text(before_item.get(field, "")).strip()
+        after_original = safe_text(after_item.get(field, "")).strip()
+        before = safe_text(comparison_value(before_item, field)).strip()
+        after = safe_text(comparison_value(after_item, field)).strip()
         if before != after:
-            changes.append({"campo": label, "antes": before, "depois": after})
+            changes.append({"campo": label, "antes": before_original, "depois": after_original})
     return changes
 
 
@@ -134,8 +145,16 @@ def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[
 
         modified_measures = []
         for measure in sorted(base_measure_names & new_measure_names):
-            before = safe_text(base_measures[measure].get("expression", "")).strip()
-            after = safe_text(new_measures[measure].get("expression", "")).strip()
+            def normalized_expression(item: dict[str, Any]) -> str:
+                metadata = item.get(NORMALIZATION_KEY, {})
+                if isinstance(metadata, dict):
+                    normalized = metadata.get("normalized", {})
+                    if isinstance(normalized, dict) and "expression" in normalized:
+                        return safe_text(normalized["expression"]).strip()
+                return safe_text(item.get("normalizedExpression", item.get("expression", ""))).strip()
+
+            before = normalized_expression(base_measures[measure])
+            after = normalized_expression(new_measures[measure])
             if before != after:
                 modified_measures.append(measure)
                 result["medidas"]["modificadas"].append({
@@ -164,23 +183,42 @@ def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[
                 excluded_tables.add(name)
 
     def relationship_key(relationship: dict[str, Any]) -> str:
+        metadata = relationship.get(NORMALIZATION_KEY, {})
+        if isinstance(metadata, dict) and metadata.get("relationshipKey"):
+            return str(metadata["relationshipKey"])
+        return relationship_endpoint_key(relationship)
+
+    def relationship_display_key(relationship: dict[str, Any]) -> str:
         return (
             f"{relationship.get('fromTable', '')}.{relationship.get('fromColumn', '')} -> "
             f"{relationship.get('toTable', '')}.{relationship.get('toColumn', '')}"
         )
 
     def filtered_relationships(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
-        return {
-            relationship_key(relationship): relationship
-            for relationship in safe_list(data, "relationships")
-            if relationship.get("fromTable", "") not in excluded_tables
-            and relationship.get("toTable", "") not in excluded_tables
-        }
+        result: dict[str, dict[str, Any]] = {}
+        for relationship in safe_list(data, "relationships"):
+            if relationship.get("fromTable", "") in excluded_tables or relationship.get("toTable", "") in excluded_tables:
+                continue
+            key = relationship_key(relationship)
+            if key in result:
+                key = f"{key}|name:{safe_text(relationship.get('name', '')).casefold()}"
+                suffix = 2
+                while key in result:
+                    key = f"{key}|ordinal:{suffix}"
+                    suffix += 1
+            result[key] = relationship
+        return result
 
     base_relationships = filtered_relationships(base_data)
     new_relationships = filtered_relationships(new_data)
-    result["relacionamentos"]["adicionados"] = sorted(set(new_relationships) - set(base_relationships))
-    result["relacionamentos"]["removidos"] = sorted(set(base_relationships) - set(new_relationships))
+    result["relacionamentos"]["adicionados"] = sorted(
+        relationship_display_key(new_relationships[key])
+        for key in set(new_relationships) - set(base_relationships)
+    )
+    result["relacionamentos"]["removidos"] = sorted(
+        relationship_display_key(base_relationships[key])
+        for key in set(base_relationships) - set(new_relationships)
+    )
 
     for relationship in sorted(set(base_relationships) & set(new_relationships)):
         changes = compare_field_changes(
@@ -190,7 +228,7 @@ def compare_models(base_data: dict[str, Any], new_data: dict[str, Any]) -> dict[
         )
         if changes:
             result["relacionamentos"]["modificados"].append({
-                "relacionamento": relationship,
+                "relacionamento": relationship_display_key(base_relationships[relationship]),
                 "alterações": [f"{change['campo']}: {change['antes']} -> {change['depois']}" for change in changes],
             })
 
