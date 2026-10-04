@@ -53,7 +53,7 @@ def _table_type(table: dict[str, Any]) -> str:
 def _canonical_column(column: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": _value(column, "name", ""),
-        "dataType": _value(column, "dataType", ""),
+        "dataType": column.get("dataType"),
         "columnType": _column_type(column),
         "isHidden": column.get("isHidden") if "isHidden" in column else None,
         "formatString": _value(column, "formatString", ""),
@@ -73,7 +73,7 @@ def _canonical_measure(measure: dict[str, Any]) -> dict[str, Any]:
         "formatString": _value(measure, "formatString", ""),
         "displayFolder": _value(measure, "displayFolder", ""),
         "description": _value(measure, "description", ""),
-        "dataType": _value(measure, "dataType", ""),
+        "dataType": measure.get("dataType"),
     }
 
 

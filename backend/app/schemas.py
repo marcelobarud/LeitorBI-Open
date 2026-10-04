@@ -46,6 +46,9 @@ class CompareTableChange(BaseModel):
     medidas_adicionadas: list[str]
     medidas_removidas: list[str]
     medidas_modificadas: list[str]
+    particoes_adicionadas: list[str] = Field(default_factory=list)
+    particoes_removidas: list[str] = Field(default_factory=list)
+    particoes_modificadas: list[str] = Field(default_factory=list)
 
 
 class CompareColumnEntry(BaseModel):

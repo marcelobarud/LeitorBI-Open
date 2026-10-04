@@ -117,8 +117,12 @@ def test_analyzer_demo_report_has_expected_sections():
 
 def test_analyzer_filters_technical_date_tables():
     data = deepcopy(DEMO_MODEL)
-    data["tables"].append({"name": "LocalDateTable_123", "columns": [{"name": "Date"}]})
-    assert all(row["Tabela"] != "LocalDateTable_123" for row in PowerBIAnalyzer(data).full_report()["tables"])
+    generated_name = "LocalDateTable_00000000-0000-0000-0000-000000000001"
+    data["tables"].append({"name": generated_name, "isHidden": True, "columns": [{"name": "Date"}]})
+    data["tables"].append({"name": "LocalDateTable_custom", "columns": [{"name": "Value"}]})
+    report_tables = {row["Tabela"] for row in PowerBIAnalyzer(data).full_report()["tables"]}
+    assert generated_name not in report_tables
+    assert "LocalDateTable_custom" in report_tables
 
 
 def test_compare_models_reports_measure_column_and_relationship_changes():

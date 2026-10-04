@@ -25,6 +25,9 @@ export type CompareTableChange = CompareEntry & {
   medidas_adicionadas: string[];
   medidas_removidas: string[];
   medidas_modificadas: string[];
+  particoes_adicionadas?: string[];
+  particoes_removidas?: string[];
+  particoes_modificadas?: string[];
 };
 
 export type CompareColumnChange = CompareEntry & {

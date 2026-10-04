@@ -8,7 +8,7 @@ Versão web pública e independente do LeitorBI para leitura de modelos Power BI
 - Workspace público em `/app` para upload e análise de JSON Power BI ou ZIP de projeto PBIP com modelo TMSL ou TMDL.
 - Tutorial, resumo, Tabelas, Colunas, Medidas, Fontes e Relacionamentos.
 - Filtros, buscas, paginação, expansão de conteúdo e análise de DAX.
-- Comparação de dois modelos em `/api/models/compare`.
+- Comparação de dois modelos em `/api/models/compare`, incluindo alterações em partições do modelo.
 - Exportação Excel em `/api/models/export-excel`.
 - Demonstração pública em `/demo`.
 - Interface inicial em PT-BR. O catálogo `en-US` e a infraestrutura de internacionalização permanecem disponíveis para evolução futura.
@@ -88,6 +88,7 @@ Os testes cobrem análise, comparação, exportação, upload, segurança/origem
 - O fluxo de entrada aceita o JSON atual e ZIPs de projetos PBIP com `model.bim`/TMSL ou `definition/`/TMDL, normalizados para o mesmo relatório lógico.
 - A ingestão TMDL usa tokenização estrutural por linhas, indentação e blocos fenced, seguida de normalização isolada; não usa uma regex única para gerar o payload final.
 - JSON, TMSL e TMDL passam por um normalizador canônico compartilhado, com aliases de tipos/modos, flags TMDL por presença, tabelas calculadas, chaves de relacionamentos e expressões comparáveis sem alterar o texto original exibido.
+- A comparação trata metadados ausentes como não comparáveis, alinha `columnType` entre formatos e reporta mudanças de partição sem expor a consulta M no detalhe da comparação.
 - Medidas preservam o DAX original na análise, inclusive expressões TMDL multilinha não fenced; partições preservam o M completo e usam um detector comum de fontes para JSON, TMSL e TMDL, com redaction de valores sensíveis na resposta visual.
 - Análise, comparação TMDL × TMDL, TMSL × TMDL e JSON × TMDL e exportação Excel reutilizam os contratos e serviços existentes.
 - O limite padrão do JSON permanece em 10 MB; o limite do ZIP PBIP é 100 MB compactados e o teto descompactado permanece explícito em 100 MB. Render/proxies externos não são configurados pelo repositório e devem aceitar esse tamanho na implantação.
