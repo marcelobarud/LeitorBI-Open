@@ -15,6 +15,7 @@ const baseProps = {
   onLoadingChange: vi.fn(),
   onErrorChange: vi.fn(),
   onClear: vi.fn(),
+  onCompare: vi.fn(async () => null),
 };
 
 function compareResult(overrides: Partial<CompareResult> = {}): CompareResult {

@@ -5,9 +5,10 @@ type CompareFileInputProps = {
   label: string;
   file: File | null;
   onChange: (file: File) => void;
+  disabled?: boolean;
 };
 
-export function CompareFileInput({ label, file, onChange }: CompareFileInputProps) {
+export function CompareFileInput({ label, file, onChange, disabled = false }: CompareFileInputProps) {
   const { t } = useLocale();
   return (
     <label className="compare-file">
@@ -16,6 +17,7 @@ export function CompareFileInput({ label, file, onChange }: CompareFileInputProp
       <strong>{file ? file.name : t("comparison.selectFile")}</strong>
       <input
         type="file"
+        disabled={disabled}
         accept=".json,.zip,application/json,application/zip,application/x-zip-compressed"
         onChange={(event) => {
           const selected = event.target.files?.[0];

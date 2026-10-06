@@ -19,6 +19,7 @@ export function Overview({
   onExport,
   loading,
   exporting,
+  disabled = false,
   isDemo,
   readOnly = false,
 }: {
@@ -28,6 +29,7 @@ export function Overview({
   onExport?: () => void;
   loading?: boolean;
   exporting?: boolean;
+  disabled?: boolean;
   isDemo: boolean;
   readOnly?: boolean;
 }) {
@@ -103,7 +105,7 @@ export function Overview({
             <input
               type="file"
               accept=".json,.zip,application/json,application/zip,application/x-zip-compressed"
-              disabled={loading}
+              disabled={loading || disabled}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";
@@ -111,11 +113,11 @@ export function Overview({
               }}
             />
           </label>
-          <button className="secondary-action" type="button" onClick={onExport} disabled={exporting}>
+          <button className="secondary-action" type="button" onClick={onExport} disabled={exporting || disabled}>
             <Download size={18} />
             {exporting ? t("workspace.exporting") : t("workspace.exportExcel")}
           </button>
-          <button className="ghost-action" type="button" onClick={onClose}>
+          <button className="ghost-action" type="button" onClick={onClose} disabled={disabled}>
             <X size={18} />
             {t("workspace.closeAnalysis")}
           </button>

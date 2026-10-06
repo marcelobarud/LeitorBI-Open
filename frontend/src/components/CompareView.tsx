@@ -1,10 +1,10 @@
 import { ChevronDown, GitCompareArrows, Maximize2, Minimize2, Plus, RotateCcw, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { compareModels } from "../api";
 import { CompareFileInput } from "./CompareFileInput";
 import type { CompareEntry, CompareResult, Row } from "../types";
 import { useLocale } from "../i18n/LocaleProvider";
+import { validateModelFile } from "../lib/pbip/validateModelFile";
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";
@@ -314,6 +314,7 @@ export function CompareView({
   newFile,
   result,
   loading,
+  disabled = false,
   error,
   onBaseFileChange,
   onNewFileChange,
@@ -321,11 +322,13 @@ export function CompareView({
   onLoadingChange,
   onErrorChange,
   onClear,
+  onCompare,
 }: {
   baseFile: File | null;
   newFile: File | null;
   result: CompareResult | null;
   loading: boolean;
+  disabled?: boolean;
   error: string;
   onBaseFileChange: (file: File | null) => void;
   onNewFileChange: (file: File | null) => void;
@@ -333,20 +336,33 @@ export function CompareView({
   onLoadingChange: (loading: boolean) => void;
   onErrorChange: (error: string) => void;
   onClear: () => void;
+  onCompare: (base: File, next: File) => Promise<CompareResult | null>;
 }) {
   const { t } = useLocale();
   const hasComparisonState = Boolean(baseFile || newFile || result || error);
   const normalizedResult = normalizeCompareResult(result);
 
   function handleBaseFileChange(file: File) {
-    onBaseFileChange(file);
     onResultChange(null);
+    const validationError = validateModelFile(file, t);
+    if (validationError) {
+      onBaseFileChange(null);
+      onErrorChange(validationError);
+      return;
+    }
+    onBaseFileChange(file);
     onErrorChange("");
   }
 
   function handleNewFileChange(file: File) {
-    onNewFileChange(file);
     onResultChange(null);
+    const validationError = validateModelFile(file, t);
+    if (validationError) {
+      onNewFileChange(null);
+      onErrorChange(validationError);
+      return;
+    }
+    onNewFileChange(file);
     onErrorChange("");
   }
 
@@ -359,8 +375,8 @@ export function CompareView({
     onLoadingChange(true);
     onErrorChange("");
     try {
-      const comparison = await compareModels(baseFile, newFile);
-      onResultChange(normalizeCompareResult(comparison));
+      const comparison = await onCompare(baseFile, newFile);
+      if (comparison) onResultChange(normalizeCompareResult(comparison));
     } catch (err) {
       onErrorChange(err instanceof Error ? err.message : t("comparison.unexpectedError"));
     } finally {
@@ -381,17 +397,17 @@ export function CompareView({
       </header>
 
       <section className="compare-picker">
-        <CompareFileInput label={t("comparison.baseModel")} file={baseFile} onChange={handleBaseFileChange} />
+        <CompareFileInput label={t("comparison.baseModel")} file={baseFile} onChange={handleBaseFileChange} disabled={disabled || loading} />
         <div className="compare-plus">
           <Plus size={20} />
         </div>
-        <CompareFileInput label={t("comparison.newModel")} file={newFile} onChange={handleNewFileChange} />
+        <CompareFileInput label={t("comparison.newModel")} file={newFile} onChange={handleNewFileChange} disabled={disabled || loading} />
         <div className="compare-actions">
-          <button className="primary-action" disabled={loading || !baseFile || !newFile} onClick={handleCompare}>
+          <button className="primary-action" disabled={disabled || loading || !baseFile || !newFile} onClick={handleCompare}>
             {loading ? t("comparison.comparing") : t("comparison.title")}
           </button>
           {hasComparisonState ? (
-            <button className="ghost-action" type="button" onClick={onClear} disabled={loading}>
+            <button className="ghost-action" type="button" onClick={onClear} disabled={disabled || loading}>
               <RotateCcw size={18} />
               {t("comparison.undo")}
             </button>
@@ -399,7 +415,7 @@ export function CompareView({
         </div>
       </section>
 
-      {error ? <div className="error">{error}</div> : null}
+      {error ? <div className="error" role="alert">{error}</div> : null}
 
       {normalizedResult ? (
         <>

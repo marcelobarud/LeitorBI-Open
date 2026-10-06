@@ -2449,10 +2449,39 @@ input:focus-visible {
   color: var(--success);
 }
 
+.preparation-status {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: space-between;
+}
+
+.preparation-notice {
+  display: grid;
+  gap: 4px;
+}
+
+.preparation-notice small {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .error {
   background: #f9e4dc;
   border: 1px solid #e4ae9b;
   color: var(--rust-dark);
+}
+
+.preparation-fallback p {
+  margin: 0 0 10px;
+}
+
+.preparation-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .demo-lock-note {

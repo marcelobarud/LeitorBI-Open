@@ -39,6 +39,8 @@ import { Overview } from "./components/Overview";
 import { LandingPage } from "./pages/LandingPage";
 import { ROUTES, routeFromPath, type AppRoute } from "./routes";
 import type { CompareResult, Report, Row, TabKey } from "./types";
+import { ModelPreparationError, prepareModelUpload, type PreparedModelUpload } from "./lib/pbip/preparation";
+import { validateModelFile } from "./lib/pbip/validateModelFile";
 
 type DataTabKey = Exclude<TabKey, "overview" | "tutorial" | "compare">;
 
@@ -52,10 +54,6 @@ const demoTabs: Array<{ key: Exclude<TabKey, "tutorial" | "compare">; label: Tra
 
 const PAGE_SIZE = 250;
 const UNIQUE_FILTER_LIMIT = 120;
-const MAX_JSON_UPLOAD_MB = 10;
-const MAX_JSON_UPLOAD_BYTES = MAX_JSON_UPLOAD_MB * 1024 * 1024;
-const MAX_PBIP_UPLOAD_MB = 100;
-const MAX_PBIP_UPLOAD_BYTES = MAX_PBIP_UPLOAD_MB * 1024 * 1024;
 const TABLE_SEARCH_DEBOUNCE_MS = 180;
 
 function formatValue(value: Row[string]) {
@@ -90,27 +88,10 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-function formatFileSize(size: number) {
+function formatFileSize(size: number, locale: string) {
+  const formatter = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function validateModelFile(file: File, t: (key: TranslationKey, params?: Record<string, string | number>) => string): string | null {
-  const filename = file.name.toLowerCase();
-  const isJson = filename.endsWith(".json");
-  const isZip = filename.endsWith(".zip");
-  const isJsonType = !file.type || file.type === "application/json";
-  const isZipType = !file.type || ["application/zip", "application/x-zip-compressed"].includes(file.type);
-  if ((!isJson || !isJsonType) && (!isZip || !isZipType)) {
-    return t("workspace.invalidModelFile");
-  }
-  if (isJson && file.size > MAX_JSON_UPLOAD_BYTES) {
-    return t("workspace.jsonUploadTooLarge");
-  }
-  if (isZip && file.size > MAX_PBIP_UPLOAD_BYTES) {
-    return t("workspace.pbipUploadTooLarge");
-  }
-  return null;
+  return `${formatter.format(size / (1024 * 1024))} MB`;
 }
 
 function TutorialView() {
@@ -439,7 +420,7 @@ function UploadPanel({
 }
 
 export function App() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [currentPath, setCurrentPath] = useState<AppRoute>(() => routeFromPath(window.location.pathname));
   const [report, setReport] = useState<Report | null>(null);
@@ -447,6 +428,8 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [currentUpload, setCurrentUpload] = useState<PreparedModelUpload | null>(null);
+  const [preparationNotices, setPreparationNotices] = useState<PreparedModelUpload[]>([]);
   const [pendingFileLabel, setPendingFileLabel] = useState("");
   const [error, setError] = useState("");
   const [compareBaseFile, setCompareBaseFile] = useState<File | null>(null);
@@ -454,18 +437,32 @@ export function App() {
   const [compareResult, setCompareResult] = useState<CompareResult | null>(null);
   const [compareLoading, setCompareLoading] = useState(false);
   const [compareError, setCompareError] = useState("");
+  const [compareBaseUpload, setCompareBaseUpload] = useState<PreparedModelUpload | null>(null);
+  const [compareNewUpload, setCompareNewUpload] = useState<PreparedModelUpload | null>(null);
+  const [preparationStatusKey, setPreparationStatusKey] = useState<TranslationKey | null>(null);
+  const [preparationFallback, setPreparationFallback] = useState<{
+    code: "operational" | "multiple-caches";
+    fileCount: number;
+  } | null>(null);
+  const preparationController = useRef<AbortController | null>(null);
+  const originalFallbackResolver = useRef<((sendOriginal: boolean) => void) | null>(null);
 
   useEffect(() => {
     function handlePopState() {
+      cancelPreparation();
       setCurrentPath(routeFromPath(window.location.pathname));
     }
 
     window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      cancelPreparation(false);
+    };
   }, []);
 
   function navigateTo(path: AppRoute, options: { replace?: boolean } = {}) {
     if (window.location.pathname !== path) {
+      cancelPreparation();
       const method = options.replace ? "replaceState" : "pushState";
       window.history[method](null, "", path);
     }
@@ -480,24 +477,99 @@ export function App() {
     onErrorChange(err instanceof Error ? err.message : fallback);
   }
 
+  function originalUpload(file: File): PreparedModelUpload {
+    return { original: file, file, inspected: false, cacheRemoved: false, originalSize: file.size, preparedSize: file.size };
+  }
+
+  function requestOriginalFallback(code: "operational" | "multiple-caches", fileCount: number): Promise<boolean> {
+    setPreparationFallback({ code, fileCount });
+    return new Promise((resolve) => {
+      originalFallbackResolver.current = resolve;
+    });
+  }
+
+  function finishOriginalFallback(sendOriginal: boolean) {
+    setPreparationFallback(null);
+    const resolve = originalFallbackResolver.current;
+    originalFallbackResolver.current = null;
+    resolve?.(sendOriginal);
+  }
+
+  function cancelPreparation(updateUi = true) {
+    preparationController.current?.abort();
+    if (updateUi) {
+      finishOriginalFallback(false);
+    } else {
+      const resolve = originalFallbackResolver.current;
+      originalFallbackResolver.current = null;
+      resolve?.(false);
+    }
+  }
+
+  async function prepareFiles(
+    files: File[],
+    statusKeys: TranslationKey[],
+    reusable: Array<PreparedModelUpload | null> = [],
+  ): Promise<PreparedModelUpload[] | null> {
+    const controller = new AbortController();
+    preparationController.current = controller;
+    setPreparationFallback(null);
+    const prepared: PreparedModelUpload[] = [];
+    try {
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index];
+        const existing = reusable[index];
+        if (existing?.original === file && (existing.inspected || !file.name.toLowerCase().endsWith(".zip"))) {
+          prepared.push(existing);
+          continue;
+        }
+        if (file.name.toLowerCase().endsWith(".zip")) setPreparationStatusKey(statusKeys[index] ?? "workspace.preparingProject");
+        try {
+          prepared.push(await prepareModelUpload(file, { signal: controller.signal }));
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") return null;
+          if (err instanceof ModelPreparationError && err.code === "unsafe") throw err;
+          const code = err instanceof ModelPreparationError && err.code === "multiple-caches"
+            ? "multiple-caches"
+            : "operational";
+          setPreparationStatusKey(null);
+          const sendOriginal = await requestOriginalFallback(code, files.length);
+          if (!sendOriginal) return null;
+          return files.map(originalUpload);
+        }
+      }
+      return prepared;
+    } finally {
+      if (preparationController.current === controller) preparationController.current = null;
+      setPreparationStatusKey(null);
+    }
+  }
+
   async function handleAnalyze(file: File) {
+    if (loading || compareLoading || exporting) return;
     const validationError = validateModelFile(file, t);
     if (validationError) {
       setError(validationError);
-      setPendingFileLabel(`${file.name} (${formatFileSize(file.size)})`);
+      setPendingFileLabel(`${file.name} (${formatFileSize(file.size, locale)})`);
       return;
     }
 
     setLoading(true);
     setError("");
-    setPendingFileLabel(`${file.name} (${formatFileSize(file.size)})`);
+    setPendingFileLabel(`${file.name} (${formatFileSize(file.size, locale)})`);
     try {
-      const result = await analyzeModel(file);
+      const uploads = await prepareFiles([file], ["workspace.preparingProject"]);
+      if (!uploads) return;
+      const upload = uploads[0];
+      const result = await analyzeModel(upload.file);
       setReport(result);
       setCurrentFile(file);
+      setCurrentUpload(upload);
+      setPreparationNotices(upload.cacheRemoved ? [upload] : []);
       setActiveTab("overview");
     } catch (err) {
-      handleApiError(err, t("api.unknown"));
+      if (err instanceof ModelPreparationError && err.code === "unsafe") setError(t("workspace.preparationUnsafe"));
+      else handleApiError(err, t("api.unknown"));
     } finally {
       setLoading(false);
     }
@@ -514,17 +586,30 @@ export function App() {
   }
 
   async function handleExport() {
+    if (loading || compareLoading || exporting) return;
     setExporting(true);
     setError("");
     try {
       if (!currentFile) {
         throw new Error(t("workspace.noFile"));
       }
-      const blob = await exportModelExcel(currentFile);
+      let upload = currentUpload?.original === currentFile
+        && (currentUpload.inspected || !currentFile.name.toLowerCase().endsWith(".zip"))
+        ? currentUpload
+        : null;
+      if (!upload) {
+        const uploads = await prepareFiles([currentFile], ["workspace.preparingProject"]);
+        if (!uploads) return;
+        upload = uploads[0];
+        setCurrentUpload(upload);
+      }
+      const blob = await exportModelExcel(upload.file);
+      setPreparationNotices(upload.cacheRemoved ? [upload] : []);
       const dashboardName = report?.raw.dashboardName || "leitorbi";
       downloadBlob(blob, `${dashboardName}_analise.xlsx`);
     } catch (err) {
-      handleApiError(err, t("api.unknown"));
+      if (err instanceof ModelPreparationError && err.code === "unsafe") setError(t("workspace.preparationUnsafe"));
+      else handleApiError(err, t("api.unknown"));
     } finally {
       setExporting(false);
     }
@@ -533,6 +618,8 @@ export function App() {
   function handleCloseAnalysis() {
     setReport(null);
     setCurrentFile(null);
+    setCurrentUpload(null);
+    setPreparationNotices([]);
     setPendingFileLabel("");
     setError("");
     setActiveTab("overview");
@@ -541,9 +628,42 @@ export function App() {
   function handleClearComparison() {
     setCompareBaseFile(null);
     setCompareNewFile(null);
+    setCompareBaseUpload(null);
+    setCompareNewUpload(null);
     setCompareResult(null);
     setCompareLoading(false);
     setCompareError("");
+  }
+
+  function handleCompareBaseFileChange(file: File | null) {
+    setCompareBaseFile(file);
+    setCompareBaseUpload(null);
+  }
+
+  function handleCompareNewFileChange(file: File | null) {
+    setCompareNewFile(file);
+    setCompareNewUpload(null);
+  }
+
+  async function handleCompareUpload(base: File, next: File): Promise<CompareResult | null> {
+    if (loading || exporting) return null;
+    try {
+      const uploads = await prepareFiles(
+        [base, next],
+        ["workspace.preparingBase", "workspace.preparingNew"],
+        [compareBaseUpload, compareNewUpload],
+      );
+      if (!uploads) return null;
+      setCompareBaseUpload(uploads[0]);
+      setCompareNewUpload(uploads[1]);
+      setPreparationNotices(uploads.filter((upload) => upload.cacheRemoved));
+      return await compareModels(uploads[0].file, uploads[1].file);
+    } catch (err) {
+      if (err instanceof ModelPreparationError && err.code === "unsafe") {
+        throw new Error(t("workspace.preparationUnsafe"));
+      }
+      throw err;
+    }
   }
 
   const rowsByTab: Record<DataTabKey, Row[]> = {
@@ -555,6 +675,7 @@ export function App() {
   };
 
   const visibleTabs = tabs;
+  const isBusy = loading || compareLoading || exporting;
   const isDataTab = !["overview", "tutorial", "compare"].includes(activeTab);
   const activeRows = isDataTab ? rowsByTab[activeTab as DataTabKey] : [];
 
@@ -570,7 +691,7 @@ export function App() {
             <button
               key={tab.key}
               className={activeTab === tab.key ? "active" : ""}
-              disabled={!report && !["overview", "tutorial", "compare"].includes(tab.key)}
+              disabled={isBusy || (!report && !["overview", "tutorial", "compare"].includes(tab.key))}
               onClick={() => setActiveTab(tab.key)}
             >
               {t(tab.label)}
@@ -597,7 +718,7 @@ export function App() {
             <strong>{report ? report.raw.dashboardName : pendingFileLabel || t("workspace.noModel")}</strong>
           </div>
           {!report ? (
-            <button className="secondary-action" type="button" onClick={openFilePicker} disabled={loading}>
+            <button className="secondary-action" type="button" onClick={openFilePicker} disabled={isBusy}>
               <FileJson size={18} />
               {loading ? t("workspace.analyzing") : t("workspace.uploadModel")}
             </button>
@@ -606,11 +727,37 @@ export function App() {
         {!report && activeTab === "overview" ? (
           <HomeEmptyState
             onOpenFilePicker={openFilePicker}
-            disabled={loading}
+            disabled={isBusy}
             selectedFileLabel={pendingFileLabel}
           />
         ) : null}
-        {loading ? <div className="status" role="status">{t("workspace.analyzingModel")}</div> : null}
+        {preparationStatusKey ? (
+          <div className="status preparation-status" role="status" aria-live="polite">
+            <span>{t(preparationStatusKey)}</span>
+            <button className="ghost-action" type="button" onClick={() => cancelPreparation()}>{t("workspace.cancelPreparation")}</button>
+          </div>
+        ) : loading && !preparationFallback ? <div className="status" role="status">{t("workspace.analyzingModel")}</div> : null}
+        {preparationFallback ? (
+          <div className="error preparation-fallback" role="alert">
+            <p>{t(preparationFallback.code === "multiple-caches"
+              ? preparationFallback.fileCount > 1 ? "workspace.preparationMultipleCachesMultiple" : "workspace.preparationMultipleCaches"
+              : preparationFallback.fileCount > 1 ? "workspace.preparationOperationalFallbackMultiple" : "workspace.preparationOperationalFallback")}</p>
+            <div className="preparation-controls">
+              <button className="secondary-action" type="button" onClick={() => finishOriginalFallback(true)}>{t("workspace.sendOriginal")}</button>
+              <button className="ghost-action" type="button" onClick={() => finishOriginalFallback(false)}>{t("workspace.cancelPreparation")}</button>
+            </div>
+          </div>
+        ) : null}
+        {preparationNotices.map((notice, index) => (
+          <div className="status preparation-notice" role="status" key={`${notice.original.name}-${index}`}>
+            <strong>{t("workspace.preparationReady")}</strong>
+            <span>{t("workspace.preparationSize", {
+              original: formatFileSize(notice.originalSize, locale),
+              prepared: formatFileSize(notice.preparedSize, locale),
+            })}</span>
+            <small>{t("workspace.preparationNotice")}</small>
+          </div>
+        ))}
         {error ? <div className="error" role="alert">{error}</div> : null}
         {report && activeTab === "overview" ? (
           <Overview
@@ -620,6 +767,7 @@ export function App() {
             onExport={handleExport}
             loading={loading}
             exporting={exporting}
+            disabled={isBusy}
             isDemo={false}
           />
         ) : null}
@@ -631,13 +779,15 @@ export function App() {
               newFile={compareNewFile}
               result={compareResult}
               loading={compareLoading}
+              disabled={isBusy}
               error={compareError}
-              onBaseFileChange={setCompareBaseFile}
-              onNewFileChange={setCompareNewFile}
+              onBaseFileChange={handleCompareBaseFileChange}
+              onNewFileChange={handleCompareNewFileChange}
               onResultChange={setCompareResult}
               onLoadingChange={setCompareLoading}
               onErrorChange={setCompareError}
               onClear={handleClearComparison}
+              onCompare={handleCompareUpload}
             />
           </CompareErrorBoundary>
         ) : null}
