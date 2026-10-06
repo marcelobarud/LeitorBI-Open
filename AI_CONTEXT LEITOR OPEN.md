@@ -238,3 +238,9 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - PBIP passa a ser apresentado como método recomendado para novos usuários; JSON PBIModelExport permanece totalmente suportado como alternativa.
 - A Landing explica o fluxo PBIP primeiro, e o Tutorial passa a ter abas PBIP e Tabular Editor, iniciando em PBIP.
 - Nenhuma mudança foi feita na ingestão ou análise. A camada `.Report` continua planejada e não implementada; a leitura segue focada no Semantic Model.
+
+### 2026-10-06 - Simplificação do hero da Landing
+
+- O mockup “Comercial Executivo” foi removido por baixo valor informativo e por prejudicar a composição e a responsividade em alguns tamanhos.
+- Marca, título, subtítulo, CTAs, recomendação PBIP e alternativa JSON foram preservados; nenhuma substituição visual foi adicionada nesta etapa.
+- Uma representação futura do fluxo PBIP/JSON → análise do Semantic Model pode ser avaliada separadamente.

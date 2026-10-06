@@ -62,18 +62,6 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
           </div>
         </div>
 
-        <div className="landing-preview" aria-hidden="true">
-          <div className="preview-sidebar"><span /><span /><span /><span /></div>
-          <div>
-            <div className="preview-header"><span>{t("landing.previewModelLoaded")}</span><strong>Comercial Executivo</strong></div>
-            <div className="preview-metrics">
-              <div><span>{t("nav.tables")}</span><strong>18</strong></div>
-              <div><span>{t("nav.measures")}</span><strong>64</strong></div>
-              <div><span>{t("nav.sources")}</span><strong>5</strong></div>
-            </div>
-            <div className="preview-table"><span /><span /><span /><span /><span /><span /><span /></div>
-          </div>
-        </div>
       </section>
 
       <section className="landing-insights landing-ledger" aria-label={t("landing.highlights")}>
