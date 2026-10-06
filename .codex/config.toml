@@ -1,0 +1,27 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+model = "gpt-6-luna"
+model_reasoning_effort = "high"
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 4
+interrupt_message = true
+default_subagent_model = "gpt-6-luna"
+default_subagent_reasoning_effort = "high"
+
+[agents.implementer]
+description = "Implementa mudanças compreendidas sem ampliar escopo ou decidir sozinho mudanças arquiteturais."
+config_file = "agents/implementer.toml"
+
+[agents.planner]
+description = "Investiga causas e impactos incertos e entrega um plano fundamentado sem editar implementação."
+config_file = "agents/planner.toml"
+
+[agents.reviewer]
+description = "Revisa mudanças em busca de defeitos e regressões concretas, sem editar arquivos."
+config_file = "agents/reviewer.toml"
+
+[agents.architect]
+description = "Analisa decisões estruturais e trade-offs arquiteturais sem editar a implementação."
+config_file = "agents/architect.toml"
