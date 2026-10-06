@@ -226,3 +226,15 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - Foi adicionado teste de regressão que dispara `scroll` e confirma que `left` e `top` permanecem iguais; a seleção do filtro segue funcionando após a rolagem.
 - Validação manual: em `Colunas`, a rolagem interna mudou `tableScrollTop` de 0 para 500 sem alterar a posição visual do menu. O mesmo teste foi repetido em Tabelas, Medidas, Fontes e Relacionamentos, todos com coordenadas invariáveis.
 - Validação automatizada: 23/23 testes frontend, build frontend e detector Impeccable sem achados.
+
+### 2026-10-03 - Consolidação do roadmap de enriquecimento semântico
+
+- A auditoria da Fase B foi consolidada em `docs/SEMANTIC_ENRICHMENT_ROADMAP.md`.
+- Nenhuma funcionalidade da Fase B foi implementada; futuras implementações devem consultar esse documento.
+- O roadmap de referência é B1 → B2 → B3 → B4 → B5; prioridades podem ser revistas com novas amostras reais.
+
+### 2026-10-06 - PBIP como método recomendado na comunicação
+
+- PBIP passa a ser apresentado como método recomendado para novos usuários; JSON PBIModelExport permanece totalmente suportado como alternativa.
+- A Landing explica o fluxo PBIP primeiro, e o Tutorial passa a ter abas PBIP e Tabular Editor, iniciando em PBIP.
+- Nenhuma mudança foi feita na ingestão ou análise. A camada `.Report` continua planejada e não implementada; a leitura segue focada no Semantic Model.

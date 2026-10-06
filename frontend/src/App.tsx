@@ -13,6 +13,7 @@ import {
 import {
   type ChangeEvent,
   type FormEvent,
+  type KeyboardEvent,
   type ReactNode,
   useEffect,
   useRef,
@@ -104,10 +105,10 @@ function validateModelFile(file: File, t: (key: TranslationKey, params?: Record<
     return t("workspace.invalidModelFile");
   }
   if (isJson && file.size > MAX_JSON_UPLOAD_BYTES) {
-    return t("workspace.uploadTooLarge", { count: MAX_JSON_UPLOAD_MB });
+    return t("workspace.jsonUploadTooLarge");
   }
   if (isZip && file.size > MAX_PBIP_UPLOAD_BYTES) {
-    return t("workspace.uploadTooLarge", { count: MAX_PBIP_UPLOAD_MB });
+    return t("workspace.pbipUploadTooLarge");
   }
   return null;
 }
@@ -116,15 +117,44 @@ function TutorialView() {
   const { t } = useLocale();
   const tutorialStep1Detail = t("tutorial.step1Detail");
   const [step1BeforeTabularEditor, step1AfterTabularEditor] = tutorialStep1Detail.split("Tabular Editor");
+  const tutorialScriptDetail = t("tutorial.step1Title");
+  const [scriptDetailBeforeName, scriptDetailAfterName] = tutorialScriptDetail.split("PBIModelExport");
+  const [activeMethod, setActiveMethod] = useState<"pbip" | "tabular">("pbip");
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const methods = [
+    { key: "pbip", label: t("tutorial.tabPBIP") },
+    { key: "tabular", label: t("tutorial.tabTabularEditor") },
+  ] as const;
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    let nextIndex = index;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % methods.length;
+    else if (event.key === "ArrowLeft") nextIndex = (index + methods.length - 1) % methods.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = methods.length - 1;
+    else return;
+
+    event.preventDefault();
+    const nextMethod = methods[nextIndex];
+    setActiveMethod(nextMethod.key);
+    tabRefs.current[nextIndex]?.focus();
+  }
+
   type TutorialStep = {
     label: string;
     title: string;
     detail: ReactNode;
-    script?: string;
-    scriptHref?: string;
     suffix?: string;
   };
-  const steps: TutorialStep[] = [
+  const pbipSteps: TutorialStep[] = [
+    { label: "1", title: t("tutorial.pbipStep1Title"), detail: t("tutorial.pbipStep1Detail") },
+    { label: "2", title: t("tutorial.pbipStep2Title"), detail: t("tutorial.pbipStep2Detail") },
+    { label: "3", title: t("tutorial.pbipStep3Title"), detail: t("tutorial.pbipStep3Detail") },
+    { label: "4", title: t("tutorial.pbipStep4Title"), detail: t("tutorial.pbipStep4Detail") },
+    { label: "5", title: t("tutorial.pbipStep5Title"), detail: t("tutorial.pbipStep5Detail") },
+  ];
+  const tabularSteps: TutorialStep[] = [
     {
       label: "1",
       title: t("tutorial.step1"),
@@ -143,22 +173,37 @@ function TutorialView() {
       label: "3", title: t("tutorial.step3"), detail: t("tutorial.step3Instructions"),
     },
     {
-      label: "4", title: t("tutorial.step4"), detail: t("tutorial.step1Title"),
-      script: "PBIModelExport",
-      scriptHref: PBI_MODEL_EXPORT_URL,
+      label: "4", title: t("tutorial.step4"),
+      detail: <>{scriptDetailBeforeName}<TechnicalLink href={PBI_MODEL_EXPORT_URL}>PBIModelExport</TechnicalLink>{scriptDetailAfterName}</>,
       suffix: t("tutorial.step1Suffix"),
     },
     {
       label: "5", title: t("tutorial.step5"), detail: t("tutorial.step5Detail"),
-    },
-    {
-      label: "6", title: t("tutorial.step6"), detail: t("tutorial.step6Detail"),
     },
   ];
 
   const tips = [
     t("tutorial.tip1"), t("tutorial.tip2"), t("tutorial.tip3"),
   ];
+
+  function renderSteps(steps: TutorialStep[]) {
+    return (
+      <section className="tutorial-steps">
+        {steps.map((step) => (
+          <article className="tutorial-step" key={step.title}>
+            <span>{step.label}</span>
+            <div>
+              <h3>{step.title}</h3>
+              <p>
+                {step.detail}
+                {step.suffix ?? ""}
+              </p>
+            </div>
+          </article>
+        ))}
+      </section>
+    );
+  }
 
   return (
     <div className="tutorial-page">
@@ -178,34 +223,62 @@ function TutorialView() {
         <ClipboardList size={64} />
       </section>
 
-      <section className="tutorial-steps">
-        {steps.map((step) => (
-          <article className="tutorial-step" key={step.title}>
-            <span>{step.label}</span>
-            <div>
-              <h3>{step.title}</h3>
-              <p>
-                {step.detail}
-                {step.script ? (
-                  <>
-                    {" "}
-                    <TechnicalLink href={step.scriptHref ?? PBI_MODEL_EXPORT_URL}>{step.script}</TechnicalLink>{" "}
-                  </>
-                ) : null}
-                {step.suffix ?? ""}
-              </p>
-            </div>
-          </article>
+      <div className="tutorial-tabs" role="tablist" aria-label={t("tutorial.tabsLabel")}>
+        {methods.map((method, index) => (
+          <button
+            key={method.key}
+            ref={(element) => { tabRefs.current[index] = element; }}
+            id={`tutorial-tab-${method.key}`}
+            className="tutorial-tab"
+            type="button"
+            role="tab"
+            aria-selected={activeMethod === method.key}
+            aria-controls={`tutorial-panel-${method.key}`}
+            tabIndex={activeMethod === method.key ? 0 : -1}
+            onClick={() => setActiveMethod(method.key)}
+            onKeyDown={(event) => handleTabKeyDown(event, index)}
+          >
+            {method.label}
+          </button>
         ))}
+      </div>
+
+      <section
+        className="tutorial-tab-panel"
+        id="tutorial-panel-pbip"
+        role="tabpanel"
+        aria-labelledby="tutorial-tab-pbip"
+        tabIndex={0}
+        hidden={activeMethod !== "pbip"}
+      >
+        <header className="tutorial-method-heading">
+          <h2>{t("tutorial.tabPBIP")} <span>{t("tutorial.recommended")}</span></h2>
+          <p>{t("tutorial.pbipIntro")}</p>
+        </header>
+        {renderSteps(pbipSteps)}
       </section>
 
-      <section className="tutorial-notes">
-        <h3>{t("tutorial.tips")}</h3>
-        <ul>
-          {tips.map((tip) => (
-            <li key={tip}>{tip}</li>
-          ))}
-        </ul>
+      <section
+        className="tutorial-tab-panel"
+        id="tutorial-panel-tabular"
+        role="tabpanel"
+        aria-labelledby="tutorial-tab-tabular"
+        tabIndex={0}
+        hidden={activeMethod !== "tabular"}
+      >
+        <header className="tutorial-method-heading">
+          <h2>{t("tutorial.tabTabularEditor")}</h2>
+          <p>{t("tutorial.tabularSubtitle")}</p>
+        </header>
+        {renderSteps(tabularSteps)}
+        <section className="tutorial-notes">
+          <h3>{t("tutorial.tips")}</h3>
+          <ul>
+            {tips.map((tip) => (
+              <li key={tip}>{tip}</li>
+            ))}
+          </ul>
+        </section>
       </section>
     </div>
   );

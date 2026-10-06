@@ -48,36 +48,77 @@ describe("LeitorBI Open", () => {
     expect(screen.queryByText("03")).not.toBeInTheDocument();
     expect(document.querySelectorAll(".landing-index .benefit-marker")).toHaveLength(3);
     expect(document.querySelectorAll(".landing-index li")).toHaveLength(3);
+    expect(screen.getByText("PBIP recomendado para novos usuários. JSON PBIModelExport continua totalmente suportado.")).toBeInTheDocument();
+    expect(Array.from(document.querySelectorAll(".landing-steps article > strong")).map((element) => element.textContent)).toEqual([
+      "Salve o projeto como PBIP",
+      "Compacte o projeto em ZIP",
+      "Envie o ZIP e explore a análise",
+    ]);
+    expect(screen.getByText("Prefere utilizar JSON?")).toBeInTheDocument();
     const tabularEditorLink = screen.getByRole("link", { name: "Tabular Editor" });
     expect(tabularEditorLink).toHaveAttribute("href", "https://github.com/TabularEditor/TabularEditor/releases/latest");
     expect(tabularEditorLink).toHaveAttribute("target", "_blank");
     expect(tabularEditorLink).toHaveAttribute("rel", "noopener noreferrer");
-    expect(document.querySelector(".landing-steps article p")?.textContent).toBe("Abra o PBIX no Power BI, conecte o Tabular Editor e gere o JSON do modelo com o Script PBIModelExport.");
-    expect(screen.getByRole("link", { name: /como usar/i })).toHaveAttribute("href", "#como-usar");
-    expect(screen.getByRole("link", { name: /ver demonstração/i })).toHaveAttribute("href", "/demo");
-  });
-
-  it("padroniza o link técnico PBIModelExport na Landing e no Tutorial", async () => {
-    const { unmount } = render(<App />);
     const landingScriptLink = screen.getByRole("link", { name: "PBIModelExport" });
     expect(landingScriptLink).toHaveAttribute("href", "https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx");
     expect(landingScriptLink).toHaveAttribute("target", "_blank");
     expect(landingScriptLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getByRole("link", { name: /como usar/i })).toHaveAttribute("href", "#como-usar");
+    expect(screen.getByRole("link", { name: /ver demonstração/i })).toHaveAttribute("href", "/demo");
+  });
+
+  it("mantém os links técnicos corretos na alternativa Tabular Editor do Tutorial", async () => {
+    const { unmount } = render(<App />);
     expect(screen.queryByText("PBIExportModel")).not.toBeInTheDocument();
 
     unmount();
     window.history.pushState(null, "", "/app");
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "Tutorial" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Tabular Editor" }));
     const tutorialScriptLink = screen.getByRole("link", { name: "PBIModelExport" });
     expect(tutorialScriptLink).toHaveAttribute("href", "https://github.com/hihipy/pbi-model-export/blob/main/PBIModelExport.csx");
     expect(tutorialScriptLink).toHaveAttribute("target", "_blank");
     expect(tutorialScriptLink).toHaveAttribute("rel", "noopener noreferrer");
-    expect(document.querySelector(".tutorial-step p")?.textContent).toBe("Baixe e instale o Tabular Editor antes de iniciar a extração.");
+    expect(document.querySelector("#tutorial-panel-tabular .tutorial-step p")?.textContent).toBe("Se ainda não tiver o Tabular Editor, baixe e instale-o antes de iniciar a extração.");
     const tutorialTabularEditorLink = screen.getByRole("link", { name: "Tabular Editor" });
     expect(tutorialTabularEditorLink).toHaveAttribute("href", "https://github.com/TabularEditor/TabularEditor/releases/latest");
     expect(tutorialTabularEditorLink).toHaveAttribute("target", "_blank");
     expect(tutorialTabularEditorLink).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("abre o Tutorial na aba PBIP e troca de método com teclado sem mudar a rota", async () => {
+    render(<App />);
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
+    await userEvent.click(screen.getByRole("button", { name: "Tutorial" }));
+
+    const pbipTab = screen.getByRole("tab", { name: "PBIP" });
+    const tabularTab = screen.getByRole("tab", { name: "Tabular Editor" });
+    expect(pbipTab).toHaveAttribute("aria-selected", "true");
+    expect(tabularTab).toHaveAttribute("aria-selected", "false");
+    expect(pbipTab).toHaveAttribute("aria-controls", "tutorial-panel-pbip");
+    expect(screen.getByRole("tabpanel", { name: /PBIP/ })).toHaveTextContent("Método recomendado");
+    const pbipPanel = document.getElementById("tutorial-panel-pbip");
+    const tabularPanel = document.getElementById("tutorial-panel-tabular");
+    expect(pbipPanel).toBeVisible();
+    expect(tabularPanel).not.toBeVisible();
+    expect(screen.getByText(/<nome>\.pbip e <nome>\.SemanticModel/)).toBeInTheDocument();
+    expect(screen.getByText(/O arquivo \.pbip isolado/)).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/app");
+
+    pbipTab.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(tabularTab).toHaveFocus();
+    expect(tabularTab).toHaveAttribute("aria-selected", "true");
+    expect(pbipPanel).not.toBeVisible();
+    expect(tabularPanel).toBeVisible();
+    expect(screen.getByRole("tabpanel", { name: "Tabular Editor" })).toHaveTextContent("JSON com PBIModelExport");
+    expect(screen.getByRole("heading", { name: "Salve e envie o JSON PBIModelExport" })).toBeInTheDocument();
+
+    await userEvent.keyboard("{ArrowLeft}");
+    expect(pbipTab).toHaveFocus();
+    expect(pbipTab).toHaveAttribute("aria-selected", "true");
+    expect(window.location.pathname).toBe("/app");
   });
 
   it("abre o workspace diretamente ao iniciar, sem consultar autenticação", async () => {
@@ -86,6 +127,11 @@ describe("LeitorBI Open", () => {
     render(<App />);
     await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
     expect(await screen.findByText(/nenhum modelo carregado/i)).toBeInTheDocument();
+    expect(screen.getByText(/PBIP recomendado: envie um ZIP do projeto ou da pasta \.SemanticModel/)).toBeInTheDocument();
+    expect(screen.getByText(/Formatos: projeto PBIP em ZIP ou JSON PBIModelExport/)).toBeInTheDocument();
+    expect(screen.getByText("PBIP recomendado: ZIP até 100 MB; JSON PBIModelExport até 10 MB.")).toBeInTheDocument();
+    expect(screen.getByText("O ZIP pode conter o projeto completo ou apenas a pasta .SemanticModel.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Carregar ZIP de projeto PBIP ou JSON PBIModelExport" })).toBeInTheDocument();
     expect(window.location.pathname).toBe("/app");
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -212,7 +258,26 @@ describe("LeitorBI Open", () => {
     await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
     const input = await waitFor(() => container.querySelector<HTMLInputElement>('input[type="file"]'));
     await userEvent.setup({ applyAccept: false }).upload(input!, new File(["not json"], "modelo.txt", { type: "text/plain" }));
-    expect(await screen.findByText(/arquivo json válido/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Selecione um ZIP de projeto PBIP válido/i)).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("explica o limite específico de cada formato antes de enviar", async () => {
+    const fetchMock = vi.fn(() => jsonResponse({ detail: "Not found" }, { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<App />);
+    await userEvent.click(screen.getAllByRole("button", { name: /iniciar/i })[0]);
+    const input = await waitFor(() => container.querySelector<HTMLInputElement>('input[type="file"]'));
+
+    const oversizedJson = new File(["{}"], "modelo.json", { type: "application/json" });
+    Object.defineProperty(oversizedJson, "size", { value: 10 * 1024 * 1024 + 1 });
+    await userEvent.upload(input!, oversizedJson);
+    expect(await screen.findByText("O JSON PBIModelExport excede o limite de 10 MB.")).toBeInTheDocument();
+
+    const oversizedZip = new File(["PK"], "modelo.zip", { type: "application/zip" });
+    Object.defineProperty(oversizedZip, "size", { value: 100 * 1024 * 1024 + 1 });
+    await userEvent.upload(input!, oversizedZip);
+    expect(await screen.findByText("O ZIP PBIP excede o limite de 100 MB.")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

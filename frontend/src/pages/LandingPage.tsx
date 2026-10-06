@@ -13,9 +13,9 @@ import { PBI_MODEL_EXPORT_URL, TABULAR_EDITOR_URL, TechnicalLink } from "../comp
 
 export function LandingPage({ onStart }: { onStart: () => void }) {
   const { t } = useLocale();
-  const exportDescription = t("landing.exportModelDescription");
-  const [exportDescriptionBeforeTabular, exportDescriptionAfterTabular] = exportDescription.split("Tabular Editor");
-  const [exportDescriptionBeforeScript, exportDescriptionAfterScript] = exportDescriptionAfterTabular.split("PBIModelExport");
+  const jsonAlternative = t("landing.jsonAlternativeDescription");
+  const [jsonBeforeTabular, jsonAfterTabular] = jsonAlternative.split("Tabular Editor");
+  const [jsonBeforeScript, jsonAfterScript] = jsonAfterTabular.split("PBIModelExport");
 
   return (
     <main className="landing-page">
@@ -85,10 +85,11 @@ export function LandingPage({ onStart }: { onStart: () => void }) {
       <section className="landing-steps" id="como-usar">
         <header className="page-header"><ClipboardList size={22} /><div><h2>{t("landing.howToStart")}</h2><p>{t("landing.workflowDescription")}</p></div></header>
         <div>
-          <article><span>1</span><strong>{t("landing.exportModel")}</strong><p>{exportDescriptionBeforeTabular}<TechnicalLink href={TABULAR_EDITOR_URL}>Tabular Editor</TechnicalLink>{exportDescriptionBeforeScript}<TechnicalLink href={PBI_MODEL_EXPORT_URL}>PBIModelExport</TechnicalLink>{exportDescriptionAfterScript}</p></article>
+          <article><span>1</span><strong>{t("landing.exportModel")}</strong><p>{t("landing.exportModelDescription")}</p></article>
           <article><span>2</span><strong>{t("landing.startLeitorBI")}</strong><p>{t("landing.startDescription")}</p></article>
           <article><span>3</span><strong>{t("landing.uploadFilterShare")}</strong><p>{t("landing.uploadFilterShareDescription")}</p></article>
         </div>
+        <p className="landing-json-alternative"><strong>{t("landing.jsonAlternativeTitle")}</strong>{" "}{jsonBeforeTabular}<TechnicalLink href={TABULAR_EDITOR_URL}>Tabular Editor</TechnicalLink>{jsonBeforeScript}<TechnicalLink href={PBI_MODEL_EXPORT_URL}>PBIModelExport</TechnicalLink>{jsonAfterScript}</p>
       </section>
     </main>
   );
