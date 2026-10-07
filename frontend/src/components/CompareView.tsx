@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { CompareFileInput } from "./CompareFileInput";
 import type { CompareEntry, CompareResult, Row } from "../types";
 import { useLocale } from "../i18n/LocaleProvider";
-import { validateModelFile } from "../lib/pbip/validateModelFile";
+import { validateModelFile } from "../lib/modelFileValidation";
 
 function formatValue(value: Row[string]) {
   if (value === null || value === undefined || value === "") return "-";

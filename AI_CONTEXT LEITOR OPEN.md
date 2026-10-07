@@ -245,16 +245,11 @@ Completar o catálogo inglês, adicionar persistência/histórico, criar contas 
 - Marca, título, subtítulo, CTAs, recomendação PBIP e alternativa JSON foram preservados; nenhuma substituição visual foi adicionada nesta etapa.
 - Uma representação futura do fluxo PBIP/JSON → análise do Semantic Model pode ser avaliada separadamente.
 
-### 2026-10-06 - Preparação local de ZIP PBIP
+### 2026-10-06 - Estratégia de upload PBIP após publicação
 
-- O frontend prepara ZIPs PBIP em um Web Worker de curta duração com `@zip.js/zip.js` 2.23.0, carregado sob demanda; remove exclusivamente a entrada cujo caminho termina exatamente em `.pbi/cache.abf` (case-sensitive) da cópia enviada. O original do usuário permanece intacto e o backend continua aceitando e validando o ZIP original.
-- ZIP sem cache segue sem cópia; múltiplos caches exigem escolha explícita para enviar o original ou cancelar; estrutura insegura é bloqueada e falha operacional também exige fallback explícito. O preparo pode ser cancelado e a navegação encerra o Worker e qualquer fallback pendente.
-- A referência original/preparada é mantida enquanto o modelo ou par de comparação correspondente estiver ativo e reutilizada em análise, comparação e exportação Excel. JSON continua no fluxo atual. Nenhum tratamento de `.Report` foi implementado.
-- No fixture local `Logistica de Patio v33.SemanticModel.zip`, o arquivo passou de 69.210.925 para 345.692 bytes; os 129 itens mantidos (122 arquivos e 7 diretórios) foram preservados, com hashes idênticos para os arquivos. Análise e comparação tiveram respostas equivalentes com o backend local; exportação Excel foi aberta com sucesso e continha 7 planilhas.
-
-### 2026-10-06 - Correção da inspeção local de ZIP PBIP
-
-- Um teste no navegador real encontrou falso bloqueio antes do upload: a inspeção exigia que cada tamanho descompactado declarado fosse menor que o ZIP compactado inteiro. O `cache.abf` válido excedia esse valor, embora o total descompactado estivesse dentro do limite vigente do backend.
-- A inspeção agora limita o tamanho compactado da entrada pelo tamanho do ZIP e valida o tamanho descompactado pelo limite total declarado, que continua incluindo o cache. Não houve mudança no backend nem relaxamento do limite total.
-- O Worker valida respostas desconhecidas como falha operacional e também encerra em erro síncrono ao enviar o arquivo.
-- Revalidação no navegador local: o Worker preparou o ZIP real (66 MB → 338 KB), a análise terminou em HTTP 200 e exibiu o Dashboard; comparação PBIP × PBIP terminou em HTTP 200 com zero mudanças; exportação Excel usou o arquivo preparado e terminou em HTTP 200.
+- A preparação local de ZIP PBIP foi removida após a publicação pública não localizar o asset do Web Worker (404), o que bloqueava o fluxo antes da chamada à API.
+- A decisão atual é enviar o arquivo ZIP original diretamente do navegador para a API em análise, troca de modelo, comparação e exportação Excel. O upload poderá trafegar aproximadamente 69 MB no fixture real.
+- O frontend mantém validação de tipo/extensão e os limites existentes (JSON 10 MB; PBIP ZIP 100 MB), sem inspecionar a estrutura interna do ZIP.
+- O backend continua responsável pela validação integral do ZIP, inclusive limites comprimido/descompactado, quantidade e profundidade de entradas, traversal, paths absolutos, duplicatas, symlinks e arquivos compactados aninhados. `cache.abf` continua contado nos limites, mas não é lido nem interpretado semanticamente; leitores TMSL/TMDL só abrem os artefatos relevantes ao modelo semântico.
+- Não há Worker PBIP, dependência `@zip.js/zip.js` nem reconstrução de ZIP no fluxo atual. A camada `.Report` continua fora de escopo.
+- Histórico: a estratégia frontend anterior foi auditada e funcionou localmente, mas foi abandonada por simplicidade e confiabilidade do deploy público.

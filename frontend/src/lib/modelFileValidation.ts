@@ -1,7 +1,7 @@
-import type { TranslationKey } from "../../i18n/types";
-import { MAX_PBIP_UPLOAD_BYTES } from "./preparation";
+import type { TranslationKey } from "../i18n/types";
 
 export const MAX_JSON_UPLOAD_BYTES = 10 * 1024 * 1024;
+export const MAX_PBIP_UPLOAD_BYTES = 100 * 1024 * 1024;
 
 export function validateModelFile(
   file: File,
